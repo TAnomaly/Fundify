@@ -1,0 +1,222 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignCategory {
+  TECHNOLOGY
+  CREATIVE
+  COMMUNITY
+  BUSINESS
+  EDUCATION
+  HEALTH
+  ENVIRONMENT
+  OTHER
+}
+
+enum DonationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String
+  avatar        String?
+  bio           String?
+  role          UserRole  @default(USER)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  campaigns     Campaign[]
+  donations     Donation[]
+  comments      Comment[]
+  campaignUpdates CampaignUpdate[]
+  withdrawals   Withdrawal[]
+
+  @@index([email])
+}
+
+model Campaign {
+  id              String          @id @default(uuid())
+  slug            String          @unique
+  title           String
+  description     String
+  story           String          @db.Text
+  category        CampaignCategory
+  goalAmount      Float
+  currentAmount   Float           @default(0)
+  currency        String          @default("USD")
+  status          CampaignStatus  @default(DRAFT)
+
+  // Media
+  coverImage      String
+  images          String[]
+  videoUrl        String?
+
+  // Dates
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Creator
+  creatorId       String
+  creator         User            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Relations
+  donations       Donation[]
+  rewards         Reward[]
+  updates         CampaignUpdate[]
+  comments        Comment[]
+  withdrawals     Withdrawal[]
+
+  @@index([slug])
+  @@index([creatorId])
+  @@index([status])
+  @@index([category])
+}
+
+model Reward {
+  id              String    @id @default(uuid())
+  title           String
+  description     String
+  amount          Float
+  deliveryDate    DateTime?
+  limitedQuantity Int?
+  claimedCount    Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  campaignId      String
+  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Relations
+  donations       Donation[]
+
+  @@index([campaignId])
+}
+
+model Donation {
+  id          String         @id @default(uuid())
+  amount      Float
+  message     String?
+  anonymous   Boolean        @default(false)
+  status      DonationStatus @default(PENDING)
+
+  // Payment info
+  paymentMethod String?
+  transactionId String?
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  donorId     String
+  donor       User           @relation(fields: [donorId], references: [id], onDelete: Cascade)
+
+  campaignId  String
+  campaign    Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  rewardId    String?
+  reward      Reward?        @relation(fields: [rewardId], references: [id], onDelete: SetNull)
+
+  @@index([donorId])
+  @@index([campaignId])
+  @@index([status])
+}
+
+model CampaignUpdate {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   @db.Text
+  images      String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([authorId])
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Self-referential for replies
+  parentId    String?
+  parent      Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[] @relation("CommentReplies")
+
+  @@index([userId])
+  @@index([campaignId])
+  @@index([parentId])
+}
+
+model Withdrawal {
+  id              String           @id @default(uuid())
+  amount          Float
+  status          WithdrawalStatus @default(PENDING)
+  requestedAt     DateTime         @default(now())
+  processedAt     DateTime?
+  notes           String?
+
+  // Bank details (encrypted in production)
+  bankAccount     String?
+
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  campaignId      String
+  campaign        Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([campaignId])
+  @@index([status])
+}
