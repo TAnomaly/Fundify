@@ -14,7 +14,7 @@ import {
 
 // Create axios instance with default config
 const api: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -193,7 +193,11 @@ export const authApi = {
     password: string;
     username: string;
   }): Promise<ApiResponse<{ token: string; user: User }>> => {
-    const { data } = await api.post("/auth/register", userData);
+    const { data } = await api.post("/auth/register", {
+      email: userData.email,
+      password: userData.password,
+      name: userData.username,
+    });
     if (data.success && data.data?.token) {
       localStorage.setItem("authToken", data.data.token);
     }

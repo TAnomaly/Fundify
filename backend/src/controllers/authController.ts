@@ -53,6 +53,7 @@ export const register = async (
     const token = generateToken({
       userId: user.id,
       email: user.email,
+      username: user.name,
       role: user.role,
     });
 
@@ -117,6 +118,7 @@ export const login = async (
     const token = generateToken({
       userId: user.id,
       email: user.email,
+      username: user.name,
       role: user.role,
     });
 

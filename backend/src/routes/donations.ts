@@ -10,15 +10,15 @@ import { authenticate } from '../middleware/auth';
 const router = Router();
 
 // POST /api/donations
-router.post('/', authenticate, createDonation);
+router.post('/', authenticate as any, createDonation as any);
 
 // GET /api/donations/my
-router.get('/my', authenticate, getMyDonations);
+router.get('/my', authenticate as any, getMyDonations as any);
 
 // GET /api/donations/:id
-router.get('/:id', authenticate, getDonationById);
+router.get('/:id', authenticate as any, getDonationById as any);
 
 // GET /api/donations/campaign/:campaignId
-router.get('/campaign/:campaignId', getDonationsByCampaign);
+router.get('/campaign/:campaignId', getDonationsByCampaign as any);
 
 export default router;

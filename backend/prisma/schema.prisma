@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -57,6 +58,7 @@ model User {
   bio           String?
   role          UserRole  @default(USER)
   emailVerified Boolean   @default(false)
+  githubId      String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -68,6 +70,7 @@ model User {
   withdrawals   Withdrawal[]
 
   @@index([email])
+  @@index([githubId])
 }
 
 model Campaign {
