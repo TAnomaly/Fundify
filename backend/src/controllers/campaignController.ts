@@ -174,8 +174,9 @@ export const createCampaign = async (
       data: {
         ...validatedData,
         slug,
+        status: 'ACTIVE',
         creatorId: userId,
-        startDate: validatedData.startDate ? new Date(validatedData.startDate) : undefined,
+        startDate: validatedData.startDate ? new Date(validatedData.startDate) : new Date(),
         endDate: validatedData.endDate ? new Date(validatedData.endDate) : undefined,
       },
       include: {
