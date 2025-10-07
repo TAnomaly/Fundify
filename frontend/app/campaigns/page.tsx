@@ -104,14 +104,15 @@ export default function CampaignsPage() {
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-soft">
       {/* Header */}
-      <div className="bg-gradient-hero py-16 text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-gradient-primary py-20 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Explore Campaigns
           </h1>
-          <p className="text-lg md:text-xl opacity-90 max-w-2xl">
+          <p className="text-lg md:text-xl text-white/90 max-w-2xl">
             Discover amazing projects from creators around the world and help bring them to life
           </p>
         </div>
@@ -119,9 +120,9 @@ export default function CampaignsPage() {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Search and Filters */}
-        <div className="mb-8 space-y-6">
+        <div className="mb-10 space-y-6">
           {/* Search Bar */}
-          <div className="relative max-w-xl">
+          <div className="relative max-w-2xl">
             <svg
               className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
               fill="none"
@@ -141,26 +142,26 @@ export default function CampaignsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-              className="w-full pl-12 pr-4 py-3 rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full pl-12 pr-28 py-4 rounded-2xl border-0 bg-glass-card shadow-soft focus:outline-none focus:ring-2 focus:ring-primary/50 focus:shadow-soft-hover transition-all"
             />
             <button
               onClick={handleSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-gradient-primary text-white rounded-xl hover:shadow-glow transition-all font-semibold"
             >
               Search
             </button>
           </div>
 
           {/* Category Filter */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => handleCategoryChange(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-soft ${
                   selectedCategory === category
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    ? "bg-gradient-primary text-white shadow-glow scale-105"
+                    : "bg-glass-card text-foreground hover:shadow-soft-hover hover:scale-105"
                 }`}
               >
                 {category === "All" ? category : category.charAt(0) + category.slice(1).toLowerCase()}

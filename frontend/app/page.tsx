@@ -100,38 +100,42 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-hero opacity-10 animate-gradient-x" />
+      <section className="relative overflow-hidden bg-gradient-soft">
+        <div className="absolute inset-0 bg-gradient-primary opacity-5 animate-gradient-x" />
 
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-36">
           <div className={`max-w-4xl mx-auto text-center transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
-              <span className="text-gradient">Fund Your Dreams,</span>
+            <div className="inline-block mb-6 px-4 py-2 bg-glass rounded-full">
+              <span className="text-sm font-semibold text-gradient">🌟 Join 89,234+ Backers Worldwide</span>
+            </div>
+
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+              <span className="text-gradient">Make a Difference,</span>
               <br />
-              <span className="text-foreground">Change The World</span>
+              <span className="text-foreground">One Campaign at a Time</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              The modern crowdfunding platform that helps creative minds bring their innovative projects to life. Join thousands of creators and backers making a difference.
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+              Empower dreams, support innovation, and create positive change. Join the community that's turning ideas into reality through the power of collective giving.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button size="xl" variant="gradient" asChild>
+              <Button size="xl" variant="gradient" className="shadow-soft hover:shadow-soft-hover" asChild>
                 <a href="/campaigns/create">Start Your Campaign</a>
               </Button>
-              <Button size="xl" variant="outline" asChild>
+              <Button size="xl" variant="outline" className="border-2" asChild>
                 <a href="/campaigns">Explore Projects</a>
               </Button>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20">
               {stats.map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-gradient mb-2">
+                <div key={index} className="text-center group">
+                  <div className="text-3xl md:text-4xl font-bold text-gradient mb-2 group-hover:scale-110 transition-transform">
                     {stat.value}
                   </div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  <div className="text-sm font-medium text-muted-foreground">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -139,12 +143,13 @@ export default function Home() {
         </div>
 
         {/* Decorative elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" />
-        <div className="absolute top-40 right-10 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{ animationDelay: "2s" }} />
+        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
+        <div className="absolute top-40 right-10 w-96 h-96 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: "2s" }} />
+        <div className="absolute bottom-20 left-1/2 w-96 h-96 bg-emerald-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: "4s" }} />
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-24 bg-white dark:bg-slate-900">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -155,17 +160,17 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="bg-card rounded-xl p-6 border shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1"
+                className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-soft-hover transition-all duration-300 hover:-translate-y-2 group"
               >
-                <div className="w-12 h-12 rounded-lg bg-gradient-primary text-white flex items-center justify-center mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-primary text-white flex items-center justify-center mb-4 shadow-soft group-hover:shadow-glow transition-all">
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -173,7 +178,7 @@ export default function Home() {
       </section>
 
       {/* Trending Campaigns Section */}
-      <section className="py-20">
+      <section className="py-24 bg-gradient-soft">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-12">
             <div>
@@ -184,19 +189,19 @@ export default function Home() {
                 Discover the most popular projects backed by our community
               </p>
             </div>
-            <Button variant="outline" asChild className="hidden md:inline-flex">
+            <Button variant="outline" asChild className="hidden md:inline-flex border-2">
               <a href="/campaigns">View All</a>
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trendingCampaigns.map((campaign) => (
               <CampaignCard key={campaign.id} {...campaign} />
             ))}
           </div>
 
           <div className="mt-8 text-center md:hidden">
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="border-2">
               <a href="/campaigns">View All Campaigns</a>
             </Button>
           </div>
@@ -204,27 +209,27 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-hero relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/20" />
+      <section className="py-24 bg-gradient-primary relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl mx-auto text-center text-white">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Ready to Bring Your Idea to Life?
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              Ready to Make an Impact?
             </h2>
-            <p className="text-lg md:text-xl mb-8 opacity-90">
-              Join thousands of creators who have successfully funded their projects on Fundify. Start your campaign today and make your dreams a reality.
+            <p className="text-lg md:text-xl mb-10 text-white/90 leading-relaxed">
+              Join thousands of changemakers who are turning their ideas into reality. Start your campaign today and bring your vision to life with the support of a global community.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="xl" variant="glass" asChild>
-                <a href="/campaigns/create">Create Campaign</a>
+              <Button size="xl" className="bg-white text-blue-600 hover:bg-white/90 shadow-soft-hover font-semibold" asChild>
+                <a href="/campaigns/create">Start Your Campaign</a>
               </Button>
-              <Button size="xl" variant="outline" className="border-white text-white hover:bg-white hover:text-purple-600" asChild>
-                <a href="/how-it-works">Learn How It Works</a>
+              <Button size="xl" variant="outline" className="border-2 border-white text-white hover:bg-white/10 backdrop-blur-sm" asChild>
+                <a href="/campaigns">Explore Projects</a>
               </Button>
             </div>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-20" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-30" />
       </section>
     </div>
   );
