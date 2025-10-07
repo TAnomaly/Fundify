@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { Navbar } from "@/components/Navbar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -47,50 +49,13 @@ export default function RootLayout({
           "font-sans antialiased"
         )}
       >
+        <Toaster position="top-right" />
         <div className="relative min-h-screen bg-background">
           {/* Background gradient */}
           <div className="fixed inset-0 -z-10 bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800" />
 
           {/* Navigation */}
-          <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-lg">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex h-16 items-center justify-between">
-                <div className="flex items-center gap-8">
-                  <a href="/" className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                      <span className="text-white font-bold text-xl">F</span>
-                    </div>
-                    <span className="text-xl font-bold text-gradient">Fundify</span>
-                  </a>
-
-                  <div className="hidden md:flex items-center gap-6">
-                    <a href="/campaigns" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-                      Explore
-                    </a>
-                    <a href="/campaigns?category=trending" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-                      Trending
-                    </a>
-                    <a href="/about" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-                      About
-                    </a>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <a href="/campaigns/create" className="hidden sm:block">
-                    <button className="px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors">
-                      Start a Campaign
-                    </button>
-                  </a>
-                  <a href="/login">
-                    <button className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-primary text-white hover:opacity-90 transition-opacity">
-                      Sign In
-                    </button>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </nav>
+          <Navbar />
 
           {/* Main content */}
           <main className="flex-1">{children}</main>
