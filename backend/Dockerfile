@@ -10,7 +10,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -21,5 +21,8 @@ RUN npx prisma generate
 # Expose port
 EXPOSE 4000
 
-# Start command (overridden by docker-compose)
-CMD ["npm", "run", "dev"]
+# Build TypeScript
+RUN npm run build
+
+# Start command
+CMD ["npm", "start"]
