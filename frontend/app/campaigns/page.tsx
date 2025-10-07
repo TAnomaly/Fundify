@@ -203,7 +203,18 @@ export default function CampaignsPage() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {filteredCampaigns.map((campaign) => (
-                <CampaignCard key={campaign.id} campaign={campaign} />
+                <CampaignCard
+                  key={campaign.id}
+                  title={campaign.title}
+                  description={campaign.description}
+                  imageUrl={campaign.coverImage || campaign.imageUrl}
+                  goal={campaign.goal || campaign.goalAmount}
+                  currentAmount={campaign.currentAmount}
+                  category={campaign.category}
+                  daysRemaining={campaign.endDate ? Math.max(Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)), 0) : 0}
+                  backers={campaign.backers || 0}
+                  slug={campaign.slug}
+                />
               ))}
             </div>
 
