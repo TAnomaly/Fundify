@@ -8,20 +8,21 @@ import {
   getMyCampaigns,
 } from '../controllers/campaignController';
 import { authenticate } from '../middleware/auth';
+import { createCampaignLimiter, readLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
-// GET /api/campaigns
-router.get('/', getAllCampaigns as any);
+// GET /api/campaigns - with lenient rate limit
+router.get('/', readLimiter, getAllCampaigns as any);
 
 // GET /api/campaigns/my
 router.get('/my', authenticate as any, getMyCampaigns as any);
 
-// GET /api/campaigns/:slug
-router.get('/:slug', getCampaignBySlug as any);
+// GET /api/campaigns/:slug - with lenient rate limit
+router.get('/:slug', readLimiter, getCampaignBySlug as any);
 
-// POST /api/campaigns
-router.post('/', authenticate as any, createCampaign as any);
+// POST /api/campaigns - with strict rate limiting
+router.post('/', authenticate as any, createCampaignLimiter, createCampaign as any);
 
 // PUT /api/campaigns/:id
 router.put('/:id', authenticate as any, updateCampaign as any);

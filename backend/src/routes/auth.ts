@@ -3,14 +3,15 @@ import { register, login, getMe } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
 import passport from '../config/passport';
 import { generateToken } from '../utils/jwt';
+import { authLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
-// POST /api/auth/register
-router.post('/register', register);
+// POST /api/auth/register - with rate limiting
+router.post('/register', authLimiter, register);
 
-// POST /api/auth/login
-router.post('/login', login);
+// POST /api/auth/login - with rate limiting
+router.post('/login', authLimiter, login);
 
 // GET /api/auth/me
 router.get('/me', authenticate as any, getMe);
