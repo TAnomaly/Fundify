@@ -18,6 +18,7 @@ export const createCampaignSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters').max(200),
   story: z.string().min(100, 'Story must be at least 100 characters'),
+  type: z.enum(['PROJECT', 'CREATOR', 'CHARITY']).default('PROJECT'),
   category: z.enum([
     'TECHNOLOGY',
     'CREATIVE',
