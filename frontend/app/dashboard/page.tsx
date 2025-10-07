@@ -150,14 +150,22 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen pb-20">
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-16">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold mb-2">
-            Welcome back, {user?.username || "Friend"}!
-          </h1>
-          <p className="text-lg opacity-90">
-            Here's what's happening with your campaigns and donations
+    <div className="min-h-screen pb-20 bg-gradient-soft">
+      <div className="bg-gradient-primary text-white py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h1 className="text-4xl font-bold">
+              Welcome back, {user?.username || "Friend"}!
+            </h1>
+          </div>
+          <p className="text-lg text-white/90 max-w-2xl">
+            Track your impact, manage campaigns, and see how you're making a difference in the community
           </p>
         </div>
       </div>
@@ -165,18 +173,18 @@ export default function DashboardPage() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <Card className="shadow-lg">
+          <Card className="shadow-soft hover:shadow-soft-hover transition-all duration-300 border-0 bg-glass-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Campaigns</p>
+                  <p className="text-sm text-muted-foreground mb-2 font-medium">Total Campaigns</p>
                   <p className="text-3xl font-bold text-gradient">
                     {stats.totalCampaigns}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-teal-100 dark:from-blue-500/20 dark:to-teal-500/20 rounded-2xl flex items-center justify-center shadow-soft">
                   <svg
-                    className="w-6 h-6 text-purple-600"
+                    className="w-7 h-7 text-blue-600 dark:text-blue-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -193,18 +201,18 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg">
+          <Card className="shadow-soft hover:shadow-soft-hover transition-all duration-300 border-0 bg-glass-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Raised</p>
+                  <p className="text-sm text-muted-foreground mb-2 font-medium">Total Raised</p>
                   <p className="text-3xl font-bold text-gradient">
                     {formatCurrency(stats.totalRaised)}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="w-14 h-14 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-500/20 dark:to-teal-500/20 rounded-2xl flex items-center justify-center shadow-soft">
                   <svg
-                    className="w-6 h-6 text-green-600"
+                    className="w-7 h-7 text-emerald-600 dark:text-emerald-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -221,18 +229,18 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg">
+          <Card className="shadow-soft hover:shadow-soft-hover transition-all duration-300 border-0 bg-glass-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Donated</p>
+                  <p className="text-sm text-muted-foreground mb-2 font-medium">Total Donated</p>
                   <p className="text-3xl font-bold text-gradient">
                     {formatCurrency(stats.totalDonated)}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <div className="w-14 h-14 bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-500/20 dark:to-rose-500/20 rounded-2xl flex items-center justify-center shadow-soft">
                   <svg
-                    className="w-6 h-6 text-blue-600"
+                    className="w-7 h-7 text-pink-600 dark:text-pink-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -249,18 +257,18 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg">
+          <Card className="shadow-soft hover:shadow-soft-hover transition-all duration-300 border-0 bg-glass-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Backers</p>
+                  <p className="text-sm text-muted-foreground mb-2 font-medium">Total Backers</p>
                   <p className="text-3xl font-bold text-gradient">
                     {stats.totalBackers}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                <div className="w-14 h-14 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-500/20 dark:to-orange-500/20 rounded-2xl flex items-center justify-center shadow-soft">
                   <svg
-                    className="w-6 h-6 text-orange-600"
+                    className="w-7 h-7 text-amber-600 dark:text-amber-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -333,20 +341,21 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {campaigns.map((campaign) => (
                 <Link key={campaign.id} href={`/campaigns/${campaign.slug}`}>
-                  <Card className="hover:shadow-xl transition-shadow cursor-pointer h-full">
-                    <div className="relative h-48 overflow-hidden rounded-t-lg">
+                  <Card className="hover:shadow-soft-hover shadow-soft transition-all duration-300 cursor-pointer h-full border-0 bg-glass-card overflow-hidden group">
+                    <div className="relative h-52 overflow-hidden">
                       <img
                         src={campaign.imageUrl}
                         alt={campaign.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                       <div className="absolute top-4 right-4 flex gap-2">
-                        <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-xs font-semibold rounded-full text-purple-700 capitalize">
-                          {campaign.status}
+                        <span className="px-3 py-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm text-xs font-semibold rounded-full shadow-soft capitalize">
+                          <span className="text-gradient">{campaign.status}</span>
                         </span>
                         <button
                           onClick={(e) => deleteCampaign(campaign.id, e)}
-                          className="p-2 bg-red-500/90 hover:bg-red-600 backdrop-blur-sm text-white rounded-full transition-colors"
+                          className="p-2 bg-red-500/95 hover:bg-red-600 backdrop-blur-sm text-white rounded-full transition-all duration-200 shadow-soft hover:shadow-soft-hover hover:scale-110"
                           title="Delete campaign"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,25 +365,25 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <CardContent className="p-6">
-                      <h3 className="font-semibold text-lg mb-2 line-clamp-2">
+                      <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-gradient transition-all">
                         {campaign.title}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                         {campaign.description}
                       </p>
 
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="font-bold text-primary">
+                          <span className="font-bold text-gradient">
                             {formatCurrency(campaign.currentAmount)}
                           </span>
-                          <span className="text-muted-foreground">
+                          <span className="text-muted-foreground font-medium">
                             of {formatCurrency(campaign.goal)}
                           </span>
                         </div>
-                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                        <div className="h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
                           <div
-                            className="h-full bg-gradient-primary transition-all"
+                            className="h-full bg-gradient-primary transition-all duration-500 rounded-full shadow-glow"
                             style={{
                               width: `${calculatePercentage(
                                 campaign.currentAmount,
@@ -383,9 +392,9 @@ export default function DashboardPage() {
                             }}
                           />
                         </div>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{campaign.backers || 0} backers</span>
-                          <span>{calculatePercentage(campaign.currentAmount, campaign.goal)}% funded</span>
+                        <div className="flex items-center justify-between text-xs font-medium">
+                          <span className="text-muted-foreground">{campaign.backers || 0} backers</span>
+                          <span className="text-gradient">{calculatePercentage(campaign.currentAmount, campaign.goal)}% funded</span>
                         </div>
                       </div>
                     </CardContent>
