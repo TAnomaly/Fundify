@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { subscriptionApi } from "@/lib/api/subscription";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/lib/auth";
 import type { Subscription } from "@/types/subscription";
