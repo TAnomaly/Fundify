@@ -1,116 +1,108 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { campaignApi } from "@/lib/api";
+import { Campaign, CampaignCategory } from "@/lib/types";
 import { CampaignCard } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-// Mock campaigns data
-const mockCampaigns = [
-  {
-    id: "1",
-    title: "Revolutionary Solar-Powered Water Purifier",
-    description: "Bringing clean water to remote communities using renewable energy technology.",
-    slug: "solar-water-purifier",
-    imageUrl: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800&q=80",
-    goal: 50000,
-    currentAmount: 37500,
-    category: "technology",
-    daysRemaining: 15,
-    backers: 342,
-  },
-  {
-    id: "2",
-    title: "Indie Game: Mystic Realms - An Epic Adventure",
-    description: "An immersive RPG experience with stunning visuals and captivating storytelling.",
-    slug: "mystic-realms-game",
-    imageUrl: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&q=80",
-    goal: 75000,
-    currentAmount: 62000,
-    category: "games",
-    daysRemaining: 22,
-    backers: 891,
-  },
-  {
-    id: "3",
-    title: "Sustainable Urban Garden Kit",
-    description: "Grow fresh organic vegetables in your apartment with our innovative hydroponic system.",
-    slug: "urban-garden-kit",
-    imageUrl: "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800&q=80",
-    goal: 30000,
-    currentAmount: 28500,
-    category: "environment",
-    daysRemaining: 8,
-    backers: 523,
-  },
-  {
-    id: "4",
-    title: "Documentary: Ocean Guardians",
-    description: "Following marine conservationists protecting endangered ocean species worldwide.",
-    slug: "ocean-guardians-documentary",
-    imageUrl: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80",
-    goal: 45000,
-    currentAmount: 23000,
-    category: "film",
-    daysRemaining: 30,
-    backers: 287,
-  },
-  {
-    id: "5",
-    title: "Smart Home Automation Hub",
-    description: "Control all your smart devices from one beautiful, intuitive interface.",
-    slug: "smart-home-hub",
-    imageUrl: "https://images.unsplash.com/photo-1558002038-1055907df827?w=800&q=80",
-    goal: 60000,
-    currentAmount: 48000,
-    category: "technology",
-    daysRemaining: 12,
-    backers: 612,
-  },
-  {
-    id: "6",
-    title: "Artisan Coffee Roastery Expansion",
-    description: "Helping us expand our sustainable coffee roasting operation to serve more communities.",
-    slug: "artisan-coffee-roastery",
-    imageUrl: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=800&q=80",
-    goal: 35000,
-    currentAmount: 31500,
-    category: "food",
-    daysRemaining: 6,
-    backers: 428,
-  },
-];
+import toast from "react-hot-toast";
 
 const categories = [
   "All",
-  "Technology",
-  "Arts",
-  "Music",
-  "Film",
-  "Games",
-  "Design",
-  "Food",
-  "Fashion",
-  "Environment",
-];
-
-const sortOptions = [
-  { value: "newest", label: "Newest" },
-  { value: "popular", label: "Most Popular" },
-  { value: "ending", label: "Ending Soon" },
-  { value: "funded", label: "Most Funded" },
+  "TECHNOLOGY",
+  "CREATIVE",
+  "COMMUNITY",
+  "BUSINESS",
+  "EDUCATION",
+  "HEALTH",
+  "ENVIRONMENT",
+  "OTHER",
 ];
 
 export default function CampaignsPage() {
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [sortBy, setSortBy] = useState("newest");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  const filteredCampaigns = mockCampaigns.filter((campaign) => {
-    const matchesCategory = selectedCategory === "All" || campaign.category === selectedCategory.toLowerCase();
-    const matchesSearch = campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         campaign.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    loadCampaigns();
+  }, [selectedCategory, page]);
+
+  const loadCampaigns = async () => {
+    setIsLoading(true);
+    try {
+      const filters: any = {
+        page,
+        limit: 12,
+        status: "ACTIVE",
+      };
+
+      if (selectedCategory !== "All") {
+        filters.category = selectedCategory;
+      }
+
+      const response = await campaignApi.getAll(filters);
+      if (response.success && response.data) {
+        if (page === 1) {
+          setCampaigns(response.data.campaigns);
+        } else {
+          setCampaigns((prev) => [...prev, ...response.data.campaigns]);
+        }
+        setHasMore(response.data.pagination.page < response.data.pagination.pages);
+      }
+    } catch (error) {
+      console.error("Failed to load campaigns:", error);
+      toast.error("Failed to load campaigns");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setPage(1);
+      loadCampaigns();
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await campaignApi.getAll({
+        search: searchQuery,
+        status: "ACTIVE",
+        page: 1,
+        limit: 12,
+      });
+
+      if (response.success && response.data) {
+        setCampaigns(response.data.campaigns);
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Failed to search campaigns:", error);
+      toast.error("Failed to search campaigns");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setPage(1);
+    setCampaigns([]);
+  };
+
+  const loadMore = () => {
+    setPage((prev) => prev + 1);
+  };
+
+  const filteredCampaigns = campaigns.filter((campaign) =>
+    campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    campaign.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen">
@@ -149,99 +141,87 @@ export default function CampaignsPage() {
               placeholder="Search campaigns..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+              className="w-full pl-12 pr-4 py-3 rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
             />
+            <button
+              onClick={handleSearch}
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
+            >
+              Search
+            </button>
           </div>
 
-          {/* Category Pills */}
-          <div className="flex items-center gap-4 overflow-x-auto pb-2">
-            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-              Categories:
-            </span>
-            <div className="flex gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                    selectedCategory === category
-                      ? "bg-gradient-primary text-white shadow-glow-sm"
-                      : "bg-secondary text-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Sort and Results Count */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <p className="text-sm text-muted-foreground">
-              Found <span className="font-semibold text-foreground">{filteredCampaigns.length}</span> campaigns
-            </p>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Sort by:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => handleCategoryChange(category)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  selectedCategory === category
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
               >
-                {sortOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {category === "All" ? category : category.charAt(0) + category.slice(1).toLowerCase()}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Campaigns Grid */}
-        {filteredCampaigns.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredCampaigns.map((campaign) => (
-              <CampaignCard key={campaign.id} {...campaign} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+        {isLoading && page === 1 ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="text-center">
               <svg
-                className="w-12 h-12 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
+                className="animate-spin h-12 w-12 text-primary mx-auto mb-4"
                 viewBox="0 0 24 24"
               >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
                 <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
+              <p className="text-muted-foreground">Loading campaigns...</p>
             </div>
-            <h3 className="text-xl font-semibold mb-2">No campaigns found</h3>
-            <p className="text-muted-foreground mb-6">
-              Try adjusting your filters or search query
-            </p>
-            <Button variant="outline" onClick={() => {
-              setSelectedCategory("All");
-              setSearchQuery("");
-            }}>
-              Clear Filters
-            </Button>
           </div>
-        )}
+        ) : filteredCampaigns.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-lg text-muted-foreground">No campaigns found</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {filteredCampaigns.map((campaign) => (
+                <CampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
 
-        {/* Load More Button */}
-        {filteredCampaigns.length > 0 && (
-          <div className="mt-12 text-center">
-            <Button variant="outline" size="lg">
-              Load More Campaigns
-            </Button>
-          </div>
+            {/* Load More Button */}
+            {hasMore && !searchQuery && (
+              <div className="flex justify-center">
+                <Button
+                  onClick={loadMore}
+                  disabled={isLoading}
+                  variant="outline"
+                  size="lg"
+                >
+                  {isLoading ? "Loading..." : "Load More Campaigns"}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
