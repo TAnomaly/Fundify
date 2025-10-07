@@ -4,6 +4,58 @@ import { AuthRequest } from '../types';
 import { updateUserSchema } from '../utils/validation';
 import { ZodError } from 'zod';
 
+export const getMe = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        bio: true,
+        role: true,
+        createdAt: true,
+        _count: {
+          select: {
+            campaigns: true,
+            donations: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getUserById = async (
   req: AuthRequest,
   res: Response,

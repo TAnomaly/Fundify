@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { getUserById, updateUser, getUserCampaigns } from '../controllers/userController';
+import { getMe, getUserById, updateUser, getUserCampaigns } from '../controllers/userController';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
+
+// GET /api/users/me (must be before /:id)
+router.get('/me', authenticate as any, getMe as any);
 
 // GET /api/users/:id
 router.get('/:id', getUserById as any);
