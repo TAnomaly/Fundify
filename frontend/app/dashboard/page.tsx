@@ -37,60 +37,78 @@ export default function DashboardPage() {
     setIsLoading(true);
     try {
       const currentUser = getCurrentUser();
+      if (!currentUser?.id) {
+        toast.error("User session not found. Please login again.");
+        router.push("/login");
+        return;
+      }
+
       setUser(currentUser);
 
-      // Fetch user's full profile
-      const userResponse = await userApi.getMe();
-      if (userResponse.success && userResponse.data) {
-        setUser(userResponse.data);
+      // Fetch all data in parallel for faster loading
+      const [userResponse, campaignsResponse, donationsResponse] = await Promise.allSettled([
+        userApi.getMe(),
+        userApi.getCampaigns(currentUser.id),
+        donationApi.getMyDonations(),
+      ]);
+
+      // Handle user profile
+      if (userResponse.status === 'fulfilled' && userResponse.value.success) {
+        setUser(userResponse.value.data);
       }
 
-      // Fetch user's campaigns
-      if (currentUser?.id) {
-        const campaignsResponse = await userApi.getCampaigns(currentUser.id);
-        if (campaignsResponse.success && campaignsResponse.data) {
-          // Transform campaigns to match frontend types
-          const transformedCampaigns = campaignsResponse.data.map((c: any) => ({
-            ...c,
-            goal: c.goal || c.goalAmount,
-            imageUrl: c.imageUrl || c.coverImage,
-            backers: c.backers || c._count?.donations || 0,
-          }));
-          setCampaigns(transformedCampaigns);
+      // Handle campaigns
+      if (campaignsResponse.status === 'fulfilled' && campaignsResponse.value.success) {
+        const campaignsData = campaignsResponse.value.data || [];
 
-          // Calculate stats
-          const totalRaised = transformedCampaigns.reduce(
-            (sum, c) => sum + (c.currentAmount || 0),
-            0
-          );
-          const totalBackers = transformedCampaigns.reduce(
-            (sum, c) => sum + (c.backers || 0),
-            0
-          );
+        // Transform campaigns to match frontend types
+        const transformedCampaigns = campaignsData.map((c: any) => ({
+          ...c,
+          goal: c.goal || c.goalAmount,
+          imageUrl: c.imageUrl || c.coverImage,
+          backers: c.backers || c._count?.donations || 0,
+        }));
 
-          setStats((prev) => ({
-            ...prev,
-            totalCampaigns: transformedCampaigns.length,
-            totalRaised,
-            totalBackers,
-          }));
-        }
+        setCampaigns(transformedCampaigns);
+
+        // Calculate stats
+        const totalRaised = transformedCampaigns.reduce(
+          (sum, c) => sum + (c.currentAmount || 0),
+          0
+        );
+        const totalBackers = transformedCampaigns.reduce(
+          (sum, c) => sum + (c.backers || 0),
+          0
+        );
+
+        setStats((prev) => ({
+          ...prev,
+          totalCampaigns: transformedCampaigns.length,
+          totalRaised,
+          totalBackers,
+        }));
+      } else if (campaignsResponse.status === 'rejected') {
+        console.error("Failed to load campaigns:", campaignsResponse.reason);
       }
 
-      // Fetch user's donations
-      const donationsResponse = await donationApi.getMyDonations();
-      if (donationsResponse.success && donationsResponse.data) {
-        setDonations(donationsResponse.data);
+      // Handle donations
+      if (donationsResponse.status === 'fulfilled' && donationsResponse.value.success) {
+        const donationsData = donationsResponse.value.data || [];
+        setDonations(donationsData);
 
-        const totalDonated = donationsResponse.data.reduce(
-          (sum, d) => sum + d.amount,
+        const totalDonated = donationsData.reduce(
+          (sum, d) => sum + (d.amount || 0),
           0
         );
         setStats((prev) => ({ ...prev, totalDonated }));
+      } else if (donationsResponse.status === 'rejected') {
+        console.error("Failed to load donations:", donationsResponse.reason);
       }
+
     } catch (error: any) {
       console.error("Failed to load dashboard data:", error);
-      toast.error("Failed to load dashboard data");
+      const errorMessage = error.response?.data?.message || error.message || "Failed to load dashboard data";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
