@@ -2,47 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { CampaignCard } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
-
-// Mock data for demonstration
-const trendingCampaigns = [
-  {
-    id: "1",
-    title: "Revolutionary Solar-Powered Water Purifier",
-    description: "Bringing clean water to remote communities using renewable energy technology.",
-    slug: "solar-water-purifier",
-    imageUrl: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800&q=80",
-    goal: 50000,
-    currentAmount: 37500,
-    category: "technology",
-    daysRemaining: 15,
-    backers: 342,
-  },
-  {
-    id: "2",
-    title: "Indie Game: Mystic Realms - An Epic Adventure",
-    description: "An immersive RPG experience with stunning visuals and captivating storytelling.",
-    slug: "mystic-realms-game",
-    imageUrl: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&q=80",
-    goal: 75000,
-    currentAmount: 62000,
-    category: "games",
-    daysRemaining: 22,
-    backers: 891,
-  },
-  {
-    id: "3",
-    title: "Sustainable Urban Garden Kit",
-    description: "Grow fresh organic vegetables in your apartment with our innovative hydroponic system.",
-    slug: "urban-garden-kit",
-    imageUrl: "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800&q=80",
-    goal: 30000,
-    currentAmount: 28500,
-    category: "environment",
-    daysRemaining: 8,
-    backers: 523,
-  },
-];
+import { campaignApi } from "@/lib/api";
+import { Campaign } from "@/lib/types";
 
 const features = [
   {
@@ -92,10 +55,28 @@ const stats = [
 
 export default function Home() {
   const [isVisible, setIsVisible] = useState(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsVisible(true);
+    // Load trending campaigns
+    loadTrendingCampaigns();
   }, []);
+
+  const loadTrendingCampaigns = async () => {
+    try {
+      const response = await campaignApi.getAll({ limit: 3, sortBy: 'popular' as any });
+      if (response.success && response.data) {
+        setCampaigns(response.data.campaigns || []);
+      }
+    } catch (error) {
+      console.error("Failed to load campaigns:", error);
+      // Silently fail - not critical for homepage
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col">
@@ -195,9 +176,43 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {trendingCampaigns.map((campaign) => (
-              <CampaignCard key={campaign.id} {...campaign} />
-            ))}
+            {isLoading ? (
+              // Loading skeletons
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-glass-card rounded-2xl overflow-hidden shadow-soft">
+                  <Skeleton className="h-48 w-full" />
+                  <div className="p-6 space-y-3">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-2 w-full mt-4" />
+                    <div className="flex justify-between">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : campaigns.length > 0 ? (
+              campaigns.map((campaign: any) => (
+                <CampaignCard
+                  key={campaign.id}
+                  title={campaign.title}
+                  description={campaign.description}
+                  imageUrl={campaign.coverImage || campaign.imageUrl}
+                  goal={campaign.goalAmount || campaign.goal}
+                  currentAmount={campaign.currentAmount}
+                  category={campaign.category}
+                  daysRemaining={campaign.endDate ? Math.max(Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)), 0) : 0}
+                  backers={campaign._count?.donations || campaign.backers || 0}
+                  slug={campaign.slug}
+                />
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-12">
+                <p className="text-muted-foreground">No campaigns available yet. Be the first to create one!</p>
+              </div>
+            )}
           </div>
 
           <div className="mt-8 text-center md:hidden">
