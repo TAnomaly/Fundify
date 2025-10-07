@@ -34,20 +34,14 @@ export interface Campaign {
 }
 
 export enum CampaignCategory {
-  TECHNOLOGY = "technology",
-  ARTS = "arts",
-  MUSIC = "music",
-  FILM = "film",
-  GAMES = "games",
-  DESIGN = "design",
-  FOOD = "food",
-  FASHION = "fashion",
-  PUBLISHING = "publishing",
-  EDUCATION = "education",
-  HEALTH = "health",
-  ENVIRONMENT = "environment",
-  COMMUNITY = "community",
-  OTHER = "other",
+  TECHNOLOGY = "TECHNOLOGY",
+  CREATIVE = "CREATIVE",
+  COMMUNITY = "COMMUNITY",
+  BUSINESS = "BUSINESS",
+  EDUCATION = "EDUCATION",
+  HEALTH = "HEALTH",
+  ENVIRONMENT = "ENVIRONMENT",
+  OTHER = "OTHER",
 }
 
 export enum CampaignStatus {

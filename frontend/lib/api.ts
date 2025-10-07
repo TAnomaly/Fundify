@@ -66,7 +66,11 @@ export const campaignApi = {
   },
 
   create: async (campaignData: CampaignFormData): Promise<ApiResponse<Campaign>> => {
-    const { data } = await api.post("/campaigns", campaignData);
+    const { goal, ...rest } = campaignData;
+    const { data } = await api.post("/campaigns", {
+      ...rest,
+      goalAmount: goal,
+    });
     return data;
   },
 
