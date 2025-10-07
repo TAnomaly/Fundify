@@ -61,7 +61,7 @@ export const campaignApi = {
   },
 
   getBySlug: async (slug: string): Promise<ApiResponse<Campaign>> => {
-    const { data } = await api.get(`/campaigns/slug/${slug}`);
+    const { data } = await api.get(`/campaigns/${slug}`);
     return data;
   },
 
