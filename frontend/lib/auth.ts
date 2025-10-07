@@ -11,10 +11,12 @@ interface DecodedToken {
   iat: number;
 }
 
-// Save token to localStorage
+// Save token to localStorage and cookie
 export const saveToken = (token: string): void => {
   if (typeof window !== "undefined") {
     localStorage.setItem(TOKEN_KEY, token);
+    // Also save to cookie for middleware
+    document.cookie = `authToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
   }
 };
 
@@ -26,10 +28,12 @@ export const getToken = (): string | null => {
   return null;
 };
 
-// Remove token from localStorage
+// Remove token from localStorage and cookie
 export const removeToken = (): void => {
   if (typeof window !== "undefined") {
     localStorage.removeItem(TOKEN_KEY);
+    // Also remove from cookie
+    document.cookie = "authToken=; path=/; max-age=0";
   }
 };
 
