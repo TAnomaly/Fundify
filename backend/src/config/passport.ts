@@ -15,10 +15,31 @@ export const configurePassport = () => {
         },
         async (accessToken: string, refreshToken: string, profile: any, done: any) => {
           try {
-            const email = profile.emails?.[0]?.value;
+            // Try to get email from profile
+            let email = profile.emails?.[0]?.value;
 
+            // If no email in profile, try to fetch from GitHub API
             if (!email) {
-              return done(new Error('No email found in GitHub profile'), null);
+              try {
+                const response = await fetch('https://api.github.com/user/emails', {
+                  headers: {
+                    'Authorization': `token ${accessToken}`,
+                    'User-Agent': 'Fundify-App',
+                  },
+                });
+                const emails = await response.json() as any[];
+                // Get primary or first verified email
+                const primaryEmail = emails.find((e) => e.primary && e.verified);
+                email = primaryEmail?.email || emails.find((e) => e.verified)?.email || emails[0]?.email;
+              } catch (fetchError) {
+                console.error('Failed to fetch GitHub emails:', fetchError);
+              }
+            }
+
+            // If still no email, use GitHub username as fallback
+            if (!email) {
+              email = `${profile.username}@github-user.fundify.local`;
+              console.warn(`No email found for GitHub user ${profile.username}, using fallback: ${email}`);
             }
 
             // Check if user exists
