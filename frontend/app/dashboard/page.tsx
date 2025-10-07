@@ -98,13 +98,18 @@ export default function DashboardPage() {
     }
 
     try {
-      await campaignApi.delete(campaignId);
-      toast.success("Campaign deleted successfully");
-      // Reload dashboard data
-      loadDashboardData();
-    } catch (error) {
+      const response = await campaignApi.delete(campaignId);
+      if (response.success) {
+        toast.success("Campaign deleted successfully");
+        // Reload dashboard data
+        loadDashboardData();
+      } else {
+        toast.error(response.message || "Failed to delete campaign");
+      }
+    } catch (error: any) {
       console.error("Failed to delete campaign:", error);
-      toast.error("Failed to delete campaign");
+      const errorMessage = error.response?.data?.message || error.message || "Failed to delete campaign";
+      toast.error(errorMessage);
     }
   };
 
