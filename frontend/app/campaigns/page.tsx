@@ -37,7 +37,7 @@ export default function CampaignsPage() {
       const filters: any = {
         page,
         limit: 12,
-        status: "ACTIVE",
+        // Show all campaigns for now (DRAFT and ACTIVE)
       };
 
       if (selectedCategory !== "All") {
@@ -72,7 +72,6 @@ export default function CampaignsPage() {
     try {
       const response = await campaignApi.getAll({
         search: searchQuery,
-        status: "ACTIVE",
         page: 1,
         limit: 12,
       });
