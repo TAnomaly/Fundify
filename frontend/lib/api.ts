@@ -66,10 +66,12 @@ export const campaignApi = {
   },
 
   create: async (campaignData: CampaignFormData): Promise<ApiResponse<Campaign>> => {
-    const { goal, ...rest } = campaignData;
+    const { goal, imageUrl, endDate, ...rest } = campaignData;
     const { data } = await api.post("/campaigns", {
       ...rest,
       goalAmount: goal,
+      coverImage: imageUrl,
+      endDate: new Date(endDate).toISOString(),
     });
     return data;
   },
