@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated, getCurrentUser } from "@/lib/auth";
-import { userApi, donationApi } from "@/lib/api";
+import { userApi, donationApi, campaignApi } from "@/lib/api";
 import { Campaign, Donation } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
