@@ -49,21 +49,28 @@ export default function DashboardPage() {
       if (currentUser?.id) {
         const campaignsResponse = await userApi.getCampaigns(currentUser.id);
         if (campaignsResponse.success && campaignsResponse.data) {
-          setCampaigns(campaignsResponse.data);
+          // Transform campaigns to match frontend types
+          const transformedCampaigns = campaignsResponse.data.map((c: any) => ({
+            ...c,
+            goal: c.goal || c.goalAmount,
+            imageUrl: c.imageUrl || c.coverImage,
+            backers: c.backers || c._count?.donations || 0,
+          }));
+          setCampaigns(transformedCampaigns);
 
           // Calculate stats
-          const totalRaised = campaignsResponse.data.reduce(
-            (sum, c) => sum + c.currentAmount,
+          const totalRaised = transformedCampaigns.reduce(
+            (sum, c) => sum + (c.currentAmount || 0),
             0
           );
-          const totalBackers = campaignsResponse.data.reduce(
+          const totalBackers = transformedCampaigns.reduce(
             (sum, c) => sum + (c.backers || 0),
             0
           );
 
           setStats((prev) => ({
             ...prev,
-            totalCampaigns: campaignsResponse.data.length,
+            totalCampaigns: transformedCampaigns.length,
             totalRaised,
             totalBackers,
           }));
