@@ -14,6 +14,9 @@ import campaignRoutes from './routes/campaigns';
 import donationRoutes from './routes/donations';
 import commentRoutes from './routes/comments';
 import withdrawalRoutes from './routes/withdrawals';
+import membershipTierRoutes from './routes/membershipTier.routes';
+import subscriptionRoutes from './routes/subscription.routes';
+import creatorPostRoutes from './routes/creatorPost.routes';
 
 // Types
 import { ApiError } from './types';
@@ -71,6 +74,9 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
+app.use('/api/memberships', membershipTierRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/posts', creatorPostRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

@@ -54,3 +54,28 @@ export const authorize = (...roles: string[]) => {
     next();
   };
 };
+
+// Optional authentication - doesn't fail if no token provided
+export const optionalAuth = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (token) {
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET || 'your-secret-key'
+      ) as JwtPayload;
+
+      req.user = decoded;
+    }
+
+    next();
+  } catch (error) {
+    // Continue without user if token is invalid
+    next();
+  }
+};

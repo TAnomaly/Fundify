@@ -71,6 +71,7 @@ export const configurePassport = () => {
 
             // Generate JWT token
             const token = generateToken({
+              id: user.id,
               userId: user.id,
               email: user.email,
               username: user.name,

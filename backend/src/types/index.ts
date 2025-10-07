@@ -5,6 +5,7 @@ export interface ApiError extends Error {
 }
 
 export interface JwtPayload {
+  id: string;
   userId: string;
   email: string;
   username: string;
