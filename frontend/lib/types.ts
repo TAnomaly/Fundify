@@ -6,6 +6,9 @@ export interface User {
   lastName?: string;
   avatar?: string;
   bio?: string;
+  isCreator?: boolean;
+  creatorBio?: string;
+  socialLinks?: any;
   createdAt: string;
   updatedAt: string;
 }

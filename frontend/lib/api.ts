@@ -170,6 +170,11 @@ export const userApi = {
     const { data } = await api.get(`/users/${userId}/campaigns`);
     return data;
   },
+
+  becomeCreator: async (): Promise<ApiResponse<User>> => {
+    const { data } = await api.post("/users/become-creator");
+    return data;
+  },
 };
 
 // Update API functions

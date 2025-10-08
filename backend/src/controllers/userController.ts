@@ -29,6 +29,9 @@ export const getMe = async (
         avatar: true,
         bio: true,
         role: true,
+        isCreator: true,
+        creatorBio: true,
+        socialLinks: true,
         createdAt: true,
         _count: {
           select: {
@@ -165,6 +168,49 @@ export const getUserCampaigns = async (
     res.status(200).json({
       success: true,
       data: campaigns,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const becomeCreator = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { isCreator: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        bio: true,
+        role: true,
+        isCreator: true,
+        creatorBio: true,
+        socialLinks: true,
+        createdAt: true,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Successfully upgraded to creator account',
+      data: user,
     });
   } catch (error) {
     next(error);

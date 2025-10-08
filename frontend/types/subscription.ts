@@ -32,6 +32,11 @@ export interface Subscription {
   nextBillingDate: string;
   endDate?: string;
   cancelledAt?: string;
+  subscriber: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
   tier: {
     id: string;
     name: string;

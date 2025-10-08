@@ -66,11 +66,16 @@ export default function CreatorDashboard() {
 
   const becomeCreator = async () => {
     try {
-      // TODO: Add API endpoint to upgrade user to creator
-      toast.info("Creator upgrade feature coming soon!");
-      // For now, manually update in database or admin panel
-    } catch (error) {
-      toast.error("Failed to become a creator");
+      const response = await userApi.becomeCreator();
+      if (response.success) {
+        toast.success("Welcome to the creator program!");
+        setIsCreator(true);
+        loadDashboard();
+      } else {
+        toast.error(response.message || "Failed to become a creator");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to become a creator");
     }
   };
 
