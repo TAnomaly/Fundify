@@ -58,13 +58,14 @@ export default function CreatorsPage() {
     try {
       setIsLoading(true);
 
-      // Get all campaigns with type CREATOR
+      // Get all ACTIVE campaigns with type CREATOR
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/campaigns`,
         {
           params: {
             type: 'CREATOR',
-            limit: 100, // Get more creators
+            status: 'ACTIVE', // Only show active creator campaigns
+            limit: 100,
           },
         }
       );
@@ -72,12 +73,17 @@ export default function CreatorsPage() {
       if (response.data.success) {
         const campaigns = response.data.data?.campaigns || [];
 
-        // Extract unique creators from campaigns
+        // Extract unique creators from ACTIVE campaigns only
         const creatorsMap = new Map();
 
         campaigns.forEach((campaign: any) => {
           const creator = campaign.creator;
-          if (creator && !creatorsMap.has(creator.id)) {
+          // Only add creators with active campaigns and isCreator status
+          if (
+            creator && 
+            !creatorsMap.has(creator.id) &&
+            campaign.status === 'ACTIVE'
+          ) {
             creatorsMap.set(creator.id, {
               id: creator.id,
               name: creator.name,

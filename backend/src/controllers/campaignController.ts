@@ -20,19 +20,26 @@ export const getAllCampaigns = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { status, category, search, page = '1', limit = '10' } = req.query;
+    const { status, category, search, page = '1', limit = '10', type } = req.query;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
     const take = parseInt(limit as string);
 
     const where: any = {};
 
+    // Only show ACTIVE campaigns by default (unless status is explicitly specified)
     if (status) {
       where.status = status;
+    } else {
+      where.status = 'ACTIVE';
     }
 
     if (category) {
       where.category = category;
+    }
+
+    if (type) {
+      where.type = type;
     }
 
     if (search) {
