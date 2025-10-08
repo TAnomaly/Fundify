@@ -37,6 +37,15 @@ export default function DashboardPage() {
 
     console.log('Loading dashboard data...');
     loadDashboardData();
+
+    // Safety timeout - stop loading after 10 seconds
+    const timeout = setTimeout(() => {
+      console.warn('Dashboard loading timeout - forcing stop');
+      setIsLoading(false);
+      toast.error('Dashboard took too long to load. Check console for errors.');
+    }, 10000);
+
+    return () => clearTimeout(timeout);
   }, [router]);
 
   const loadDashboardData = async () => {
