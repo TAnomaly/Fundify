@@ -25,19 +25,29 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
+    console.log('Dashboard mounting...');
+    console.log('isAuthenticated:', isAuthenticated());
+    console.log('getCurrentUser:', getCurrentUser());
+
     if (!isAuthenticated()) {
+      console.log('Not authenticated, redirecting to login');
       router.push("/login");
       return;
     }
 
+    console.log('Loading dashboard data...');
     loadDashboardData();
   }, [router]);
 
   const loadDashboardData = async () => {
+    console.log('loadDashboardData called');
     setIsLoading(true);
     try {
       const currentUser = getCurrentUser();
+      console.log('currentUser:', currentUser);
+
       if (!currentUser?.id) {
+        console.log('No user ID found');
         toast.error("User session not found. Please login again.");
         router.push("/login");
         return;
@@ -47,6 +57,7 @@ export default function DashboardPage() {
 
       // Debug: Log API URL
       console.log('API URL:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api');
+      console.log('Making API calls...');
 
       // Fetch all data in parallel for faster loading
       const [userResponse, campaignsResponse, donationsResponse] = await Promise.allSettled([
@@ -54,6 +65,12 @@ export default function DashboardPage() {
         userApi.getCampaigns(currentUser.id),
         donationApi.getMyDonations(),
       ]);
+
+      console.log('API responses:', {
+        user: userResponse.status,
+        campaigns: campaignsResponse.status,
+        donations: donationsResponse.status
+      });
 
       // Handle user profile
       if (userResponse.status === 'fulfilled' && userResponse.value.success) {
