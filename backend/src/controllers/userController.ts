@@ -231,7 +231,7 @@ export const becomeCreator = async (
           status: 'ACTIVE',
           goalAmount: 0,
           currentAmount: 0,
-          imageUrl: user.avatar || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80',
+          coverImage: user.avatar || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80',
           creatorId: userId,
           startDate: new Date(),
           endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
@@ -311,7 +311,7 @@ export const getCreatorByUsername = async (
     if (!campaign) {
       const slug = `${user.name.toLowerCase().replace(/\s+/g, '-')}-creator-${Date.now()}`;
 
-      campaign = await prisma.campaign.create({
+      const newCampaign = await prisma.campaign.create({
         data: {
           title: `${user.name}'s Creator Page`,
           slug,
@@ -322,11 +322,16 @@ export const getCreatorByUsername = async (
           status: 'ACTIVE',
           goalAmount: 0,
           currentAmount: 0,
-          imageUrl: user.avatar || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80',
+          coverImage: user.avatar || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80',
           creatorId: user.id,
           startDate: new Date(),
           endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         },
+      });
+
+      // Re-fetch with creator included
+      campaign = await prisma.campaign.findUnique({
+        where: { id: newCampaign.id },
         include: {
           creator: {
             select: {
@@ -340,6 +345,14 @@ export const getCreatorByUsername = async (
           },
         },
       });
+    }
+
+    if (!campaign) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create campaign',
+      });
+      return;
     }
 
     // Get membership tiers
