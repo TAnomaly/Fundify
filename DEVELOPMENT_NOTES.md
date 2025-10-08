@@ -12,6 +12,22 @@
 - **Build Script:** `npx prisma generate && tsc`
 - **Deployment:** Automatic on push to main branch
 
+#### Required Environment Variables
+```bash
+DATABASE_URL="postgresql://..."
+JWT_SECRET="your-secret-key"
+JWT_EXPIRES_IN="7d"
+PORT=4000
+NODE_ENV="production"
+CORS_ORIGIN="https://funify.vercel.app"
+FRONTEND_URL="https://funify.vercel.app"
+
+# Stripe Integration
+STRIPE_SECRET_KEY="sk_test_..."  # Use sk_live_... in production
+STRIPE_PUBLISHABLE_KEY="pk_test_..."  # Use pk_live_... in production
+STRIPE_WEBHOOK_SECRET="whsec_..."  # Get from Stripe Dashboard webhook endpoint
+```
+
 #### Migration Workflow
 ```bash
 # Create new migration
@@ -30,7 +46,10 @@ DATABASE_URL="..." npx prisma migrate deploy
 - **Deployment:** Automatic on push to main branch
 
 #### Environment Variables (Set in Vercel Dashboard)
-- `NEXT_PUBLIC_API_URL`: https://perfect-happiness-production.up.railway.app/api
+```bash
+NEXT_PUBLIC_API_URL="https://perfect-happiness-production.up.railway.app/api"
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."  # Same as backend
+```
 
 ## 🔧 Tech Stack
 
@@ -41,6 +60,7 @@ DATABASE_URL="..." npx prisma migrate deploy
 - PostgreSQL (Neon)
 - JWT Authentication
 - Bcrypt for password hashing
+- **Stripe SDK** for subscription payments
 
 ### Frontend
 - Next.js 15.5.4 (App Router)
@@ -276,8 +296,137 @@ fix: Resolve token expiration redirect loop
 perf: Optimize campaign query with indexes
 ```
 
+## 💳 Stripe Integration
+
+### Setup Completed ✅
+- Stripe SDK installed and configured
+- Database schema updated with Stripe fields
+- Webhook handlers implemented
+- Local testing successful with Stripe CLI
+
+### Stripe Webhook Configuration
+
+**Production Webhook Endpoint:**
+```
+https://perfect-happiness-production.up.railway.app/api/webhooks/stripe
+```
+
+**Events to Listen To:**
+- `checkout.session.completed` - New subscription created
+- `customer.subscription.created` - Subscription initialized
+- `customer.subscription.updated` - Subscription status changed
+- `customer.subscription.deleted` - Subscription cancelled
+- `invoice.payment_succeeded` - Payment successful
+- `invoice.payment_failed` - Payment failed
+
+**Get Webhook Secret:**
+1. Go to Stripe Dashboard → Webhooks
+2. Add endpoint with URL above
+3. Select all events listed
+4. Copy signing secret (starts with `whsec_`)
+5. Add to Railway environment as `STRIPE_WEBHOOK_SECRET`
+
+### Testing Locally with Stripe CLI
+
+```bash
+# Install Stripe CLI
+wget https://github.com/stripe/stripe-cli/releases/download/v1.31.0/stripe_1.31.0_linux_x86_64.tar.gz
+tar -xvf stripe_1.31.0_linux_x86_64.tar.gz
+
+# Login to Stripe
+./stripe login
+
+# Start webhook forwarding
+./stripe listen --forward-to localhost:4000/api/webhooks/stripe
+
+# In another terminal, trigger test events
+./stripe trigger checkout.session.completed
+./stripe trigger customer.subscription.updated
+./stripe trigger invoice.payment_succeeded
+```
+
+### API Endpoints
+
+**Stripe Integration:**
+- `POST /api/stripe/create-checkout-session` - Create subscription checkout
+- `POST /api/stripe/create-portal-session` - Customer billing portal
+- `GET /api/stripe/config` - Get publishable key
+- `POST /api/webhooks/stripe` - Webhook handler (raw body)
+
+**Membership Tiers:**
+- `POST /api/memberships/campaigns/:id/tiers` - Create tier
+- `GET /api/memberships/campaigns/:id/tiers` - List tiers
+- `PUT /api/memberships/tiers/:id` - Update tier
+- `DELETE /api/memberships/tiers/:id` - Delete tier
+
+**Subscriptions:**
+- `GET /api/subscriptions/my-subscriptions` - User's subscriptions
+- `GET /api/subscriptions/my-subscribers` - Creator's subscribers
+- `POST /api/subscriptions/:id/cancel` - Cancel subscription
+
+### Payment Flow
+
+1. User clicks "Subscribe" on tier → Frontend calls `create-checkout-session`
+2. Backend creates Stripe Checkout session → Returns session URL
+3. User redirected to Stripe Checkout → Enters payment details
+4. Payment successful → Stripe sends `checkout.session.completed` webhook
+5. Backend creates subscription in database → Updates subscriber count
+6. User redirected to success page → Can access exclusive content
+
+### Test Cards
+
+**Successful Payment:**
+- Card: `4242 4242 4242 4242`
+- Expiry: Any future date
+- CVC: Any 3 digits
+- ZIP: Any 5 digits
+
+**Failed Payment:**
+- Card: `4000 0000 0000 0341`
+
+**Requires Authentication:**
+- Card: `4000 0025 0000 3155`
+
+### Database Schema
+
+```prisma
+model User {
+  stripeCustomerId         String?  @unique
+  stripeAccountId          String?  @unique
+  stripeOnboardingComplete Boolean  @default(false)
+}
+
+model Subscription {
+  stripeSubscriptionId String?  @unique
+  stripeCustomerId     String?
+  status               SubscriptionStatus
+  nextBillingDate      DateTime
+}
+```
+
+### Troubleshooting
+
+**Webhook not receiving events:**
+- Check Railway logs for errors
+- Verify webhook secret matches Stripe Dashboard
+- Ensure endpoint URL is correct
+- Check Stripe Dashboard → Webhooks → Recent events for failed deliveries
+
+**Checkout session creation fails:**
+- Verify user is authenticated
+- Check tier exists and is active
+- Ensure no duplicate active subscription
+- Check Railway logs for detailed error
+
+**Payment succeeded but subscription not created:**
+- Check webhook was received (Railway logs)
+- Verify webhook signature is valid
+- Check database for subscription record
+- Look for errors in webhook handler logs
+
 ---
 
 **Last Updated:** 2025-10-08
 **Current Version:** v1.0 (Pre-Production)
-**Status:** Active Development - Creator Platform Phase
+**Status:** Active Development - Stripe Integration Complete ✅
+**Next:** Frontend Subscription UI
