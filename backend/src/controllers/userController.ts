@@ -219,7 +219,7 @@ export const becomeCreator = async (
     // If no CREATOR campaign exists, create one automatically
     if (!existingCreatorCampaign) {
       const slug = `${user.name.toLowerCase().replace(/\s+/g, '-')}-creator-${Date.now()}`;
-      
+
       await prisma.campaign.create({
         data: {
           title: `${user.name}'s Creator Page`,
