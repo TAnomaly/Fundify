@@ -55,50 +55,35 @@ export default function CreatorProfilePage() {
     try {
       setIsLoading(true);
 
-      // Search for creator's campaign by username
-      // Note: You'll need to add an endpoint to search campaigns by creator username
-      // For now, we'll fetch all campaigns and filter
+      // Use new dedicated endpoint for creator profiles
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/campaigns`
+        `${process.env.NEXT_PUBLIC_API_URL}/users/creator/${username}`
       );
 
       if (response.data.success) {
-        // Find campaign where creator name matches (case-insensitive)
-        const creatorCampaign = response.data.data.campaigns?.find(
-          (c: any) =>
-            c.creator.name.toLowerCase().replace(/\s+/g, "-") ===
-            username.toLowerCase()
-        );
-
-        if (creatorCampaign && creatorCampaign.type === "CREATOR") {
+        const { campaign: creatorCampaign, tiers: creatorTiers } = response.data.data;
+        
+        if (creatorCampaign) {
           setCampaign(creatorCampaign);
-          await loadTiers(creatorCampaign.id);
+          setTiers(creatorTiers || []);
         } else {
           toast.error("Creator not found");
           router.push("/campaigns");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading creator:", error);
-      toast.error("Failed to load creator profile");
+      if (error.response?.status === 404) {
+        toast.error("Creator not found");
+      } else {
+        toast.error("Failed to load creator profile");
+      }
+      router.push("/campaigns");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const loadTiers = async (campaignId: string) => {
-    try {
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/memberships/campaigns/${campaignId}/tiers`
-      );
-
-      if (response.data.success) {
-        setTiers(response.data.data || []);
-      }
-    } catch (error) {
-      console.error("Error loading tiers:", error);
-    }
-  };
 
   const handleSubscribe = async (tierId: string) => {
     if (!isAuthenticated()) {

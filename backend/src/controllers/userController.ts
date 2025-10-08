@@ -248,3 +248,130 @@ export const becomeCreator = async (
     next(error);
   }
 };
+
+// Get creator profile by username (public endpoint)
+export const getCreatorByUsername = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { username } = req.params;
+
+    // Find user by username (name field, case-insensitive)
+    const user = await prisma.user.findFirst({
+      where: {
+        name: {
+          equals: username.replace(/-/g, ' '),
+          mode: 'insensitive',
+        },
+        isCreator: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        creatorBio: true,
+        socialLinks: true,
+        isCreator: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'Creator not found',
+      });
+      return;
+    }
+
+    // Get or create CREATOR campaign
+    let campaign = await prisma.campaign.findFirst({
+      where: {
+        creatorId: user.id,
+        type: 'CREATOR',
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
+            creatorBio: true,
+            socialLinks: true,
+          },
+        },
+      },
+    });
+
+    // Auto-create campaign if it doesn't exist
+    if (!campaign) {
+      const slug = `${user.name.toLowerCase().replace(/\s+/g, '-')}-creator-${Date.now()}`;
+
+      campaign = await prisma.campaign.create({
+        data: {
+          title: `${user.name}'s Creator Page`,
+          slug,
+          description: `Support ${user.name} and get exclusive content!`,
+          story: `Welcome to my creator page! Subscribe to get exclusive access to my content and support my work.`,
+          category: 'OTHER',
+          type: 'CREATOR',
+          status: 'ACTIVE',
+          goalAmount: 0,
+          currentAmount: 0,
+          imageUrl: user.avatar || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80',
+          creatorId: user.id,
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
+              creatorBio: true,
+              socialLinks: true,
+            },
+          },
+        },
+      });
+    }
+
+    // Get membership tiers
+    const tiers = await prisma.membershipTier.findMany({
+      where: {
+        campaignId: campaign.id,
+        isActive: true,
+      },
+      include: {
+        _count: {
+          select: {
+            subscriptions: true,
+          },
+        },
+      },
+      orderBy: {
+        price: 'asc',
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        user,
+        campaign,
+        tiers: tiers.map((tier) => ({
+          ...tier,
+          currentSubscribers: tier._count.subscriptions,
+        })),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
