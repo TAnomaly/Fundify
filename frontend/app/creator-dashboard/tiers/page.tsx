@@ -15,6 +15,7 @@ interface Tier {
   perks: string[];
   currentSubscribers: number;
   isActive: boolean;
+  maxSubscribers?: number;
 }
 
 export default function TiersPage() {
@@ -33,6 +34,7 @@ export default function TiersPage() {
 
   useEffect(() => {
     loadTiers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTiers = async () => {
@@ -44,9 +46,11 @@ export default function TiersPage() {
         return;
       }
 
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
       // Get current user's creator campaign
       const userResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/me`,
+        `${apiUrl}/users/me`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -61,7 +65,7 @@ export default function TiersPage() {
 
       // Get creator's campaign
       const campaignsResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/campaigns?type=CREATOR`,
+        `${apiUrl}/campaigns?type=CREATOR`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -81,7 +85,7 @@ export default function TiersPage() {
 
       // Get tiers for the campaign
       const tiersResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/memberships/campaigns/${creatorCampaign.id}/tiers`,
+        `${apiUrl}/memberships/campaigns/${creatorCampaign.id}/tiers`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -115,16 +119,18 @@ export default function TiersPage() {
         return;
       }
 
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
       // Get current user's creator campaign
       const userResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/me`,
+        `${apiUrl}/users/me`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const userData = await userResponse.json();
 
       // Get creator campaign
       const campaignsResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/campaigns?type=CREATOR`,
+        `${apiUrl}/campaigns?type=CREATOR`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const campaignsData = await campaignsResponse.json();
@@ -140,7 +146,7 @@ export default function TiersPage() {
 
       // Create tier
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/memberships/campaigns/${creatorCampaign.id}/tiers`,
+        `${apiUrl}/memberships/campaigns/${creatorCampaign.id}/tiers`,
         {
           method: "POST",
           headers: {
@@ -221,11 +227,10 @@ export default function TiersPage() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>{tier.name}</span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    tier.isActive
+                  <span className={`text-xs px-2 py-1 rounded-full ${tier.isActive
                       ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                       : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                  }`}>
+                    }`}>
                     {tier.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </CardTitle>
