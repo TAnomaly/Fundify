@@ -22,16 +22,12 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
-  // Enable SWC minification
-  swcMinify: true,
   // Compress static files
   compress: true,
   // React strict mode for better debugging
   reactStrictMode: true,
   // Production source maps for debugging (can disable for better performance)
   productionBrowserSourceMaps: false,
-  // Optimize fonts
-  optimizeFonts: true,
   // PoweredBy header removal for security
   poweredByHeader: false,
 };
