@@ -54,7 +54,7 @@ export function Navbar() {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary group-hover:w-full transition-all"></span>
               </a>
               <a
-                href="/campaigns?type=CREATOR"
+                href="/creators"
                 className="text-sm font-semibold text-foreground/70 hover:text-foreground transition-colors relative group"
               >
                 Creators
