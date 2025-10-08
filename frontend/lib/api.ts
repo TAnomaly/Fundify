@@ -19,10 +19,9 @@ const getApiUrl = () => {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
-  // Production fallback URLs (try these in order)
+  // Production fallback URL - UPDATED with working Railway URL
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    // Check which backend is available (this will be set by environment)
-    return "https://fundify-backend-production.up.railway.app/api";
+    return "https://perfect-happiness-production.up.railway.app/api";
   }
   
   return "http://localhost:4000/api";
