@@ -13,9 +13,17 @@ import {
 } from "./types";
 
 // Create axios instance with default config
+const getApiUrl = () => {
+  // Production hardcoded URL as fallback
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+};
+
 const api: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api",
-  timeout: 15000, // Reduced from 10s to 5s
+  baseURL: getApiUrl(),
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json",
