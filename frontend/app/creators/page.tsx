@@ -58,26 +58,117 @@ export default function CreatorsPage() {
     try {
       setIsLoading(true);
       
-      // Get all users who are creators
+      // Get all campaigns with type CREATOR
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/users`,
+        `${process.env.NEXT_PUBLIC_API_URL}/campaigns`,
         {
           params: {
-            isCreator: true,
+            type: 'CREATOR',
+            limit: 100, // Get more creators
           },
         }
       );
 
       if (response.data.success) {
-        const creatorsData = response.data.data || [];
-        setCreators(creatorsData);
-        setFilteredCreators(creatorsData);
+        const campaigns = response.data.data?.campaigns || [];
+        
+        // Extract unique creators from campaigns
+        const creatorsMap = new Map();
+        
+        campaigns.forEach((campaign: any) => {
+          const creator = campaign.creator;
+          if (creator && !creatorsMap.has(creator.id)) {
+            creatorsMap.set(creator.id, {
+              id: creator.id,
+              name: creator.name,
+              username: creator.name.toLowerCase().replace(/\s+/g, '-'),
+              email: creator.email,
+              avatar: creator.avatar,
+              creatorBio: creator.creatorBio || campaign.description,
+              isCreator: true,
+              _count: {
+                subscriptions: 0, // Will be populated by backend
+                membershipTiers: 0,
+              },
+              membershipTiers: [],
+            });
+          }
+        });
+        
+        const creatorsArray = Array.from(creatorsMap.values());
+        setCreators(creatorsArray);
+        setFilteredCreators(creatorsArray);
+        
+        // Load tier counts for each creator
+        creatorsArray.forEach((creator) => {
+          loadCreatorTiers(creator.id);
+        });
       }
     } catch (error) {
       console.error("Error loading creators:", error);
       toast.error("Failed to load creators");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadCreatorTiers = async (creatorId: string) => {
+    try {
+      // Find creator's campaign
+      const campaignResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/campaigns`
+      );
+      
+      if (campaignResponse.data.success) {
+        const creatorCampaign = campaignResponse.data.data?.campaigns?.find(
+          (c: any) => c.creator.id === creatorId && c.type === 'CREATOR'
+        );
+        
+        if (creatorCampaign) {
+          // Get tiers for this campaign
+          const tiersResponse = await axios.get(
+            `${process.env.NEXT_PUBLIC_API_URL}/memberships/campaigns/${creatorCampaign.id}/tiers`
+          );
+          
+          if (tiersResponse.data.success) {
+            const tiers = tiersResponse.data.data || [];
+            
+            // Update creator with tier info
+            setCreators((prev) =>
+              prev.map((c) =>
+                c.id === creatorId
+                  ? {
+                      ...c,
+                      _count: {
+                        ...c._count,
+                        membershipTiers: tiers.length,
+                      },
+                      membershipTiers: tiers,
+                    }
+                  : c
+              )
+            );
+            
+            // Also update filtered creators
+            setFilteredCreators((prev) =>
+              prev.map((c) =>
+                c.id === creatorId
+                  ? {
+                      ...c,
+                      _count: {
+                        ...c._count,
+                        membershipTiers: tiers.length,
+                      },
+                      membershipTiers: tiers,
+                    }
+                  : c
+              )
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error loading tiers for creator ${creatorId}:`, error);
     }
   };
 
