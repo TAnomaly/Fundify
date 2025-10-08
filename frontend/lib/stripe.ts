@@ -49,8 +49,9 @@ export const redirectToCheckout = async (tierId: string, creatorId: string) => {
 // Open Stripe Customer Portal
 export const openCustomerPortal = async () => {
   try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://perfect-happiness-production.up.railway.app/api';
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/stripe/create-portal-session`,
+      `${apiUrl}/stripe/create-portal-session`,
       {
         method: 'POST',
         headers: {

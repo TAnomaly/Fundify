@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { API_URL } from "@/lib/config";
 
 interface Tier {
   id: string;
@@ -46,11 +47,9 @@ export default function TiersPage() {
         return;
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-
       // Get current user's creator campaign
       const userResponse = await fetch(
-        `${apiUrl}/users/me`,
+        `${API_URL}/users/me`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -65,7 +64,7 @@ export default function TiersPage() {
 
       // Get creator's campaign
       const campaignsResponse = await fetch(
-        `${apiUrl}/campaigns?type=CREATOR`,
+        `${API_URL}/campaigns?type=CREATOR`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -85,7 +84,7 @@ export default function TiersPage() {
 
       // Get tiers for the campaign
       const tiersResponse = await fetch(
-        `${apiUrl}/memberships/campaigns/${creatorCampaign.id}/tiers`,
+        `${API_URL}/memberships/campaigns/${creatorCampaign.id}/tiers`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -119,18 +118,16 @@ export default function TiersPage() {
         return;
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-
       // Get current user's creator campaign
       const userResponse = await fetch(
-        `${apiUrl}/users/me`,
+        `${API_URL}/users/me`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const userData = await userResponse.json();
 
       // Get creator campaign
       const campaignsResponse = await fetch(
-        `${apiUrl}/campaigns?type=CREATOR`,
+        `${API_URL}/campaigns?type=CREATOR`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const campaignsData = await campaignsResponse.json();
@@ -146,7 +143,7 @@ export default function TiersPage() {
 
       // Create tier
       const response = await fetch(
-        `${apiUrl}/memberships/campaigns/${creatorCampaign.id}/tiers`,
+        `${API_URL}/memberships/campaigns/${creatorCampaign.id}/tiers`,
         {
           method: "POST",
           headers: {
