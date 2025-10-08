@@ -17,6 +17,8 @@ import withdrawalRoutes from './routes/withdrawals';
 import membershipTierRoutes from './routes/membershipTier.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import creatorPostRoutes from './routes/creatorPost.routes';
+import stripeRoutes from './routes/stripe.routes';
+import webhookRoutes from './routes/webhook.routes';
 
 // Types
 import { ApiError } from './types';
@@ -45,6 +47,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(morgan('dev'));
+
+// Stripe webhook needs raw body - must be before express.json()
+app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
@@ -77,6 +83,8 @@ app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/memberships', membershipTierRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/posts', creatorPostRoutes);
+app.use('/api/stripe', stripeRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
