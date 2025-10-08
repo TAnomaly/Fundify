@@ -45,6 +45,9 @@ export default function DashboardPage() {
 
       setUser(currentUser);
 
+      // Debug: Log API URL
+      console.log('API URL:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api');
+
       // Fetch all data in parallel for faster loading
       const [userResponse, campaignsResponse, donationsResponse] = await Promise.allSettled([
         userApi.getMe(),
@@ -107,8 +110,22 @@ export default function DashboardPage() {
 
     } catch (error: any) {
       console.error("Failed to load dashboard data:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to load dashboard data";
+      let errorMessage = "Failed to load dashboard data";
+
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        errorMessage = "Connection timeout. Please check your internet or try again.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast.error(errorMessage);
+      console.log('Error details:', {
+        code: error.code,
+        message: error.message,
+        response: error.response?.data
+      });
     } finally {
       setIsLoading(false);
     }
