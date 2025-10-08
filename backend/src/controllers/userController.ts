@@ -190,6 +190,7 @@ export const becomeCreator = async (
       return;
     }
 
+    // Update user to creator
     const user = await prisma.user.update({
       where: { id: userId },
       data: { isCreator: true },
@@ -207,9 +208,40 @@ export const becomeCreator = async (
       },
     });
 
+    // Check if user already has a CREATOR campaign
+    const existingCreatorCampaign = await prisma.campaign.findFirst({
+      where: {
+        creatorId: userId,
+        type: 'CREATOR',
+      },
+    });
+
+    // If no CREATOR campaign exists, create one automatically
+    if (!existingCreatorCampaign) {
+      const slug = `${user.name.toLowerCase().replace(/\s+/g, '-')}-creator-${Date.now()}`;
+      
+      await prisma.campaign.create({
+        data: {
+          title: `${user.name}'s Creator Page`,
+          slug,
+          description: `Support ${user.name} and get exclusive content!`,
+          story: `Welcome to my creator page! Subscribe to get exclusive access to my content and support my work.`,
+          category: 'OTHER',
+          type: 'CREATOR',
+          status: 'ACTIVE',
+          goalAmount: 0,
+          currentAmount: 0,
+          imageUrl: user.avatar || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80',
+          creatorId: userId,
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+        },
+      });
+    }
+
     res.status(200).json({
       success: true,
-      message: 'Successfully upgraded to creator account',
+      message: 'You are now a creator! Your creator page has been set up.',
       data: user,
     });
   } catch (error) {

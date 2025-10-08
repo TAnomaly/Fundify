@@ -57,7 +57,7 @@ export default function CreatorsPage() {
   const loadCreators = async () => {
     try {
       setIsLoading(true);
-      
+
       // Get all campaigns with type CREATOR
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/campaigns`,
@@ -71,10 +71,10 @@ export default function CreatorsPage() {
 
       if (response.data.success) {
         const campaigns = response.data.data?.campaigns || [];
-        
+
         // Extract unique creators from campaigns
         const creatorsMap = new Map();
-        
+
         campaigns.forEach((campaign: any) => {
           const creator = campaign.creator;
           if (creator && !creatorsMap.has(creator.id)) {
@@ -94,11 +94,11 @@ export default function CreatorsPage() {
             });
           }
         });
-        
+
         const creatorsArray = Array.from(creatorsMap.values());
         setCreators(creatorsArray);
         setFilteredCreators(creatorsArray);
-        
+
         // Load tier counts for each creator
         creatorsArray.forEach((creator) => {
           loadCreatorTiers(creator.id);
@@ -118,49 +118,49 @@ export default function CreatorsPage() {
       const campaignResponse = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/campaigns`
       );
-      
+
       if (campaignResponse.data.success) {
         const creatorCampaign = campaignResponse.data.data?.campaigns?.find(
           (c: any) => c.creator.id === creatorId && c.type === 'CREATOR'
         );
-        
+
         if (creatorCampaign) {
           // Get tiers for this campaign
           const tiersResponse = await axios.get(
             `${process.env.NEXT_PUBLIC_API_URL}/memberships/campaigns/${creatorCampaign.id}/tiers`
           );
-          
+
           if (tiersResponse.data.success) {
             const tiers = tiersResponse.data.data || [];
-            
+
             // Update creator with tier info
             setCreators((prev) =>
               prev.map((c) =>
                 c.id === creatorId
                   ? {
-                      ...c,
-                      _count: {
-                        ...c._count,
-                        membershipTiers: tiers.length,
-                      },
-                      membershipTiers: tiers,
-                    }
+                    ...c,
+                    _count: {
+                      ...c._count,
+                      membershipTiers: tiers.length,
+                    },
+                    membershipTiers: tiers,
+                  }
                   : c
               )
             );
-            
+
             // Also update filtered creators
             setFilteredCreators((prev) =>
               prev.map((c) =>
                 c.id === creatorId
                   ? {
-                      ...c,
-                      _count: {
-                        ...c._count,
-                        membershipTiers: tiers.length,
-                      },
-                      membershipTiers: tiers,
-                    }
+                    ...c,
+                    _count: {
+                      ...c._count,
+                      membershipTiers: tiers.length,
+                    },
+                    membershipTiers: tiers,
+                  }
                   : c
               )
             );
@@ -262,11 +262,10 @@ export default function CreatorsPage() {
               <button
                 key={category.value}
                 onClick={() => setSelectedCategory(category.value)}
-                className={`px-6 py-3 rounded-full text-sm font-semibold transition-all shadow-md hover:shadow-lg ${
-                  selectedCategory === category.value
+                className={`px-6 py-3 rounded-full text-sm font-semibold transition-all shadow-md hover:shadow-lg ${selectedCategory === category.value
                     ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white scale-105"
                     : "bg-white text-gray-700 hover:scale-105"
-                }`}
+                  }`}
               >
                 <span className="mr-2">{category.icon}</span>
                 {category.label}
@@ -370,7 +369,7 @@ export default function CreatorsPage() {
                     <h3 className="text-2xl font-bold text-center mb-2 group-hover:text-purple-600 transition-colors">
                       {creator.name}
                     </h3>
-                    
+
                     <p className="text-sm text-center text-muted-foreground mb-4">
                       @{username}
                     </p>
