@@ -83,6 +83,11 @@ model User {
   creatorBio    String?   @db.Text
   socialLinks   Json?     // Twitter, Instagram, YouTube, etc.
 
+  // Stripe integration
+  stripeCustomerId         String?  @unique  // For customers making payments
+  stripeAccountId          String?  @unique  // For creators receiving payouts (Stripe Connect)
+  stripeOnboardingComplete Boolean  @default(false)
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -99,6 +104,8 @@ model User {
   @@index([email])
   @@index([githubId])
   @@index([isCreator])
+  @@index([stripeCustomerId])
+  @@index([stripeAccountId])
 }
 
 model Campaign {
