@@ -49,20 +49,26 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
+      console.log('Attempting registration with:', { username: data.username, email: data.email });
       const response = await authApi.register({
         username: data.username,
         email: data.email,
         password: data.password,
       });
+      console.log('Registration response:', response);
 
       if (response.success && response.data?.token) {
+        console.log('Registration successful, saving token...');
         saveToken(response.data.token);
+        console.log('Token saved, redirecting to dashboard');
         toast.success("Registration successful! Welcome to Fundify!");
         router.push("/dashboard");
       } else {
+        console.error('Registration failed:', response.error);
         toast.error(response.error || "Registration failed. Please try again.");
       }
     } catch (error: any) {
+      console.error('Registration error:', error);
       const errorMessage = error.response?.data?.error || "Registration failed. Please try again.";
       toast.error(errorMessage);
     } finally {

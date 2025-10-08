@@ -14,9 +14,17 @@ interface DecodedToken {
 // Save token to localStorage and cookie
 export const saveToken = (token: string): void => {
   if (typeof window !== "undefined") {
+    console.log('saveToken called with token:', token.substring(0, 20) + '...');
     localStorage.setItem(TOKEN_KEY, token);
+    console.log('Token saved to localStorage');
     // Also save to cookie for middleware
     document.cookie = `authToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    console.log('Token saved to cookie');
+    // Verify it was saved
+    const saved = localStorage.getItem(TOKEN_KEY);
+    console.log('Token verification - saved?', saved ? 'YES' : 'NO');
+  } else {
+    console.error('saveToken called on server side!');
   }
 };
 

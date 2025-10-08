@@ -35,16 +35,22 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
+      console.log('Attempting login with email:', data.email);
       const response = await authApi.login(data.email, data.password);
+      console.log('Login response:', response);
 
       if (response.success && response.data?.token) {
+        console.log('Login successful, saving token...');
         saveToken(response.data.token);
+        console.log('Token saved, redirecting to dashboard');
         toast.success("Login successful! Welcome back!");
         router.push("/dashboard");
       } else {
+        console.error('Login failed:', response.error);
         toast.error(response.error || "Login failed. Please try again.");
       }
     } catch (error: any) {
+      console.error('Login error:', error);
       toast.error(error.response?.data?.error || "Login failed. Please check your credentials.");
     } finally {
       setIsLoading(false);
