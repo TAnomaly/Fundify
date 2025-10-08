@@ -14,11 +14,18 @@ import {
 
 // Create axios instance with default config
 const getApiUrl = () => {
-  // Production hardcoded URL as fallback
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
+  // Try environment variable first, then fallback to hardcoded URLs
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
   }
-  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+  
+  // Production fallback URLs (try these in order)
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    // Check which backend is available (this will be set by environment)
+    return "https://fundify-backend-production.up.railway.app/api";
+  }
+  
+  return "http://localhost:4000/api";
 };
 
 const api: AxiosInstance = axios.create({

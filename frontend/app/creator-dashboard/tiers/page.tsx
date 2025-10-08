@@ -228,8 +228,8 @@ export default function TiersPage() {
                 <CardTitle className="flex items-center justify-between">
                   <span>{tier.name}</span>
                   <span className={`text-xs px-2 py-1 rounded-full ${tier.isActive
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                     }`}>
                     {tier.isActive ? 'Active' : 'Inactive'}
                   </span>
