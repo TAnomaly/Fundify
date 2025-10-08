@@ -18,14 +18,10 @@ export const getStripe = () => {
 // Create checkout session and redirect
 export const redirectToCheckout = async (tierId: string, creatorId: string) => {
   try {
-    const stripe = await getStripe();
-    if (!stripe) {
-      throw new Error('Stripe failed to initialize');
-    }
-
     // Call backend to create checkout session
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://perfect-happiness-production.up.railway.app/api';
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/stripe/create-checkout-session`,
+      `${apiUrl}/stripe/create-checkout-session`,
       {
         method: 'POST',
         headers: {
@@ -38,18 +34,12 @@ export const redirectToCheckout = async (tierId: string, creatorId: string) => {
 
     const data = await response.json();
 
-    if (!data.success || !data.data?.sessionId) {
+    if (!data.success || !data.data?.url) {
       throw new Error(data.message || 'Failed to create checkout session');
     }
 
-    // Redirect to Stripe Checkout
-    const { error } = await stripe.redirectToCheckout({
-      sessionId: data.data.sessionId,
-    });
-
-    if (error) {
-      throw error;
-    }
+    // Redirect directly to Stripe Checkout URL (new method)
+    window.location.href = data.data.url;
   } catch (error) {
     console.error('Checkout error:', error);
     throw error;
