@@ -142,10 +142,10 @@ const CampaignCard = React.forwardRef<HTMLDivElement, CampaignCardProps>(
               <div className="space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="font-semibold text-foreground">
-                    ${currentAmount.toLocaleString()}
+                    ${(currentAmount || 0).toLocaleString()}
                   </span>
                   <span className="text-muted-foreground">
-                    {percentage}% of ${goal.toLocaleString()}
+                    {percentage}% of ${(goal || 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="h-2 bg-secondary rounded-full overflow-hidden">
