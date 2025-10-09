@@ -369,3 +369,77 @@ export const getRecentDonations = async (
     next(error);
   }
 };
+
+export const getTopSupporters = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { creatorId, limit = 10 } = req.query;
+
+    if (!creatorId) {
+      res.status(400).json({
+        success: false,
+        message: 'Creator ID is required',
+      });
+      return;
+    }
+
+    // Get campaigns for this creator
+    const campaigns = await prisma.campaign.findMany({
+      where: { creatorId: creatorId as string },
+      select: { id: true },
+    });
+
+    const campaignIds = campaigns.map(c => c.id);
+
+    // Get top supporters grouped by donor
+    const topDonors = await prisma.donation.groupBy({
+      by: ['donorId'],
+      where: {
+        campaignId: { in: campaignIds },
+        status: 'COMPLETED',
+        anonymous: false,
+      },
+      _sum: {
+        amount: true,
+      },
+      orderBy: {
+        _sum: {
+          amount: 'desc',
+        },
+      },
+      take: parseInt(limit as string),
+    });
+
+    // Get donor details
+    const supportersWithDetails = await Promise.all(
+      topDonors.map(async (donor, index) => {
+        const user = await prisma.user.findUnique({
+          where: { id: donor.donorId },
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        });
+
+        return {
+          id: donor.donorId,
+          name: user?.name || 'Anonymous',
+          avatar: user?.avatar,
+          totalAmount: donor._sum.amount || 0,
+          rank: index + 1,
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      data: supportersWithDetails,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

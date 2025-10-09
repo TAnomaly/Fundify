@@ -6,6 +6,7 @@ import {
   getMySubscribers,
   cancelSubscription,
   toggleSubscriptionPause,
+  getRecentSubscriptions,
 } from '../controllers/subscriptionController';
 
 const router = Router();
@@ -18,6 +19,9 @@ router.get('/my-subscriptions', authenticate as any, getMySubscriptions as any);
 
 // Get creator's subscribers
 router.get('/my-subscribers', authenticate as any, getMySubscribers as any);
+
+// Get recent subscriptions (for stream widgets)
+router.get('/recent', getRecentSubscriptions as any);
 
 // Cancel a subscription
 router.post('/:subscriptionId/cancel', authenticate as any, cancelSubscription as any);

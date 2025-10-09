@@ -8,13 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getCurrentUser } from "@/lib/auth";
 import toast from "react-hot-toast";
-import { Copy, ExternalLink, Settings, Monitor, Twitch, Youtube } from "lucide-react";
+import { Copy, ExternalLink, Settings, Monitor, Video, Play } from "lucide-react";
 
 export default function WidgetsPage() {
   const router = useRouter();
-  const [userId, setUserId] = useState<string>("");
   const [widgetUrl, setWidgetUrl] = useState<string>("");
-  const [testAlert, setTestAlert] = useState(false);
 
   useEffect(() => {
     const user = getCurrentUser();
@@ -22,7 +20,6 @@ export default function WidgetsPage() {
       router.push("/login");
       return;
     }
-    setUserId(user.id);
     setWidgetUrl(
       `${window.location.origin}/stream-widgets/alerts?creator=${user.id}`
     );
@@ -38,9 +35,7 @@ export default function WidgetsPage() {
   };
 
   const sendTestAlert = () => {
-    setTestAlert(true);
     toast.success("Test alert sent! Check your widget window.");
-    setTimeout(() => setTestAlert(false), 3000);
   };
 
   return (
@@ -190,9 +185,13 @@ export default function WidgetsPage() {
               </select>
             </div>
 
-            <Button variant="outline" className="w-full" disabled>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => router.push("/creator-dashboard/widgets/theme")}
+            >
               <Settings className="w-4 h-4 mr-2" />
-              More Settings (Coming Soon)
+              Customize Theme
             </Button>
           </CardContent>
         </Card>
@@ -211,7 +210,7 @@ export default function WidgetsPage() {
             {/* Twitch */}
             <div className="border border-purple-300 dark:border-purple-700 rounded-lg p-6 text-center">
               <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Twitch className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                <Video className="w-8 h-8 text-purple-600 dark:text-purple-400" />
               </div>
               <h3 className="font-semibold mb-2">Twitch</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -228,7 +227,7 @@ export default function WidgetsPage() {
             {/* YouTube */}
             <div className="border border-red-300 dark:border-red-700 rounded-lg p-6 text-center">
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Youtube className="w-8 h-8 text-red-600 dark:text-red-400" />
+                <Play className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
               <h3 className="font-semibold mb-2">YouTube</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -264,42 +263,117 @@ export default function WidgetsPage() {
 
       {/* Additional Widget Types */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-        <Card className="bg-glass-card shadow-soft opacity-60">
+        <Card className="bg-glass-card shadow-soft hover:shadow-lg transition-shadow">
           <CardContent className="p-6 text-center">
             <div className="text-4xl mb-3">🎯</div>
             <h3 className="font-semibold mb-2">Goal Tracker</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Show donation goals on stream
             </p>
-            <Button variant="outline" size="sm" disabled>
-              Coming Soon
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  const user = getCurrentUser();
+                  const url = `${window.location.origin}/stream-widgets/goal?creator=${user?.id}`;
+                  copyToClipboard(url);
+                }}
+              >
+                Copy URL
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const user = getCurrentUser();
+                  window.open(
+                    `${window.location.origin}/stream-widgets/goal?creator=${user?.id}`,
+                    "_blank",
+                    "width=1920,height=1080"
+                  );
+                }}
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-glass-card shadow-soft opacity-60">
+        <Card className="bg-glass-card shadow-soft hover:shadow-lg transition-shadow">
           <CardContent className="p-6 text-center">
             <div className="text-4xl mb-3">⭐</div>
             <h3 className="font-semibold mb-2">Top Supporters</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Display leaderboard widget
             </p>
-            <Button variant="outline" size="sm" disabled>
-              Coming Soon
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  const user = getCurrentUser();
+                  const url = `${window.location.origin}/stream-widgets/top-supporters?creator=${user?.id}`;
+                  copyToClipboard(url);
+                }}
+              >
+                Copy URL
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const user = getCurrentUser();
+                  window.open(
+                    `${window.location.origin}/stream-widgets/top-supporters?creator=${user?.id}`,
+                    "_blank",
+                    "width=1920,height=1080"
+                  );
+                }}
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-glass-card shadow-soft opacity-60">
+        <Card className="bg-glass-card shadow-soft hover:shadow-lg transition-shadow">
           <CardContent className="p-6 text-center">
             <div className="text-4xl mb-3">📊</div>
             <h3 className="font-semibold mb-2">Recent Events</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Stream of latest donations
             </p>
-            <Button variant="outline" size="sm" disabled>
-              Coming Soon
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  const user = getCurrentUser();
+                  const url = `${window.location.origin}/stream-widgets/recent-events?creator=${user?.id}`;
+                  copyToClipboard(url);
+                }}
+              >
+                Copy URL
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const user = getCurrentUser();
+                  window.open(
+                    `${window.location.origin}/stream-widgets/recent-events?creator=${user?.id}`,
+                    "_blank",
+                    "width=1920,height=1080"
+                  );
+                }}
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

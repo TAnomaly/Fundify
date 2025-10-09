@@ -318,3 +318,56 @@ export const toggleSubscriptionPause = async (
     next(error);
   }
 };
+
+// Get recent subscriptions for widgets
+export const getRecentSubscriptions = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { creatorId, limit = 10 } = req.query;
+
+    if (!creatorId) {
+      res.status(400).json({
+        success: false,
+        message: 'Creator ID is required',
+      });
+      return;
+    }
+
+    const subscriptions = await prisma.subscription.findMany({
+      where: {
+        creatorId: creatorId as string,
+        status: 'ACTIVE',
+      },
+      include: {
+        subscriber: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        tier: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: parseInt(limit as string),
+    });
+
+    res.status(200).json({
+      success: true,
+      data: subscriptions,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
