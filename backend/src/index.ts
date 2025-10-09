@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import passport from 'passport';
+import path from 'path';
 import { configurePassport } from './config/passport';
 
 // Routes
@@ -19,6 +20,7 @@ import subscriptionRoutes from './routes/subscription.routes';
 import creatorPostRoutes from './routes/creatorPost.routes';
 import stripeRoutes from './routes/stripe.routes';
 import webhookRoutes from './routes/webhook.routes';
+import uploadRoutes from './routes/upload.routes';
 
 // Types
 import { ApiError } from './types';
@@ -56,6 +58,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 app.use('/api/', limiter);
 
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Health check
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
@@ -85,6 +90,7 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/posts', creatorPostRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

@@ -5,15 +5,18 @@ import { useRouter } from "next/navigation";
 import { creatorPostApi } from "@/lib/api/creatorPost";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { MediaUpload } from "@/components/MediaUpload";
 
 export default function NewPostPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -39,6 +42,8 @@ export default function NewPostPage() {
     try {
       const response = await creatorPostApi.create({
         ...formData,
+        images,
+        videoUrl: videoUrl || undefined,
         publishedAt: new Date().toISOString(),
       });
 
@@ -107,6 +112,18 @@ export default function NewPostPage() {
                 placeholder="Write your post content here..."
                 className="mt-2 min-h-[300px]"
                 required
+              />
+            </div>
+
+            <div>
+              <Label>Media (Images & Video)</Label>
+              <p className="text-sm text-gray-500 mb-3">Upload images and videos to your post</p>
+              <MediaUpload
+                onImagesChange={setImages}
+                onVideoChange={setVideoUrl}
+                maxImages={10}
+                allowVideo={true}
+                allowAttachments={false}
               />
             </div>
 

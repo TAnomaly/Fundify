@@ -70,6 +70,7 @@ interface CreatorPost {
   content: string;
   excerpt?: string;
   images: string[];
+  videoUrl?: string;
   isPublic: boolean;
   hasAccess: boolean;
   publishedAt: string;
@@ -486,14 +487,30 @@ export default function CreatorProfilePage() {
                       {post.hasAccess ? (
                         <div className="prose max-w-none">
                           <p className="whitespace-pre-wrap">{post.content}</p>
+
+                          {/* Video Player */}
+                          {post.videoUrl && (
+                            <div className="my-6">
+                              <video
+                                src={`${process.env.NEXT_PUBLIC_API_URL}${post.videoUrl}`}
+                                controls
+                                className="w-full rounded-lg shadow-lg"
+                                poster={post.images[0] ? `${process.env.NEXT_PUBLIC_API_URL}${post.images[0]}` : undefined}
+                              >
+                                Your browser does not support the video tag.
+                              </video>
+                            </div>
+                          )}
+
+                          {/* Image Gallery */}
                           {post.images.length > 0 && (
                             <div className="grid grid-cols-2 gap-4 mt-4">
                               {post.images.map((image, idx) => (
                                 <img
                                   key={idx}
-                                  src={image}
+                                  src={`${process.env.NEXT_PUBLIC_API_URL}${image}`}
                                   alt={`Post image ${idx + 1}`}
-                                  className="rounded-lg w-full"
+                                  className="rounded-lg w-full hover:scale-105 transition-transform cursor-pointer"
                                 />
                               ))}
                             </div>
