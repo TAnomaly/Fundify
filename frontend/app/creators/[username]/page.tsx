@@ -131,7 +131,7 @@ export default function CreatorProfilePage() {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/creator-posts/creator/${profile.user.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/posts/creator/${profile.user.id}`,
         { headers }
       );
 

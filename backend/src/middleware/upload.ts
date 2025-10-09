@@ -10,7 +10,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Configure storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, file, cb) => {
     let folder = 'uploads/';
 
     // Organize by file type
@@ -29,7 +29,7 @@ const storage = multer.diskStorage({
 
     cb(null, folder);
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     // Generate unique filename: timestamp-randomstring-originalname
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
@@ -39,18 +39,35 @@ const storage = multer.diskStorage({
 });
 
 // File filter for security
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   // Allowed mime types
   const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-  const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+  const allowedVideoTypes = [
+    'video/mp4',
+    'video/mpeg',
+    'video/webm',
+    'video/ogg',
+    'video/quicktime',
+    'video/x-msvideo', // .avi
+    'video/x-matroska', // .mkv
+    'application/octet-stream', // Sometimes browsers send this for videos
+  ];
   const allowedFileTypes = ['application/pdf', 'application/zip', 'text/plain'];
 
-  const allAllowedTypes = [...allowedImageTypes, ...allowedVideoTypes, ...allowedFileTypes];
+  // Get file extension
+  const ext = path.extname(file.originalname).toLowerCase();
+  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v'];
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-  if (allAllowedTypes.includes(file.mimetype)) {
+  // Check by MIME type or extension
+  const isImage = allowedImageTypes.includes(file.mimetype) || imageExtensions.includes(ext);
+  const isVideo = allowedVideoTypes.includes(file.mimetype) || videoExtensions.includes(ext);
+  const isFile = allowedFileTypes.includes(file.mimetype);
+
+  if (isImage || isVideo || isFile) {
     cb(null, true);
   } else {
-    cb(new Error(`Invalid file type. Allowed types: ${allAllowedTypes.join(', ')}`));
+    cb(new Error(`Invalid file type: ${file.mimetype}. Extension: ${ext}`));
   }
 };
 
