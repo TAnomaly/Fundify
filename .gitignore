@@ -1,46 +1,100 @@
+# ==================
+# FUNDIFY .GITIGNORE
+# ==================
+
 # Dependencies
 node_modules/
 .pnp
 .pnp.js
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Testing
 coverage/
 *.log
+.nyc_output/
 
-# Production
+# Production builds
 build/
 dist/
 .next/
 out/
+.vercel/
 
-# Environment variables
+# Environment variables - NEVER COMMIT THESE
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
+*.env
 
-# Debug
+# Keep example files
+!.env.example
+!.env.local.example
+
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 
-# IDE
+# IDE & Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.project
+.classpath
+.settings/
 
-# OS
+# OS Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
-# Prisma
-prisma/migrations/
+# Uploads & User Content
+uploads/
+*.uploaded
+temp/
+tmp/
 
-# Database
+# Prisma (migrations tracked via git, but can exclude if preferred)
+# prisma/migrations/
+
+# Database files
 *.db
 *.db-journal
+*.sqlite
+*.sqlite3
 postgres_data/
 redis_data/
+mongo_data/
+
+# Secrets & Keys
+*.pem
+*.key
+*.cert
+*.crt
+secrets/
+.secrets/
+
+# Temp files
+.cache/
+.parcel-cache/
+.turbo/
+tsconfig.tsbuildinfo
+
+# Misc
+*.bak
+*.tmp
+*~.nib
+.LSOverride
