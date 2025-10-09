@@ -188,7 +188,7 @@ export default function CreatorDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <button
           onClick={() => router.push("/creator-dashboard/new-post")}
           className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
@@ -202,6 +202,23 @@ export default function CreatorDashboard() {
             <div>
               <h3 className="font-semibold text-lg">Create New Post</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">Share updates with your supporters</p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/creator-dashboard/analytics")}
+          className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">View Analytics</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Track your growth and revenue</p>
             </div>
           </div>
         </button>
