@@ -492,11 +492,12 @@ export default function CreatorProfilePage() {
                           {post.videoUrl && (
                             <div className="my-6">
                               <video
-                                src={`${process.env.NEXT_PUBLIC_API_URL}${post.videoUrl}`}
+                                src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${post.videoUrl}`}
                                 controls
                                 className="w-full rounded-lg shadow-lg"
-                                poster={post.images[0] ? `${process.env.NEXT_PUBLIC_API_URL}${post.images[0]}` : undefined}
+                                poster={post.images[0] ? `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${post.images[0]}` : undefined}
                               >
+                                <source src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${post.videoUrl}`} type="video/mp4" />
                                 Your browser does not support the video tag.
                               </video>
                             </div>
@@ -508,7 +509,7 @@ export default function CreatorProfilePage() {
                               {post.images.map((image, idx) => (
                                 <img
                                   key={idx}
-                                  src={`${process.env.NEXT_PUBLIC_API_URL}${image}`}
+                                  src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${image}`}
                                   alt={`Post image ${idx + 1}`}
                                   className="rounded-lg w-full hover:scale-105 transition-transform cursor-pointer"
                                 />

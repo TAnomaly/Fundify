@@ -4,24 +4,15 @@ import { useState, useRef } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Progress } from "./ui/progress";
-import { X, Upload, Image as ImageIcon, Video as VideoIcon, File, Loader2 } from "lucide-react";
+import { X, Image as ImageIcon, Video as VideoIcon, Loader2 } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
-
-interface UploadedFile {
-  url: string;
-  filename: string;
-  size: number;
-  type: "image" | "video" | "file";
-}
 
 interface MediaUploadProps {
   onImagesChange?: (urls: string[]) => void;
   onVideoChange?: (url: string | null) => void;
-  onAttachmentsChange?: (files: any[]) => void;
   maxImages?: number;
   allowVideo?: boolean;
-  allowAttachments?: boolean;
   existingImages?: string[];
   existingVideo?: string;
 }
@@ -29,22 +20,18 @@ interface MediaUploadProps {
 export function MediaUpload({
   onImagesChange,
   onVideoChange,
-  onAttachmentsChange,
   maxImages = 10,
   allowVideo = true,
-  allowAttachments = true,
   existingImages = [],
   existingVideo,
 }: MediaUploadProps) {
   const [images, setImages] = useState<string[]>(existingImages);
   const [video, setVideo] = useState<string | null>(existingVideo || null);
-  const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadFile = async (file: File, type: "image" | "video") => {
     const formData = new FormData();
@@ -177,7 +164,7 @@ export function MediaUpload({
             {images.map((url, index) => (
               <div key={index} className="relative group">
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API_URL}${url}`}
+                  src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${url}`}
                   alt={`Upload ${index + 1}`}
                   className="w-full h-32 object-cover rounded-lg"
                 />
@@ -222,10 +209,12 @@ export function MediaUpload({
               <CardContent className="p-4">
                 <div className="relative">
                   <video
-                    src={`${process.env.NEXT_PUBLIC_API_URL}${video}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${video}`}
                     controls
                     className="w-full rounded-lg"
-                  />
+                  >
+                    <source src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${video}`} type="video/mp4" />
+                  </video>
                   <button
                     type="button"
                     onClick={removeVideo}
