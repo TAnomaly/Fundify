@@ -3,6 +3,7 @@ import { Strategy as GitHubStrategy } from 'passport-github2';
 import prisma from '../utils/prisma';
 import { generateToken } from '../utils/jwt';
 
+// Railway deployment trigger - v1.0.1
 export const configurePassport = () => {
   // GitHub Strategy
   if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
