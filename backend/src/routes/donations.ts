@@ -4,6 +4,7 @@ import {
   getDonationsByCampaign,
   getMyDonations,
   getDonationById,
+  getRecentDonations,
 } from '../controllers/donationController';
 import { authenticate } from '../middleware/auth';
 
@@ -14,6 +15,9 @@ router.post('/', authenticate as any, createDonation as any);
 
 // GET /api/donations/my
 router.get('/my', authenticate as any, getMyDonations as any);
+
+// GET /api/donations/recent (for stream widgets)
+router.get('/recent', getRecentDonations as any);
 
 // GET /api/donations/:id
 router.get('/:id', authenticate as any, getDonationById as any);

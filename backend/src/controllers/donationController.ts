@@ -309,3 +309,63 @@ export const getDonationById = async (
     next(error);
   }
 };
+
+export const getRecentDonations = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { creatorId, limit = 10 } = req.query;
+
+    if (!creatorId) {
+      res.status(400).json({
+        success: false,
+        message: 'Creator ID is required',
+      });
+      return;
+    }
+
+    // Get campaigns for this creator
+    const campaigns = await prisma.campaign.findMany({
+      where: { creatorId: creatorId as string },
+      select: { id: true },
+    });
+
+    const campaignIds = campaigns.map(c => c.id);
+
+    // Get recent donations for these campaigns
+    const donations = await prisma.donation.findMany({
+      where: {
+        campaignId: { in: campaignIds },
+        status: 'COMPLETED',
+      },
+      include: {
+        donor: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        campaign: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: parseInt(limit as string),
+    });
+
+    res.status(200).json({
+      success: true,
+      data: donations,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

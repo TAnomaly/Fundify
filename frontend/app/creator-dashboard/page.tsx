@@ -188,7 +188,7 @@ export default function CreatorDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <button
           onClick={() => router.push("/creator-dashboard/new-post")}
           className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
@@ -236,6 +236,23 @@ export default function CreatorDashboard() {
             <div>
               <h3 className="font-semibold text-lg">Manage Tiers</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">Edit membership levels and perks</p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/creator-dashboard/widgets")}
+          className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Stream Widgets</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">OBS alerts & integrations</p>
             </div>
           </div>
         </button>
