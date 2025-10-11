@@ -39,12 +39,18 @@ export const toggleLike = async (
       });
 
       // Decrement like count
-      await prisma.creatorPost.update({
+      const updatedPost = await prisma.creatorPost.update({
         where: { id: postId },
         data: { likeCount: { decrement: 1 } },
+        select: { likeCount: true },
       });
 
-      res.json({ success: true, liked: false, message: 'Post unliked' });
+      res.json({ 
+        success: true, 
+        liked: false, 
+        message: 'Post unliked',
+        data: { likeCount: updatedPost.likeCount }
+      });
     } else {
       // Like
       await prisma.postLike.create({
@@ -55,12 +61,18 @@ export const toggleLike = async (
       });
 
       // Increment like count
-      await prisma.creatorPost.update({
+      const updatedPost = await prisma.creatorPost.update({
         where: { id: postId },
         data: { likeCount: { increment: 1 } },
+        select: { likeCount: true },
       });
 
-      res.json({ success: true, liked: true, message: 'Post liked' });
+      res.json({ 
+        success: true, 
+        liked: true, 
+        message: 'Post liked',
+        data: { likeCount: updatedPost.likeCount }
+      });
     }
   } catch (error) {
     next(error);
