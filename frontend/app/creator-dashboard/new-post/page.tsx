@@ -11,12 +11,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { MediaUpload } from "@/components/MediaUpload";
-import { 
-  FileText, 
-  Image as ImageIcon, 
-  Video, 
-  Mic, 
-  Layers 
+import {
+  FileText,
+  Image as ImageIcon,
+  Video,
+  Mic,
+  Layers
 } from "lucide-react";
 
 type PostType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'MIXED';
@@ -67,13 +67,13 @@ export default function NewPostPage() {
         audioUrl: (postType === 'AUDIO') ? (audioUrl || undefined) : undefined,
         publishedAt: new Date().toISOString(),
       };
-      
+
       console.log('📝 Creating post with data:', postData);
       console.log('   - Type:', postType);
       console.log('   - Images:', images);
       console.log('   - Video:', videoUrl);
       console.log('   - Audio:', audioUrl);
-      
+
       const response = await creatorPostApi.create(postData);
 
       if (response.success) {
@@ -123,11 +123,10 @@ export default function NewPostPage() {
                       key={type.value}
                       type="button"
                       onClick={() => setPostType(type.value)}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
-                        postType === type.value
+                      className={`p-4 rounded-lg border-2 transition-all text-left ${postType === type.value
                           ? 'border-primary bg-primary/10'
                           : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
-                      }`}
+                        }`}
                     >
                       <Icon className={`w-6 h-6 mb-2 ${postType === type.value ? 'text-primary' : 'text-gray-500'}`} />
                       <div className="font-semibold text-sm">{type.label}</div>
@@ -170,10 +169,27 @@ export default function NewPostPage() {
                 id="content"
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                placeholder="Write your post content here..."
-                className="mt-2 min-h-[300px]"
+                placeholder={
+                  postType === 'TEXT' || postType === 'MIXED'
+                    ? "Write your post content here...\n\nTip: You can write your story, add details, and format your text. Additional media can be attached below."
+                    : postType === 'IMAGE'
+                    ? "Add a description for your photo gallery..."
+                    : postType === 'VIDEO'
+                    ? "Describe your video content..."
+                    : "Add details about your audio content..."
+                }
+                className="mt-2 min-h-[300px] font-mono"
                 required
               />
+              <div className="mt-2 text-sm text-gray-500 space-y-1">
+                <p>💡 <strong>Writing Tips:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Use paragraphs to organize your thoughts</li>
+                  <li>Add headings with ## for better structure</li>
+                  <li>Use **bold** for emphasis</li>
+                  <li>Add images and videos in the media section below</li>
+                </ul>
+              </div>
             </div>
 
             {/* Conditional Media Uploads based on Post Type */}
@@ -181,13 +197,13 @@ export default function NewPostPage() {
               <div>
                 <Label>Images {postType === 'IMAGE' && '*'}</Label>
                 <p className="text-sm text-gray-500 mb-3">
-                  {postType === 'IMAGE' 
-                    ? 'Upload one or more images for your photo gallery' 
+                  {postType === 'IMAGE'
+                    ? 'Upload one or more images for your photo gallery'
                     : 'Add images to your post (optional)'}
                 </p>
                 <MediaUpload
                   onImagesChange={setImages}
-                  onVideoChange={() => {}}
+                  onVideoChange={() => { }}
                   maxImages={10}
                   allowVideo={false}
                   allowAttachments={false}
@@ -204,7 +220,7 @@ export default function NewPostPage() {
                     : 'Add a video to your post (optional)'}
                 </p>
                 <MediaUpload
-                  onImagesChange={() => {}}
+                  onImagesChange={() => { }}
                   onVideoChange={setVideoUrl}
                   maxImages={0}
                   allowVideo={true}
@@ -232,7 +248,7 @@ export default function NewPostPage() {
             {postType === 'TEXT' && (
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>Blog Post Mode:</strong> Focus on your written content. 
+                  <strong>Blog Post Mode:</strong> Focus on your written content.
                   Media uploads are optional for text-based posts.
                 </p>
               </div>
