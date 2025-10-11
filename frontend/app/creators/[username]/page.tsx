@@ -124,6 +124,13 @@ export default function CreatorProfilePage() {
     }
   }, [activeTab, profile]);
 
+  useEffect(() => {
+    // Load user's liked posts
+    if (isAuthenticated()) {
+      loadUserLikes();
+    }
+  }, []);
+
   const loadCreatorProfile = async () => {
     try {
       setIsLoading(true);
@@ -190,6 +197,21 @@ export default function CreatorProfilePage() {
     }
   };
 
+  const loadUserLikes = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/posts/likes`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        setLikedPosts(new Set(response.data.data));
+      }
+    } catch (error) {
+      console.error("Error loading likes:", error);
+    }
+  };
+
   const handleLike = async (postId: string) => {
     if (!isAuthenticated()) {
       toast.error("Please login to like posts");
@@ -214,7 +236,24 @@ export default function CreatorProfilePage() {
         : post
     ));
 
-    toast.success(isLiked ? "Unliked" : "Liked!");
+    // API call
+    try {
+      const token = localStorage.getItem("authToken");
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/like`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      // Revert on error
+      setLikedPosts(isLiked ? new Set([...newLikedPosts, postId]) : newLikedPosts);
+      setPosts(posts.map(post => 
+        post.id === postId 
+          ? { ...post, likeCount: post.likeCount + (isLiked ? 1 : -1) }
+          : post
+      ));
+      toast.error("Failed to update like");
+    }
   };
 
   const handleShare = async (post: CreatorPost) => {
@@ -235,6 +274,22 @@ export default function CreatorProfilePage() {
     }
   };
 
+  const loadComments = async (postId: string) => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/comments`
+      );
+      if (response.data.success) {
+        setComments({
+          ...comments,
+          [postId]: response.data.data,
+        });
+      }
+    } catch (error) {
+      console.error("Error loading comments:", error);
+    }
+  };
+
   const handleAddComment = async (postId: string) => {
     if (!isAuthenticated()) {
       toast.error("Please login to comment");
@@ -246,31 +301,34 @@ export default function CreatorProfilePage() {
       return;
     }
 
-    // Mock comment (you'll connect this to API later)
-    const mockComment: Comment = {
-      id: Date.now().toString(),
-      content: newComment,
-      createdAt: new Date().toISOString(),
-      user: {
-        name: "You",
-        avatar: undefined,
-      },
-    };
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/comments`,
+        { content: newComment },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    setComments({
-      ...comments,
-      [postId]: [...(comments[postId] || []), mockComment],
-    });
+      if (response.data.success) {
+        // Add new comment to state
+        setComments({
+          ...comments,
+          [postId]: [response.data.data, ...(comments[postId] || [])],
+        });
 
-    // Update comment count
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { ...post, commentCount: post.commentCount + 1 }
-        : post
-    ));
+        // Update comment count
+        setPosts(posts.map(post => 
+          post.id === postId 
+            ? { ...post, commentCount: post.commentCount + 1 }
+            : post
+        ));
 
-    setNewComment("");
-    toast.success("Comment added!");
+        setNewComment("");
+        toast.success("Comment added!");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to add comment");
+    }
   };
 
   const getSocialIcon = (platform: string) => {
@@ -573,8 +631,8 @@ export default function CreatorProfilePage() {
                   <Card
                     key={post.id}
                     className={`overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 ${!post.hasAccess
-                        ? "border-2 border-purple-300 bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20"
-                        : "hover:-translate-y-1"
+                      ? "border-2 border-purple-300 bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20"
+                      : "hover:-translate-y-1"
                       }`}
                   >
                     {/* Post Header */}
@@ -659,10 +717,10 @@ export default function CreatorProfilePage() {
                                 <span>{post.images.length} {post.images.length === 1 ? 'Image' : 'Images'}</span>
                               </div>
                               <div className={`grid gap-4 ${post.images.length === 1
-                                  ? "grid-cols-1"
-                                  : post.images.length === 2
-                                    ? "grid-cols-2"
-                                    : "grid-cols-2 md:grid-cols-3"
+                                ? "grid-cols-1"
+                                : post.images.length === 2
+                                  ? "grid-cols-2"
+                                  : "grid-cols-2 md:grid-cols-3"
                                 }`}>
                                 {post.images.map((image, idx) => (
                                   <div
@@ -693,16 +751,14 @@ export default function CreatorProfilePage() {
                               {/* Like Button */}
                               <button
                                 onClick={() => handleLike(post.id)}
-                                className={`flex items-center gap-2 transition-all ${
-                                  likedPosts.has(post.id)
+                                className={`flex items-center gap-2 transition-all ${likedPosts.has(post.id)
                                     ? "text-pink-600 dark:text-pink-400"
                                     : "text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400"
-                                }`}
+                                  }`}
                               >
                                 <Heart
-                                  className={`w-5 h-5 transition-transform hover:scale-110 ${
-                                    likedPosts.has(post.id) ? "fill-current" : ""
-                                  }`}
+                                  className={`w-5 h-5 transition-transform hover:scale-110 ${likedPosts.has(post.id) ? "fill-current" : ""
+                                    }`}
                                 />
                                 <span className="text-sm font-medium">
                                   {post.likeCount || 0}
@@ -711,7 +767,13 @@ export default function CreatorProfilePage() {
 
                               {/* Comment Button */}
                               <button
-                                onClick={() => setShowComments(showComments === post.id ? null : post.id)}
+                                onClick={() => {
+                                  const newShowComments = showComments === post.id ? null : post.id;
+                                  setShowComments(newShowComments);
+                                  if (newShowComments && !comments[post.id]) {
+                                    loadComments(post.id);
+                                  }
+                                }}
                                 className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                               >
                                 <MessageCircle className="w-5 h-5" />
@@ -747,22 +809,34 @@ export default function CreatorProfilePage() {
                             <div className="mt-6 space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700 animate-in slide-in-from-top duration-300">
                               {/* Existing Comments */}
                               <div className="space-y-4 max-h-96 overflow-y-auto">
-                                {(comments[post.id] || []).map((comment) => (
-                                  <div key={comment.id} className="flex gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                                      {comment.user.name.charAt(0)}
-                                    </div>
-                                    <div className="flex-1">
-                                      <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2">
-                                        <p className="font-semibold text-sm">{comment.user.name}</p>
-                                        <p className="text-sm mt-1">{comment.content}</p>
+                                {(comments[post.id] || []).length === 0 ? (
+                                  <p className="text-center text-gray-500 py-8">No comments yet. Be the first to comment!</p>
+                                ) : (
+                                  (comments[post.id] || []).map((comment) => (
+                                    <div key={comment.id} className="flex gap-3">
+                                      {comment.user.avatar ? (
+                                        <img
+                                          src={comment.user.avatar}
+                                          alt={comment.user.name}
+                                          className="w-8 h-8 rounded-full flex-shrink-0"
+                                        />
+                                      ) : (
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                                          {comment.user.name.charAt(0)}
+                                        </div>
+                                      )}
+                                      <div className="flex-1">
+                                        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2">
+                                          <p className="font-semibold text-sm">{comment.user.name}</p>
+                                          <p className="text-sm mt-1">{comment.content}</p>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1 ml-4">
+                                          {new Date(comment.createdAt).toLocaleString()}
+                                        </p>
                                       </div>
-                                      <p className="text-xs text-gray-500 mt-1 ml-4">
-                                        {new Date(comment.createdAt).toLocaleTimeString()}
-                                      </p>
                                     </div>
-                                  </div>
-                                ))}
+                                  ))
+                                )}
                               </div>
 
                               {/* Add Comment */}

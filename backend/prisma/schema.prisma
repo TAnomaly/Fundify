@@ -101,6 +101,8 @@ model User {
   subscriptions Subscription[] @relation("Subscriber")
   subscribers   Subscription[] @relation("Creator")
   posts         CreatorPost[]
+  postLikes     PostLike[]
+  postComments  PostComment[]
 
   @@index([email])
   @@index([githubId])
@@ -363,7 +365,44 @@ model CreatorPost {
   authorId        String
   author          User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  likes           PostLike[]
+  comments        PostComment[]
+
   @@index([authorId])
   @@index([isPublic])
   @@index([publishedAt])
+}
+
+// Post likes
+model PostLike {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId String
+  post   CreatorPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+}
+
+// Post comments
+model PostComment {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId String
+  post   CreatorPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt])
 }
