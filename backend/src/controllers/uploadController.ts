@@ -50,20 +50,26 @@ export const uploadImage = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.userId || req.user?.id;
 
     if (!userId) {
+      console.error('Upload failed: No user ID found in request');
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
     if (!req.file) {
+      console.error('Upload failed: No file in request');
       res.status(400).json({ success: false, message: 'No file uploaded' });
       return;
     }
 
+    console.log('📤 Uploading image:', req.file.originalname, 'Size:', req.file.size);
+
     // Get file URL (Supabase, Cloudinary, or local)
     const fileUrl = await getFileUrl(req.file, 'images');
+
+    console.log('✅ Upload successful:', fileUrl);
 
     res.status(200).json({
       success: true,
@@ -74,7 +80,8 @@ export const uploadImage = async (
         mimetype: req.file.mimetype,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('❌ Upload error:', error.message);
     next(error);
   }
 };

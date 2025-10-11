@@ -56,62 +56,74 @@ export default function ProfileEditPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-        if (!formData.name.trim()) {
-            toast.error("Name is required");
-            return;
+    if (!formData.name.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      
+      // Only send fields that have values (like Twitter/X)
+      const updateData: any = {};
+      if (formData.name.trim()) updateData.name = formData.name.trim();
+      if (formData.username?.trim()) updateData.username = formData.username.trim();
+      if (formData.bio?.trim()) updateData.bio = formData.bio.trim();
+      if (formData.creatorBio?.trim()) updateData.creatorBio = formData.creatorBio.trim();
+      if (formData.avatar?.trim()) updateData.avatar = formData.avatar.trim();
+      if (formData.bannerImage?.trim()) updateData.bannerImage = formData.bannerImage.trim();
+      
+      const response = await axios.put(
+        `${getApiUrl()}/users/profile`,
+        updateData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        toast.success("Profile updated successfully!");
+        router.push("/creator-dashboard");
+      }
+    } catch (error: any) {
+      console.error('Profile update error:', error.response?.data || error.message);
+      toast.error(error.response?.data?.message || "Failed to update profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (field: 'avatar' | 'bannerImage', file: File) => {
+    const uploadData = new FormData();
+    uploadData.append('image', file);
+
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await axios.post(
+        `${getApiUrl()}/upload/image`,
+        uploadData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
         }
+      );
 
-        setIsLoading(true);
-        try {
-            const token = localStorage.getItem("authToken");
-            const response = await axios.put(
-                `${getApiUrl()}/users/profile`,
-                formData,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            if (response.data.success) {
-                toast.success("Profile updated successfully!");
-                router.push("/creator-dashboard");
-            }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to update profile");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleImageUpload = async (field: 'avatar' | 'bannerImage', file: File) => {
-        const formData = new FormData();
-        formData.append('image', file);
-
-        try {
-            const token = localStorage.getItem("authToken");
-            const response = await axios.post(
-                `${getApiUrl()}/upload/image`,
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data',
-                    },
-                }
-            );
-
-            if (response.data.success) {
-                setFormData(prev => ({
-                    ...prev,
-                    [field]: response.data.data.url,
-                }));
-                toast.success(`${field === 'avatar' ? 'Profile picture' : 'Banner'} uploaded!`);
-            }
-        } catch (error) {
-            toast.error("Failed to upload image");
-        }
-    };
+      if (response.data.success) {
+        setFormData(prev => ({
+          ...prev,
+          [field]: response.data.data.url,
+        }));
+        toast.success(`${field === 'avatar' ? 'Profile picture' : 'Banner'} uploaded!`);
+      }
+    } catch (error: any) {
+      console.error('Upload error:', error.response?.data || error.message);
+      toast.error(error.response?.data?.message || "Failed to upload image");
+    }
+  };
 
     if (isLoadingProfile) {
         return (
