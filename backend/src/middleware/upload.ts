@@ -1,15 +1,24 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import {
+  cloudinaryImageStorage,
+  cloudinaryVideoStorage,
+  cloudinaryFileStorage,
+  isCloudinaryConfigured,
+} from '../config/cloudinary';
 
-// Ensure uploads directory exists
+// Determine which storage to use
+const useCloudStorage = isCloudinaryConfigured();
+
+// Fallback: Local disk storage for development
 const uploadsDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadsDir)) {
+if (!useCloudStorage && !fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+  console.warn('⚠️  Using local storage. Configure Cloudinary for production!');
 }
 
-// Configure storage
-const storage = multer.diskStorage({
+const localDiskStorage = multer.diskStorage({
   destination: (_req, file, cb) => {
     let folder = 'uploads/';
 
@@ -37,6 +46,16 @@ const storage = multer.diskStorage({
     cb(null, `${name}-${uniqueSuffix}${ext}`);
   },
 });
+
+// Helper to get appropriate storage based on file type
+const getStorage = (fileType: 'image' | 'video' | 'file' = 'file') => {
+  if (useCloudStorage) {
+    if (fileType === 'image') return cloudinaryImageStorage;
+    if (fileType === 'video') return cloudinaryVideoStorage;
+    return cloudinaryFileStorage;
+  }
+  return localDiskStorage;
+};
 
 // File filter for security
 const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -71,23 +90,37 @@ const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterC
   }
 };
 
-// Configure multer
-export const upload = multer({
-  storage,
-  fileFilter,
-  limits: {
-    fileSize: 500 * 1024 * 1024, // 500MB max file size
-    files: 10, // Max 10 files per upload
-  },
-});
+// Create multer instances for different file types
+const createUploadInstance = (fileType: 'image' | 'video' | 'file' = 'file') => {
+  return multer({
+    storage: getStorage(fileType),
+    fileFilter,
+    limits: {
+      fileSize: 500 * 1024 * 1024, // 500MB max file size
+      files: 10, // Max 10 files per upload
+    },
+  });
+};
 
 // Middleware for single file upload
-export const uploadSingle = (fieldName: string) => upload.single(fieldName);
+export const uploadSingle = (fieldName: string, fileType: 'image' | 'video' | 'file' = 'file') => {
+  return createUploadInstance(fileType).single(fieldName);
+};
 
 // Middleware for multiple files upload
-export const uploadMultiple = (fieldName: string, maxCount: number = 10) =>
-  upload.array(fieldName, maxCount);
+export const uploadMultiple = (
+  fieldName: string,
+  maxCount: number = 10,
+  fileType: 'image' | 'video' | 'file' = 'file'
+) => {
+  return createUploadInstance(fileType).array(fieldName, maxCount);
+};
 
 // Middleware for mixed upload (multiple fields)
-export const uploadFields = (fields: { name: string; maxCount: number }[]) =>
-  upload.fields(fields);
+export const uploadFields = (fields: { name: string; maxCount: number }[]) => {
+  // For mixed uploads, use generic storage
+  return createUploadInstance('file').fields(fields);
+};
+
+// Export flag to check if using cloud storage
+export { useCloudStorage };

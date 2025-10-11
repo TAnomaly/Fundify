@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { redirectToCheckout } from "@/lib/stripe";
 import { isAuthenticated } from "@/lib/auth";
-import { getMediaBaseUrl } from "@/lib/api";
+import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
 import toast from "react-hot-toast";
 import axios from "axios";
 import {
@@ -409,7 +409,7 @@ export default function CreatorProfilePage() {
                         }
                       >
                         {tier.maxSubscribers &&
-                        tier.currentSubscribers >= tier.maxSubscribers
+                          tier.currentSubscribers >= tier.maxSubscribers
                           ? "Tier Full"
                           : "Subscribe"}
                       </Button>
@@ -462,9 +462,8 @@ export default function CreatorProfilePage() {
                 {posts.map((post) => (
                   <Card
                     key={post.id}
-                    className={`shadow-xl hover:shadow-2xl transition-all ${
-                      !post.hasAccess ? "border-2 border-purple-300" : ""
-                    }`}
+                    className={`shadow-xl hover:shadow-2xl transition-all ${!post.hasAccess ? "border-2 border-purple-300" : ""
+                      }`}
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -493,12 +492,12 @@ export default function CreatorProfilePage() {
                           {post.videoUrl && (
                             <div className="my-6">
                               <video
-                                src={`${getMediaBaseUrl()}${post.videoUrl}`}
+                                src={getFullMediaUrl(post.videoUrl)}
                                 controls
                                 className="w-full rounded-lg shadow-lg"
-                                poster={post.images[0] ? `${getMediaBaseUrl()}${post.images[0]}` : undefined}
+                                poster={getFullMediaUrl(post.images[0])}
                               >
-                                <source src={`${getMediaBaseUrl()}${post.videoUrl}`} type="video/mp4" />
+                                <source src={getFullMediaUrl(post.videoUrl)} type="video/mp4" />
                                 Your browser does not support the video tag.
                               </video>
                             </div>
@@ -510,7 +509,7 @@ export default function CreatorProfilePage() {
                               {post.images.map((image, idx) => (
                                 <img
                                   key={idx}
-                                  src={`${getMediaBaseUrl()}${image}`}
+                                  src={getFullMediaUrl(image)}
                                   alt={`Post image ${idx + 1}`}
                                   className="rounded-lg w-full hover:scale-105 transition-transform cursor-pointer"
                                 />

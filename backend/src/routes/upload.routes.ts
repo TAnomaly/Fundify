@@ -11,16 +11,16 @@ import { uploadSingle, uploadMultiple, uploadFields } from '../middleware/upload
 const router = Router();
 
 // Upload single image
-router.post('/image', authenticate as any, uploadSingle('image'), uploadImage as any);
+router.post('/image', authenticate as any, uploadSingle('image', 'image'), uploadImage as any);
 
 // Upload single video
-router.post('/video', authenticate as any, uploadSingle('video'), uploadVideo as any);
+router.post('/video', authenticate as any, uploadSingle('video', 'video'), uploadVideo as any);
 
 // Upload multiple images (up to 10)
 router.post(
   '/images',
   authenticate as any,
-  uploadMultiple('images', 10),
+  uploadMultiple('images', 10, 'image'),
   uploadMultipleImages as any
 );
 

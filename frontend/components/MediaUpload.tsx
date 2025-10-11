@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Progress } from "./ui/progress";
 import { X, Image as ImageIcon, Video as VideoIcon, Loader2 } from "lucide-react";
+import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -164,7 +165,7 @@ export function MediaUpload({
             {images.map((url, index) => (
               <div key={index} className="relative group">
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${url}`}
+                  src={getFullMediaUrl(url)}
                   alt={`Upload ${index + 1}`}
                   className="w-full h-32 object-cover rounded-lg"
                 />
@@ -209,11 +210,11 @@ export function MediaUpload({
               <CardContent className="p-4">
                 <div className="relative">
                   <video
-                    src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${video}`}
+                    src={getFullMediaUrl(video)}
                     controls
                     className="w-full rounded-lg"
                   >
-                    <source src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${video}`} type="video/mp4" />
+                    <source src={getFullMediaUrl(video)} type="video/mp4" />
                   </video>
                   <button
                     type="button"

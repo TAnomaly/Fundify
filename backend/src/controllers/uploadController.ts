@@ -1,6 +1,17 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
 import path from 'path';
+import { useCloudStorage } from '../middleware/upload';
+
+// Helper to get file URL
+const getFileUrl = (file: Express.Multer.File, folder: string): string => {
+  // If using Cloudinary, the file.path contains the full URL
+  if (useCloudStorage && (file as any).path) {
+    return (file as any).path;
+  }
+  // For local storage, return relative path
+  return `/uploads/${folder}/${file.filename}`;
+};
 
 // Upload single image
 export const uploadImage = async (
@@ -21,8 +32,8 @@ export const uploadImage = async (
       return;
     }
 
-    // Return the file URL (relative path)
-    const fileUrl = `/uploads/images/${req.file.filename}`;
+    // Get file URL (Cloudinary or local)
+    const fileUrl = getFileUrl(req.file, 'images');
 
     res.status(200).json({
       success: true,
@@ -57,8 +68,8 @@ export const uploadVideo = async (
       return;
     }
 
-    // Return the file URL (relative path)
-    const fileUrl = `/uploads/videos/${req.file.filename}`;
+    // Get file URL (Cloudinary or local)
+    const fileUrl = getFileUrl(req.file, 'videos');
 
     res.status(200).json({
       success: true,
@@ -95,7 +106,7 @@ export const uploadMultipleImages = async (
     }
 
     const files = req.files.map((file) => ({
-      url: `/uploads/images/${file.filename}`,
+      url: getFileUrl(file, 'images'),
       filename: file.filename,
       size: file.size,
       mimetype: file.mimetype,
@@ -140,7 +151,7 @@ export const uploadPostMedia = async (
     // Process images
     if (files.images) {
       response.images = files.images.map((file) => ({
-        url: `/uploads/images/${file.filename}`,
+        url: getFileUrl(file, 'images'),
         filename: file.filename,
         size: file.size,
       }));
@@ -150,7 +161,7 @@ export const uploadPostMedia = async (
     if (files.video && files.video.length > 0) {
       const videoFile = files.video[0];
       response.video = {
-        url: `/uploads/videos/${videoFile.filename}`,
+        url: getFileUrl(videoFile, 'videos'),
         filename: videoFile.filename,
         size: videoFile.size,
       };
@@ -159,7 +170,7 @@ export const uploadPostMedia = async (
     // Process attachments
     if (files.attachments) {
       response.attachments = files.attachments.map((file) => ({
-        url: `/uploads/files/${file.filename}`,
+        url: getFileUrl(file, 'files'),
         filename: file.filename,
         originalName: file.originalname,
         size: file.size,
