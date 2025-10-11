@@ -13,6 +13,38 @@ async function createTables() {
   const prisma = new PrismaClient();
   
   try {
+    // Create PostType enum if not exists
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "PostType" AS ENUM ('TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'MIXED');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    console.log('✅ PostType enum created/verified');
+    
+    // Add type and audioUrl columns to CreatorPost if not exists
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "CreatorPost" ADD COLUMN "type" "PostType" NOT NULL DEFAULT 'TEXT';
+      EXCEPTION
+        WHEN duplicate_column THEN null;
+      END $$;
+    `);
+    
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "CreatorPost" ADD COLUMN "audioUrl" TEXT;
+      EXCEPTION
+        WHEN duplicate_column THEN null;
+      END $$;
+    `);
+    
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "CreatorPost_type_idx" ON "CreatorPost"("type");
+    `);
+    console.log('✅ CreatorPost columns updated');
+    
     // Create PostLike table
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "PostLike" (
