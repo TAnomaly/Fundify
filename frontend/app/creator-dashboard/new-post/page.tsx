@@ -166,10 +166,10 @@ export default function NewPostPage() {
                   postType === 'TEXT' || postType === 'MIXED'
                     ? "Write your post content here...\n\nTip: You can write your story, add details, and format your text. Additional media can be attached below."
                     : postType === 'IMAGE'
-                    ? "Add a description for your photo gallery..."
-                    : postType === 'VIDEO'
-                    ? "Describe your video content..."
-                    : "Add details about your audio content..."
+                      ? "Add a description for your photo gallery..."
+                      : postType === 'VIDEO'
+                        ? "Describe your video content..."
+                        : "Add details about your audio content..."
                 }
                 className="mt-2 min-h-[300px] font-mono"
                 required
@@ -240,15 +240,15 @@ export default function NewPostPage() {
               {/* Helper Text */}
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  💡 <strong>Tip:</strong> {postType === 'TEXT' 
+                  💡 <strong>Tip:</strong> {postType === 'TEXT'
                     ? 'As a blogger, you can write your content and optionally add images/videos to make it more engaging!'
                     : postType === 'IMAGE'
-                    ? 'Upload multiple images to create a beautiful photo gallery.'
-                    : postType === 'VIDEO'
-                    ? 'Your video will be the main focus. Add a description in the content section.'
-                    : postType === 'AUDIO'
-                    ? 'Share your podcast episodes or music with your audience.'
-                    : 'Mix and match different types of media to create rich, engaging content!'}
+                      ? 'Upload multiple images to create a beautiful photo gallery.'
+                      : postType === 'VIDEO'
+                        ? 'Your video will be the main focus. Add a description in the content section.'
+                        : postType === 'AUDIO'
+                          ? 'Share your podcast episodes or music with your audience.'
+                          : 'Mix and match different types of media to create rich, engaging content!'}
                 </p>
               </div>
             </div>
