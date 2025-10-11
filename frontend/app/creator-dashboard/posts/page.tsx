@@ -89,11 +89,10 @@ export default function PostsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-semibold text-xl">{post.title}</h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        post.isPublic
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${post.isPublic
                           ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                           : 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
-                      }`}>
+                        }`}>
                         {post.isPublic ? 'Public' : 'Members Only'}
                       </span>
                       {!post.published && (
