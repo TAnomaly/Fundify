@@ -10,8 +10,14 @@ const getFileUrl = async (file: Express.Multer.File, folder: string): Promise<st
   // Priority 1: Supabase Storage (most professional)
   if (isSupabaseConfigured()) {
     try {
+      console.log('🔄 Attempting Supabase upload for:', file.originalname);
+      console.log('   File path:', file.path);
+      console.log('   File size:', file.size);
+      
       const fileBuffer = fs.readFileSync(file.path);
       const fileName = `${folder}/${Date.now()}-${file.originalname}`;
+      console.log('   Target path in Supabase:', fileName);
+      
       const publicUrl = await uploadToSupabase(fileBuffer, fileName, file.mimetype);
       
       // Delete local temp file
@@ -19,8 +25,12 @@ const getFileUrl = async (file: Express.Multer.File, folder: string): Promise<st
       
       console.log('✅ Uploaded to Supabase:', publicUrl);
       return publicUrl;
-    } catch (error) {
-      console.error('Supabase upload failed, falling back to local:', error);
+    } catch (error: any) {
+      console.error('❌ Supabase upload failed, falling back to local');
+      console.error('   Error:', error.message);
+      console.error('   Stack:', error.stack);
+      console.error('   Bucket: fundify-media');
+      console.error('   Make sure bucket exists and is PUBLIC in Supabase Storage!');
     }
   }
   
