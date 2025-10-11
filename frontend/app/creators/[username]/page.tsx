@@ -458,43 +458,74 @@ export default function CreatorProfilePage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {posts.map((post) => (
                   <Card
                     key={post.id}
-                    className={`shadow-xl hover:shadow-2xl transition-all ${!post.hasAccess ? "border-2 border-purple-300" : ""
-                      }`}
+                    className={`overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 ${
+                      !post.hasAccess
+                        ? "border-2 border-purple-300 bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20"
+                        : "hover:-translate-y-1"
+                    }`}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-2xl mb-2">
-                            {post.title}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDate(post.publishedAt)}
-                          </p>
+                    {/* Post Header */}
+                    <CardHeader className="pb-4">
+                      <div className="flex items-start justify-between gap-4">
+                        {/* Author Info */}
+                        <div className="flex items-center gap-3 flex-1">
+                          {post.author.avatar ? (
+                            <img
+                              src={post.author.avatar}
+                              alt={post.author.name}
+                              className="w-12 h-12 rounded-full border-2 border-purple-200"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
+                              {post.author.name.charAt(0)}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-2xl font-bold mb-1 line-clamp-2">
+                              {post.title}
+                            </CardTitle>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span className="font-medium">{post.author.name}</span>
+                              <span>•</span>
+                              <span>{formatDate(post.publishedAt)}</span>
+                            </div>
+                          </div>
                         </div>
+
+                        {/* Badge */}
                         {!post.isPublic && (
-                          <Badge variant="secondary" className="ml-4">
-                            <Lock className="w-3 h-3 mr-1" />
-                            Members Only
+                          <Badge 
+                            variant="secondary" 
+                            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 border-purple-200 dark:border-purple-700"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                            <span className="font-medium">Members Only</span>
                           </Badge>
                         )}
                       </div>
                     </CardHeader>
-                    <CardContent>
+
+                    <CardContent className="pt-0">
                       {post.hasAccess ? (
-                        <div className="prose max-w-none">
-                          <p className="whitespace-pre-wrap">{post.content}</p>
+                        <div className="space-y-6">
+                          {/* Content */}
+                          <div className="prose prose-lg max-w-none dark:prose-invert">
+                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                              {post.content}
+                            </p>
+                          </div>
 
                           {/* Video Player */}
                           {post.videoUrl && (
-                            <div className="my-6">
+                            <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-black group">
                               <video
                                 src={getFullMediaUrl(post.videoUrl)}
                                 controls
-                                className="w-full rounded-lg shadow-lg"
+                                className="w-full aspect-video object-contain"
                                 poster={getFullMediaUrl(post.images[0])}
                               >
                                 <source src={getFullMediaUrl(post.videoUrl)} type="video/mp4" />
@@ -504,35 +535,83 @@ export default function CreatorProfilePage() {
                           )}
 
                           {/* Image Gallery */}
-                          {post.images.length > 0 && (
-                            <div className="grid grid-cols-2 gap-4 mt-4">
+                          {post.images.length > 0 && !post.videoUrl && (
+                            <div className={`grid gap-4 ${
+                              post.images.length === 1 
+                                ? "grid-cols-1" 
+                                : post.images.length === 2 
+                                ? "grid-cols-2" 
+                                : "grid-cols-2 md:grid-cols-3"
+                            }`}>
                               {post.images.map((image, idx) => (
-                                <img
+                                <div
                                   key={idx}
-                                  src={getFullMediaUrl(image)}
-                                  alt={`Post image ${idx + 1}`}
-                                  className="rounded-lg w-full hover:scale-105 transition-transform cursor-pointer"
-                                />
+                                  className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
+                                >
+                                  <img
+                                    src={getFullMediaUrl(image)}
+                                    alt={`${post.title} - Image ${idx + 1}`}
+                                    className="w-full h-full object-cover aspect-video group-hover:scale-110 transition-transform duration-500 cursor-pointer"
+                                  />
+                                  {/* Overlay on hover */}
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <div className="absolute bottom-3 right-3 bg-white/90 dark:bg-black/90 rounded-full p-2">
+                                      <ExternalLink className="w-4 h-4" />
+                                    </div>
+                                  </div>
+                                </div>
                               ))}
                             </div>
                           )}
+
+                          {/* Engagement Bar */}
+                          <div className="flex items-center gap-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
+                              <Heart className="w-5 h-5" />
+                              <span className="text-sm font-medium">Like</span>
+                            </button>
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                              <Globe className="w-5 h-5" />
+                              <span className="text-sm font-medium">
+                                {post.isPublic ? "Public" : "Members Only"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       ) : (
-                        <div className="text-center py-12">
-                          <Lock className="w-16 h-16 text-purple-600 mx-auto mb-4" />
-                          <h3 className="text-xl font-bold mb-2">
-                            Members-Only Content
-                          </h3>
-                          <p className="text-muted-foreground mb-6">
-                            {post.excerpt ||
-                              "Subscribe to unlock this exclusive content"}
-                          </p>
-                          <Button
-                            variant="gradient"
-                            onClick={() => setActiveTab("tiers")}
-                          >
-                            Become a Member
-                          </Button>
+                        <div className="relative overflow-hidden">
+                          {/* Blurred Preview */}
+                          {post.excerpt && (
+                            <div className="relative mb-6">
+                              <p className="text-gray-600 dark:text-gray-400 blur-sm select-none">
+                                {post.excerpt}
+                              </p>
+                              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-gray-900"></div>
+                            </div>
+                          )}
+
+                          {/* Locked Content CTA */}
+                          <div className="text-center py-16 px-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-2xl border-2 border-dashed border-purple-300 dark:border-purple-700">
+                            <div className="relative inline-block mb-6">
+                              <div className="absolute inset-0 bg-purple-500 blur-2xl opacity-30 animate-pulse"></div>
+                              <Lock className="relative w-20 h-20 text-purple-600 dark:text-purple-400 mx-auto" />
+                            </div>
+                            <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                              Exclusive Members Content
+                            </h3>
+                            <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto text-lg">
+                              {post.excerpt || "Unlock this premium content and get access to exclusive posts, updates, and behind-the-scenes material"}
+                            </p>
+                            <Button
+                              variant="gradient"
+                              size="lg"
+                              onClick={() => setActiveTab("tiers")}
+                              className="shadow-lg hover:shadow-xl transition-shadow"
+                            >
+                              <Lock className="w-4 h-4 mr-2" />
+                              Unlock with Membership
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </CardContent>
