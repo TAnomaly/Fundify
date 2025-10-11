@@ -2,14 +2,34 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
 import path from 'path';
 import { useCloudStorage } from '../middleware/upload';
+import { uploadToSupabase, isSupabaseConfigured } from '../config/supabase';
+import fs from 'fs';
 
 // Helper to get file URL
-const getFileUrl = (file: Express.Multer.File, folder: string): string => {
-  // If using Cloudinary, the file.path contains the full URL
+const getFileUrl = async (file: Express.Multer.File, folder: string): Promise<string> => {
+  // Priority 1: Supabase Storage (most professional)
+  if (isSupabaseConfigured()) {
+    try {
+      const fileBuffer = fs.readFileSync(file.path);
+      const fileName = `${folder}/${Date.now()}-${file.originalname}`;
+      const publicUrl = await uploadToSupabase(fileBuffer, fileName, file.mimetype);
+      
+      // Delete local temp file
+      fs.unlinkSync(file.path);
+      
+      console.log('✅ Uploaded to Supabase:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('Supabase upload failed, falling back to local:', error);
+    }
+  }
+  
+  // Priority 2: Cloudinary (if configured)
   if (useCloudStorage && (file as any).path) {
     return (file as any).path;
   }
-  // For local storage, return relative path
+  
+  // Priority 3: Local/Railway Volume storage
   return `/uploads/${folder}/${file.filename}`;
 };
 
@@ -32,8 +52,8 @@ export const uploadImage = async (
       return;
     }
 
-    // Get file URL (Cloudinary or local)
-    const fileUrl = getFileUrl(req.file, 'images');
+    // Get file URL (Supabase, Cloudinary, or local)
+    const fileUrl = await getFileUrl(req.file, 'images');
 
     res.status(200).json({
       success: true,
@@ -68,8 +88,8 @@ export const uploadVideo = async (
       return;
     }
 
-    // Get file URL (Cloudinary or local)
-    const fileUrl = getFileUrl(req.file, 'videos');
+    // Get file URL (Supabase, Cloudinary, or local)
+    const fileUrl = await getFileUrl(req.file, 'videos');
 
     res.status(200).json({
       success: true,
@@ -105,12 +125,14 @@ export const uploadMultipleImages = async (
       return;
     }
 
-    const files = req.files.map((file) => ({
-      url: getFileUrl(file, 'images'),
-      filename: file.filename,
-      size: file.size,
-      mimetype: file.mimetype,
-    }));
+    const files = await Promise.all(
+      req.files.map(async (file) => ({
+        url: await getFileUrl(file, 'images'),
+        filename: file.filename,
+        size: file.size,
+        mimetype: file.mimetype,
+      }))
+    );
 
     res.status(200).json({
       success: true,
@@ -150,18 +172,20 @@ export const uploadPostMedia = async (
 
     // Process images
     if (files.images) {
-      response.images = files.images.map((file) => ({
-        url: getFileUrl(file, 'images'),
-        filename: file.filename,
-        size: file.size,
-      }));
+      response.images = await Promise.all(
+        files.images.map(async (file) => ({
+          url: await getFileUrl(file, 'images'),
+          filename: file.filename,
+          size: file.size,
+        }))
+      );
     }
 
     // Process video
     if (files.video && files.video.length > 0) {
       const videoFile = files.video[0];
       response.video = {
-        url: getFileUrl(videoFile, 'videos'),
+        url: await getFileUrl(videoFile, 'videos'),
         filename: videoFile.filename,
         size: videoFile.size,
       };
@@ -169,13 +193,15 @@ export const uploadPostMedia = async (
 
     // Process attachments
     if (files.attachments) {
-      response.attachments = files.attachments.map((file) => ({
-        url: getFileUrl(file, 'files'),
-        filename: file.filename,
-        originalName: file.originalname,
-        size: file.size,
-        mimetype: file.mimetype,
-      }));
+      response.attachments = await Promise.all(
+        files.attachments.map(async (file) => ({
+          url: await getFileUrl(file, 'files'),
+          filename: file.filename,
+          originalName: file.originalname,
+          size: file.size,
+          mimetype: file.mimetype,
+        }))
+      );
     }
 
     res.status(200).json({
