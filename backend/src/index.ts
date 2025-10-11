@@ -60,8 +60,24 @@ app.use('/api/', limiter);
 
 // Serve uploaded files statically with CORS headers
 app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
-  // Set CORS headers for uploaded files
-  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000');
+  // Set CORS headers for uploaded files - allow all origins for public media
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://funify.vercel.app',
+    'https://fundify.vercel.app',
+    process.env.CORS_ORIGIN,
+    process.env.FRONTEND_URL
+  ].filter(Boolean);
+
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    // For static media, allow any origin (since they're public anyway)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
