@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "build": "npx prisma generate && tsc",
-    "start": "node dist/index.js",
-    "postbuild": "node create-tables.js",
+    "start": "node create-tables.js && node dist/index.js",
     "deploy": "npx prisma migrate deploy && npm start",
     "fix": "ts-node src/scripts/fix-everything.ts",
     "create-tables": "node create-tables.js",

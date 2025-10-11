@@ -222,11 +222,11 @@ export default function CreatorProfilePage() {
     const isCurrentlyLiked = likedPosts.has(postId);
     const originalPosts = [...posts];
     const originalLikedPosts = new Set(likedPosts);
-    
+
     try {
       // Optimistic update
       const newLikedPosts = new Set(likedPosts);
-      
+
       if (isCurrentlyLiked) {
         newLikedPosts.delete(postId);
       } else {
@@ -235,8 +235,8 @@ export default function CreatorProfilePage() {
       setLikedPosts(newLikedPosts);
 
       // Update like count in posts (use || 0 to prevent negative)
-      setPosts(posts.map(post => 
-        post.id === postId 
+      setPosts(posts.map(post =>
+        post.id === postId
           ? { ...post, likeCount: Math.max(0, (post.likeCount || 0) + (isCurrentlyLiked ? -1 : 1)) }
           : post
       ));
@@ -248,11 +248,11 @@ export default function CreatorProfilePage() {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       // Update with actual server count
       if (response.data.success && response.data.data.likeCount !== undefined) {
-        setPosts(posts.map(post => 
-          post.id === postId 
+        setPosts(posts.map(post =>
+          post.id === postId
             ? { ...post, likeCount: response.data.data.likeCount }
             : post
         ));
@@ -327,8 +327,8 @@ export default function CreatorProfilePage() {
         });
 
         // Update comment count
-        setPosts(posts.map(post => 
-          post.id === postId 
+        setPosts(posts.map(post =>
+          post.id === postId
             ? { ...post, commentCount: post.commentCount + 1 }
             : post
         ));
@@ -762,8 +762,8 @@ export default function CreatorProfilePage() {
                               <button
                                 onClick={() => handleLike(post.id)}
                                 className={`flex items-center gap-2 transition-all ${likedPosts.has(post.id)
-                                    ? "text-pink-600 dark:text-pink-400"
-                                    : "text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400"
+                                  ? "text-pink-600 dark:text-pink-400"
+                                  : "text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400"
                                   }`}
                               >
                                 <Heart

@@ -1,10 +1,16 @@
 // Simple script to create PostLike and PostComment tables
 const { PrismaClient } = require('@prisma/client');
 
-const prisma = new PrismaClient();
-
 async function createTables() {
-  console.log('🔧 Creating PostLike and PostComment tables...\n');
+  console.log('🔧 Checking database tables...\n');
+  
+  // Check if DATABASE_URL exists
+  if (!process.env.DATABASE_URL) {
+    console.log('⚠️  DATABASE_URL not set, skipping table creation (this is OK during build)');
+    process.exit(0);
+  }
+  
+  const prisma = new PrismaClient();
   
   try {
     // Create PostLike table
