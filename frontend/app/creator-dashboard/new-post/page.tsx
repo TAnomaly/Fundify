@@ -176,17 +176,67 @@ export default function NewPostPage() {
               />
             </div>
 
-            <div>
-              <Label>Media (Images & Video)</Label>
-              <p className="text-sm text-gray-500 mb-3">Upload images and videos to your post</p>
-              <MediaUpload
-                onImagesChange={setImages}
-                onVideoChange={setVideoUrl}
-                maxImages={10}
-                allowVideo={true}
-                allowAttachments={false}
-              />
-            </div>
+            {/* Conditional Media Uploads based on Post Type */}
+            {(postType === 'IMAGE' || postType === 'MIXED') && (
+              <div>
+                <Label>Images {postType === 'IMAGE' && '*'}</Label>
+                <p className="text-sm text-gray-500 mb-3">
+                  {postType === 'IMAGE' 
+                    ? 'Upload one or more images for your photo gallery' 
+                    : 'Add images to your post (optional)'}
+                </p>
+                <MediaUpload
+                  onImagesChange={setImages}
+                  onVideoChange={() => {}}
+                  maxImages={10}
+                  allowVideo={false}
+                  allowAttachments={false}
+                />
+              </div>
+            )}
+
+            {(postType === 'VIDEO' || postType === 'MIXED') && (
+              <div>
+                <Label>Video {postType === 'VIDEO' && '*'}</Label>
+                <p className="text-sm text-gray-500 mb-3">
+                  {postType === 'VIDEO'
+                    ? 'Upload your video content (required)'
+                    : 'Add a video to your post (optional)'}
+                </p>
+                <MediaUpload
+                  onImagesChange={() => {}}
+                  onVideoChange={setVideoUrl}
+                  maxImages={0}
+                  allowVideo={true}
+                  allowAttachments={false}
+                />
+              </div>
+            )}
+
+            {postType === 'AUDIO' && (
+              <div>
+                <Label>Audio File *</Label>
+                <Input
+                  type="url"
+                  value={audioUrl || ''}
+                  onChange={(e) => setAudioUrl(e.target.value)}
+                  placeholder="Enter audio file URL or upload (coming soon)"
+                  className="mt-2"
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  Enter URL to your podcast episode or audio file
+                </p>
+              </div>
+            )}
+
+            {postType === 'TEXT' && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>Blog Post Mode:</strong> Focus on your written content. 
+                  Media uploads are optional for text-based posts.
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div>
