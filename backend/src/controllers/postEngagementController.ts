@@ -45,9 +45,9 @@ export const toggleLike = async (
         select: { likeCount: true },
       });
 
-      res.json({ 
-        success: true, 
-        liked: false, 
+      res.json({
+        success: true,
+        liked: false,
         message: 'Post unliked',
         data: { likeCount: updatedPost.likeCount }
       });
@@ -67,9 +67,9 @@ export const toggleLike = async (
         select: { likeCount: true },
       });
 
-      res.json({ 
-        success: true, 
-        liked: true, 
+      res.json({
+        success: true,
+        liked: true,
         message: 'Post liked',
         data: { likeCount: updatedPost.likeCount }
       });

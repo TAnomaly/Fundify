@@ -587,7 +587,7 @@ export default function CreatorProfilePage() {
                         }
                       >
                         {tier.maxSubscribers &&
-                          tier.currentSubscribers >= tier.maxSubscribers
+                        tier.currentSubscribers >= tier.maxSubscribers
                           ? "Tier Full"
                           : "Subscribe"}
                       </Button>
@@ -663,8 +663,8 @@ export default function CreatorProfilePage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <CardTitle className="text-2xl font-bold mb-1 line-clamp-2">
-                              {post.title}
-                            </CardTitle>
+                            {post.title}
+                          </CardTitle>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <span className="font-medium">{post.author.name}</span>
                               <span>•</span>
@@ -704,17 +704,17 @@ export default function CreatorProfilePage() {
                                 <span>Video</span>
                               </div>
                               <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-black">
-                                <video
-                                  controls
+                              <video
+                                controls
                                   className="w-full aspect-video object-contain"
                                   preload="metadata"
                                   controlsList="nodownload"
-                                >
+                              >
                                   <source src={getFullMediaUrl(post.videoUrl)} type="video/mp4" />
                                   <source src={getFullMediaUrl(post.videoUrl)} type="video/webm" />
                                   <source src={getFullMediaUrl(post.videoUrl)} type="video/ogg" />
-                                  Your browser does not support the video tag.
-                                </video>
+                                Your browser does not support the video tag.
+                              </video>
                               </div>
                             </div>
                           )}
@@ -732,7 +732,7 @@ export default function CreatorProfilePage() {
                                   ? "grid-cols-2"
                                   : "grid-cols-2 md:grid-cols-3"
                                 }`}>
-                                {post.images.map((image, idx) => (
+                              {post.images.map((image, idx) => (
                                   <div
                                     key={idx}
                                     className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
@@ -894,19 +894,19 @@ export default function CreatorProfilePage() {
                             </div>
                             <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                               Exclusive Members Content
-                            </h3>
+                          </h3>
                             <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto text-lg">
                               {post.excerpt || "Unlock this premium content and get access to exclusive posts, updates, and behind-the-scenes material"}
-                            </p>
-                            <Button
-                              variant="gradient"
+                          </p>
+                          <Button
+                            variant="gradient"
                               size="lg"
-                              onClick={() => setActiveTab("tiers")}
+                            onClick={() => setActiveTab("tiers")}
                               className="shadow-lg hover:shadow-xl transition-shadow"
-                            >
+                          >
                               <Lock className="w-4 h-4 mr-2" />
                               Unlock with Membership
-                            </Button>
+                          </Button>
                           </div>
                         </div>
                       )}
