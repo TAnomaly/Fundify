@@ -146,7 +146,7 @@ export default function CreatorsPage() {
                   ? {
                     ...c,
                     _count: {
-                      ...c._count,
+                      subscriptions: c._count?.subscriptions || 0,
                       membershipTiers: tiers.length,
                     },
                     membershipTiers: tiers,
@@ -162,7 +162,7 @@ export default function CreatorsPage() {
                   ? {
                     ...c,
                     _count: {
-                      ...c._count,
+                      subscriptions: c._count?.subscriptions || 0,
                       membershipTiers: tiers.length,
                     },
                     membershipTiers: tiers,
