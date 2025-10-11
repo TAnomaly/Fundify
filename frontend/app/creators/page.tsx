@@ -13,19 +13,15 @@ import { Search, Users, TrendingUp, Sparkles } from "lucide-react";
 interface Creator {
   id: string;
   name: string;
-  username: string;
+  username?: string;
   email: string;
   avatar?: string;
   creatorBio?: string;
   isCreator: boolean;
   _count?: {
-    subscriptions: number;
-    membershipTiers: number;
+    subscribers: number;
+    posts: number;
   };
-  membershipTiers?: Array<{
-    id: string;
-    price: number;
-  }>;
 }
 
 const categories = [
@@ -58,123 +54,22 @@ export default function CreatorsPage() {
     try {
       setIsLoading(true);
 
-      // Get all ACTIVE campaigns with type CREATOR
+      // Get all creators from new endpoint
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/campaigns`,
-        {
-          params: {
-            type: 'CREATOR',
-            status: 'ACTIVE', // Only show active creator campaigns
-            limit: 100,
-          },
-        }
+        `${process.env.NEXT_PUBLIC_API_URL}/users/creators`
       );
 
       if (response.data.success) {
-        const campaigns = response.data.data?.campaigns || [];
+        const creatorsData: Creator[] = response.data.data || [];
 
-        // Extract unique creators from ACTIVE campaigns only
-        const creatorsMap = new Map();
-
-        campaigns.forEach((campaign: any) => {
-          const creator = campaign.creator;
-          // Only add creators with active campaigns and isCreator status
-          if (
-            creator && 
-            !creatorsMap.has(creator.id) &&
-            campaign.status === 'ACTIVE'
-          ) {
-            creatorsMap.set(creator.id, {
-              id: creator.id,
-              name: creator.name,
-              username: creator.name.toLowerCase().replace(/\s+/g, '-'),
-              email: creator.email,
-              avatar: creator.avatar,
-              creatorBio: creator.creatorBio || campaign.description,
-              isCreator: true,
-              _count: {
-                subscriptions: 0, // Will be populated by backend
-                membershipTiers: 0,
-              },
-              membershipTiers: [],
-            });
-          }
-        });
-
-        const creatorsArray = Array.from(creatorsMap.values());
-        setCreators(creatorsArray);
-        setFilteredCreators(creatorsArray);
-
-        // Load tier counts for each creator
-        creatorsArray.forEach((creator) => {
-          loadCreatorTiers(creator.id);
-        });
+        setCreators(creatorsData);
+        setFilteredCreators(creatorsData);
       }
     } catch (error) {
       console.error("Error loading creators:", error);
       toast.error("Failed to load creators");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const loadCreatorTiers = async (creatorId: string) => {
-    try {
-      // Find creator's campaign
-      const campaignResponse = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/campaigns`
-      );
-
-      if (campaignResponse.data.success) {
-        const creatorCampaign = campaignResponse.data.data?.campaigns?.find(
-          (c: any) => c.creator.id === creatorId && c.type === 'CREATOR'
-        );
-
-        if (creatorCampaign) {
-          // Get tiers for this campaign
-          const tiersResponse = await axios.get(
-            `${process.env.NEXT_PUBLIC_API_URL}/memberships/campaigns/${creatorCampaign.id}/tiers`
-          );
-
-          if (tiersResponse.data.success) {
-            const tiers = tiersResponse.data.data || [];
-
-            // Update creator with tier info
-            setCreators((prev) =>
-              prev.map((c) =>
-                c.id === creatorId
-                  ? {
-                    ...c,
-                    _count: {
-                      subscriptions: c._count?.subscriptions || 0,
-                      membershipTiers: tiers.length,
-                    },
-                    membershipTiers: tiers,
-                  }
-                  : c
-              )
-            );
-
-            // Also update filtered creators
-            setFilteredCreators((prev) =>
-              prev.map((c) =>
-                c.id === creatorId
-                  ? {
-                    ...c,
-                    _count: {
-                      subscriptions: c._count?.subscriptions || 0,
-                      membershipTiers: tiers.length,
-                    },
-                    membershipTiers: tiers,
-                  }
-                  : c
-              )
-            );
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`Error loading tiers for creator ${creatorId}:`, error);
     }
   };
 
@@ -202,11 +97,10 @@ export default function CreatorsPage() {
     router.push(`/creators/${username}`);
   };
 
-  const getMinPrice = (creator: Creator) => {
-    if (!creator.membershipTiers || creator.membershipTiers.length === 0) {
-      return null;
-    }
-    return Math.min(...creator.membershipTiers.map((t) => t.price));
+  const getMinPrice = (_creator: Creator) => {
+    // Return null if no tiers available
+    // This would need to be implemented based on your membership tiers structure
+    return null;
   };
 
   if (isLoading) {
@@ -313,7 +207,7 @@ export default function CreatorsPage() {
               </div>
               <div>
                 <div className="text-3xl font-bold">
-                  {creators.reduce((sum, c) => sum + (c._count?.subscriptions || 0), 0)}
+                  {creators.reduce((sum, c) => sum + (c._count?.subscribers || 0), 0)}
                 </div>
                 <div className="text-sm opacity-90">Total Subscribers</div>
               </div>
@@ -390,15 +284,15 @@ export default function CreatorsPage() {
                     <div className="grid grid-cols-2 gap-4 mb-4 pt-4 border-t">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-purple-600">
-                          {creator._count?.subscriptions || 0}
+                          {creator._count?.subscribers || 0}
                         </div>
                         <div className="text-xs text-muted-foreground">Subscribers</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-blue-600">
-                          {creator._count?.membershipTiers || 0}
+                          {creator._count?.posts || 0}
                         </div>
-                        <div className="text-xs text-muted-foreground">Tiers</div>
+                        <div className="text-xs text-muted-foreground">Posts</div>
                       </div>
                     </div>
 

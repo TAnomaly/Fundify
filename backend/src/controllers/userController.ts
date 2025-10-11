@@ -249,6 +249,45 @@ export const becomeCreator = async (
   }
 };
 
+// Get all creators (public endpoint)
+export const getAllCreators = async (
+  _req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const creators = await prisma.user.findMany({
+      where: {
+        isCreator: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        creatorBio: true,
+        isCreator: true,
+        _count: {
+          select: {
+            subscribers: true,
+            posts: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: creators,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get creator profile by username (public endpoint)
 export const getCreatorByUsername = async (
   req: AuthRequest,
