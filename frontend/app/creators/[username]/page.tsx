@@ -521,46 +521,61 @@ export default function CreatorProfilePage() {
 
                           {/* Video Player */}
                           {post.videoUrl && (
-                            <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-black group">
-                              <video
-                                src={getFullMediaUrl(post.videoUrl)}
-                                controls
-                                className="w-full aspect-video object-contain"
-                                poster={getFullMediaUrl(post.images[0])}
-                              >
-                                <source src={getFullMediaUrl(post.videoUrl)} type="video/mp4" />
-                                Your browser does not support the video tag.
-                              </video>
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <Video className="w-4 h-4" />
+                                <span>Video</span>
+                              </div>
+                              <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-black">
+                                <video
+                                  controls
+                                  className="w-full aspect-video object-contain"
+                                  preload="metadata"
+                                  controlsList="nodownload"
+                                >
+                                  <source src={getFullMediaUrl(post.videoUrl)} type="video/mp4" />
+                                  <source src={getFullMediaUrl(post.videoUrl)} type="video/webm" />
+                                  <source src={getFullMediaUrl(post.videoUrl)} type="video/ogg" />
+                                  Your browser does not support the video tag.
+                                </video>
+                              </div>
                             </div>
                           )}
 
-                          {/* Image Gallery */}
-                          {post.images.length > 0 && !post.videoUrl && (
-                            <div className={`grid gap-4 ${
-                              post.images.length === 1 
-                                ? "grid-cols-1" 
-                                : post.images.length === 2 
-                                ? "grid-cols-2" 
-                                : "grid-cols-2 md:grid-cols-3"
-                            }`}>
-                              {post.images.map((image, idx) => (
-                                <div
-                                  key={idx}
-                                  className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
-                                >
-                                  <img
-                                    src={getFullMediaUrl(image)}
-                                    alt={`${post.title} - Image ${idx + 1}`}
-                                    className="w-full h-full object-cover aspect-video group-hover:scale-110 transition-transform duration-500 cursor-pointer"
-                                  />
-                                  {/* Overlay on hover */}
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <div className="absolute bottom-3 right-3 bg-white/90 dark:bg-black/90 rounded-full p-2">
-                                      <ExternalLink className="w-4 h-4" />
+                          {/* Image Gallery - Always show if images exist */}
+                          {post.images.length > 0 && (
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <Camera className="w-4 h-4" />
+                                <span>{post.images.length} {post.images.length === 1 ? 'Image' : 'Images'}</span>
+                              </div>
+                              <div className={`grid gap-4 ${
+                                post.images.length === 1 
+                                  ? "grid-cols-1" 
+                                  : post.images.length === 2 
+                                  ? "grid-cols-2" 
+                                  : "grid-cols-2 md:grid-cols-3"
+                              }`}>
+                                {post.images.map((image, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
+                                  >
+                                    <img
+                                      src={getFullMediaUrl(image)}
+                                      alt={`${post.title} - Image ${idx + 1}`}
+                                      className="w-full h-full object-cover aspect-video group-hover:scale-110 transition-transform duration-500 cursor-pointer"
+                                      loading="lazy"
+                                    />
+                                    {/* Overlay on hover */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                      <div className="absolute bottom-3 right-3 bg-white/90 dark:bg-black/90 rounded-full p-2">
+                                        <ExternalLink className="w-4 h-4" />
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
                           )}
 
