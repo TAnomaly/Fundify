@@ -7,7 +7,6 @@ import rateLimit from 'express-rate-limit';
 import passport from 'passport';
 import path from 'path';
 import { configurePassport } from './config/passport';
-import { ensureDatabaseTables } from './startup-fix';
 
 // Routes
 import authRoutes from './routes/auth';
@@ -160,22 +159,19 @@ app.use((err: ApiError, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-// Start server with auto-fix
-async function startServer() {
-  try {
-    // Auto-fix database tables on startup
-    await ensureDatabaseTables();
-    
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  // Auto-fix database tables in background (non-blocking)
+  import('./startup-fix').then(({ ensureDatabaseTables }) => {
+    ensureDatabaseTables().catch(err => {
+      console.error('⚠️  Database auto-fix failed (non-critical):', err.message);
     });
-  } catch (error) {
-    console.error('❌ Startup failed:', error);
-    process.exit(1);
-  }
-}
-
-startServer();
+  }).catch(() => {
+    // Silently ignore if startup-fix doesn't exist
+  });
+});
 
 export default app;
