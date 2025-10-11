@@ -218,41 +218,51 @@ export default function CreatorProfilePage() {
       return;
     }
 
-    // Optimistic update
-    const isLiked = likedPosts.has(postId);
-    const newLikedPosts = new Set(likedPosts);
+    // Get current state BEFORE any updates
+    const isCurrentlyLiked = likedPosts.has(postId);
+    const originalPosts = [...posts];
+    const originalLikedPosts = new Set(likedPosts);
     
-    if (isLiked) {
-      newLikedPosts.delete(postId);
-    } else {
-      newLikedPosts.add(postId);
-    }
-    setLikedPosts(newLikedPosts);
-
-    // Update like count in posts
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { ...post, likeCount: post.likeCount + (isLiked ? -1 : 1) }
-        : post
-    ));
-
-    // API call
     try {
+      // Optimistic update
+      const newLikedPosts = new Set(likedPosts);
+      
+      if (isCurrentlyLiked) {
+        newLikedPosts.delete(postId);
+      } else {
+        newLikedPosts.add(postId);
+      }
+      setLikedPosts(newLikedPosts);
+
+      // Update like count in posts (use || 0 to prevent negative)
+      setPosts(posts.map(post => 
+        post.id === postId 
+          ? { ...post, likeCount: Math.max(0, (post.likeCount || 0) + (isCurrentlyLiked ? -1 : 1)) }
+          : post
+      ));
+
+      // API call
       const token = localStorage.getItem("authToken");
-      await axios.post(
+      const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/like`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      
+      // Update with actual server count
+      if (response.data.success && response.data.data.likeCount !== undefined) {
+        setPosts(posts.map(post => 
+          post.id === postId 
+            ? { ...post, likeCount: response.data.data.likeCount }
+            : post
+        ));
+      }
     } catch (error) {
-      // Revert on error
-      setLikedPosts(isLiked ? new Set([...newLikedPosts, postId]) : newLikedPosts);
-      setPosts(posts.map(post => 
-        post.id === postId 
-          ? { ...post, likeCount: post.likeCount + (isLiked ? 1 : -1) }
-          : post
-      ));
-      toast.error("Failed to update like");
+      console.error("Like error:", error);
+      // Revert to original state on error
+      setLikedPosts(originalLikedPosts);
+      setPosts(originalPosts);
+      toast.error("Failed to update like. Database tables may not exist yet.");
     }
   };
 
