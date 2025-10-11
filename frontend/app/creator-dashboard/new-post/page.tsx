@@ -112,31 +112,24 @@ export default function NewPostPage() {
       <Card className="bg-glass-card shadow-soft">
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Post Type Selector */}
+            {/* Post Type Selector - Dropdown */}
             <div>
-              <Label className="mb-4 block">Content Type *</Label>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {POST_TYPES.map((type) => {
-                  const Icon = type.icon;
-                  return (
-                    <button
-                      key={type.value}
-                      type="button"
-                      onClick={() => setPostType(type.value)}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${postType === type.value
-                          ? 'border-primary bg-primary/10'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
-                        }`}
-                    >
-                      <Icon className={`w-6 h-6 mb-2 ${postType === type.value ? 'text-primary' : 'text-gray-500'}`} />
-                      <div className="font-semibold text-sm">{type.label}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {type.description}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <Label htmlFor="postType">Content Type *</Label>
+              <select
+                id="postType"
+                value={postType}
+                onChange={(e) => setPostType(e.target.value as PostType)}
+                className="mt-2 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                {POST_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label} - {type.description}
+                  </option>
+                ))}
+              </select>
+              <p className="text-sm text-gray-500 mt-2">
+                Choose how you want to share your content
+              </p>
             </div>
 
             <div>
@@ -192,67 +185,73 @@ export default function NewPostPage() {
               </div>
             </div>
 
-            {/* Conditional Media Uploads based on Post Type */}
-            {(postType === 'IMAGE' || postType === 'MIXED') && (
+            {/* Media Attachments - Always Available */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-lg font-semibold">Media Attachments</Label>
+                <span className="text-sm text-gray-500">
+                  {postType === 'IMAGE' && 'Photos required'}
+                  {postType === 'VIDEO' && 'Video required'}
+                  {postType === 'AUDIO' && 'Audio required'}
+                  {(postType === 'TEXT' || postType === 'MIXED') && 'Optional'}
+                </span>
+              </div>
+
+              {/* Images & Video in one section */}
               <div>
-                <Label>Images {postType === 'IMAGE' && '*'}</Label>
+                <Label className="flex items-center gap-2 mb-2">
+                  <ImageIcon className="w-4 h-4" />
+                  Images & Video
+                  {postType === 'IMAGE' && <span className="text-red-500">*</span>}
+                  {postType === 'VIDEO' && <span className="text-red-500">*</span>}
+                </Label>
                 <p className="text-sm text-gray-500 mb-3">
-                  {postType === 'IMAGE'
-                    ? 'Upload one or more images for your photo gallery'
-                    : 'Add images to your post (optional)'}
+                  Upload photos and videos for your post
                 </p>
                 <MediaUpload
                   onImagesChange={setImages}
-                  onVideoChange={() => { }}
-                  maxImages={10}
-                  allowVideo={false}
-                  allowAttachments={false}
-                />
-              </div>
-            )}
-
-            {(postType === 'VIDEO' || postType === 'MIXED') && (
-              <div>
-                <Label>Video {postType === 'VIDEO' && '*'}</Label>
-                <p className="text-sm text-gray-500 mb-3">
-                  {postType === 'VIDEO'
-                    ? 'Upload your video content (required)'
-                    : 'Add a video to your post (optional)'}
-                </p>
-                <MediaUpload
-                  onImagesChange={() => { }}
                   onVideoChange={setVideoUrl}
-                  maxImages={0}
+                  maxImages={10}
                   allowVideo={true}
                   allowAttachments={false}
                 />
               </div>
-            )}
 
-            {postType === 'AUDIO' && (
-              <div>
-                <Label>Audio File *</Label>
-                <Input
-                  type="url"
-                  value={audioUrl || ''}
-                  onChange={(e) => setAudioUrl(e.target.value)}
-                  placeholder="Enter audio file URL or upload (coming soon)"
-                  className="mt-2"
-                />
-                <p className="text-sm text-gray-500 mt-2">
-                  Enter URL to your podcast episode or audio file
+              {/* Audio - Only show for AUDIO type */}
+              {postType === 'AUDIO' && (
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <Mic className="w-4 h-4" />
+                    Audio File <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    type="url"
+                    value={audioUrl || ''}
+                    onChange={(e) => setAudioUrl(e.target.value)}
+                    placeholder="Enter audio file URL (e.g., Spotify, Anchor, etc.)"
+                    className="mt-2"
+                  />
+                  <p className="text-sm text-gray-500 mt-2">
+                    Enter URL to your podcast episode or audio file
+                  </p>
+                </div>
+              )}
+
+              {/* Helper Text */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  💡 <strong>Tip:</strong> {postType === 'TEXT' 
+                    ? 'As a blogger, you can write your content and optionally add images/videos to make it more engaging!'
+                    : postType === 'IMAGE'
+                    ? 'Upload multiple images to create a beautiful photo gallery.'
+                    : postType === 'VIDEO'
+                    ? 'Your video will be the main focus. Add a description in the content section.'
+                    : postType === 'AUDIO'
+                    ? 'Share your podcast episodes or music with your audience.'
+                    : 'Mix and match different types of media to create rich, engaging content!'}
                 </p>
               </div>
-            )}
-
-            {postType === 'TEXT' && (
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>Blog Post Mode:</strong> Focus on your written content.
-                  Media uploads are optional for text-based posts.
-                </p>
-              </div>
-            )}
+            </div>
 
             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div>
