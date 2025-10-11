@@ -6,10 +6,10 @@ try {
   // Try to import Supabase (may not be available)
   const supabaseModule = require('@supabase/supabase-js');
   createClient = supabaseModule.createClient;
-  
+
   const supabaseUrl = process.env.SUPABASE_URL || '';
   const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
-  
+
   if (supabaseUrl && supabaseKey && createClient) {
     supabase = createClient(supabaseUrl, supabaseKey);
     console.log('✅ Supabase configured successfully');

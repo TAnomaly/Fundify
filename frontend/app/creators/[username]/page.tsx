@@ -24,6 +24,10 @@ import {
   Video,
   Camera,
   Code,
+  MessageCircle,
+  Share2,
+  Bookmark,
+  Send,
 } from "lucide-react";
 
 interface CreatorProfile {
@@ -75,8 +79,20 @@ interface CreatorPost {
   isPublic: boolean;
   hasAccess: boolean;
   publishedAt: string;
+  likeCount: number;
+  commentCount: number;
   author: {
     id: string;
+    name: string;
+    avatar?: string;
+  };
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: {
     name: string;
     avatar?: string;
   };
@@ -93,6 +109,10 @@ export default function CreatorProfilePage() {
   const [postsLoading, setPostsLoading] = useState(false);
   const [hasSubscription, setHasSubscription] = useState(false);
   const [activeTab, setActiveTab] = useState("about");
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [showComments, setShowComments] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState("");
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
 
   useEffect(() => {
     loadCreatorProfile();
@@ -168,6 +188,89 @@ export default function CreatorProfilePage() {
     } catch (error: any) {
       toast.error(error.message || "Failed to start checkout");
     }
+  };
+
+  const handleLike = async (postId: string) => {
+    if (!isAuthenticated()) {
+      toast.error("Please login to like posts");
+      return;
+    }
+
+    // Optimistic update
+    const isLiked = likedPosts.has(postId);
+    const newLikedPosts = new Set(likedPosts);
+    
+    if (isLiked) {
+      newLikedPosts.delete(postId);
+    } else {
+      newLikedPosts.add(postId);
+    }
+    setLikedPosts(newLikedPosts);
+
+    // Update like count in posts
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { ...post, likeCount: post.likeCount + (isLiked ? -1 : 1) }
+        : post
+    ));
+
+    toast.success(isLiked ? "Unliked" : "Liked!");
+  };
+
+  const handleShare = async (post: CreatorPost) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post.title,
+          text: post.excerpt || post.content.substring(0, 100),
+          url: window.location.href,
+        });
+      } catch (error) {
+        // User cancelled share
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied to clipboard!");
+    }
+  };
+
+  const handleAddComment = async (postId: string) => {
+    if (!isAuthenticated()) {
+      toast.error("Please login to comment");
+      return;
+    }
+
+    if (!newComment.trim()) {
+      toast.error("Please enter a comment");
+      return;
+    }
+
+    // Mock comment (you'll connect this to API later)
+    const mockComment: Comment = {
+      id: Date.now().toString(),
+      content: newComment,
+      createdAt: new Date().toISOString(),
+      user: {
+        name: "You",
+        avatar: undefined,
+      },
+    };
+
+    setComments({
+      ...comments,
+      [postId]: [...(comments[postId] || []), mockComment],
+    });
+
+    // Update comment count
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { ...post, commentCount: post.commentCount + 1 }
+        : post
+    ));
+
+    setNewComment("");
+    toast.success("Comment added!");
   };
 
   const getSocialIcon = (platform: string) => {
@@ -585,18 +688,107 @@ export default function CreatorProfilePage() {
                           )}
 
                           {/* Engagement Bar */}
-                          <div className="flex items-center gap-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <button className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
-                              <Heart className="w-5 h-5" />
-                              <span className="text-sm font-medium">Like</span>
-                            </button>
-                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                              <Globe className="w-5 h-5" />
-                              <span className="text-sm font-medium">
-                                {post.isPublic ? "Public" : "Members Only"}
-                              </span>
+                          <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-4">
+                              {/* Like Button */}
+                              <button
+                                onClick={() => handleLike(post.id)}
+                                className={`flex items-center gap-2 transition-all ${
+                                  likedPosts.has(post.id)
+                                    ? "text-pink-600 dark:text-pink-400"
+                                    : "text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400"
+                                }`}
+                              >
+                                <Heart
+                                  className={`w-5 h-5 transition-transform hover:scale-110 ${
+                                    likedPosts.has(post.id) ? "fill-current" : ""
+                                  }`}
+                                />
+                                <span className="text-sm font-medium">
+                                  {post.likeCount || 0}
+                                </span>
+                              </button>
+
+                              {/* Comment Button */}
+                              <button
+                                onClick={() => setShowComments(showComments === post.id ? null : post.id)}
+                                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                              >
+                                <MessageCircle className="w-5 h-5" />
+                                <span className="text-sm font-medium">
+                                  {post.commentCount || 0}
+                                </span>
+                              </button>
+
+                              {/* Share Button */}
+                              <button
+                                onClick={() => handleShare(post)}
+                                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                              >
+                                <Share2 className="w-5 h-5" />
+                                <span className="text-sm font-medium">Share</span>
+                              </button>
+
+                              {/* Bookmark Button */}
+                              <button className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors">
+                                <Bookmark className="w-5 h-5" />
+                              </button>
+                            </div>
+
+                            {/* Post Type Badge */}
+                            <div className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
+                              <Globe className="w-3.5 h-3.5" />
+                              <span>{post.isPublic ? "Public" : "Members Only"}</span>
                             </div>
                           </div>
+
+                          {/* Comments Section */}
+                          {showComments === post.id && (
+                            <div className="mt-6 space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700 animate-in slide-in-from-top duration-300">
+                              {/* Existing Comments */}
+                              <div className="space-y-4 max-h-96 overflow-y-auto">
+                                {(comments[post.id] || []).map((comment) => (
+                                  <div key={comment.id} className="flex gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                                      {comment.user.name.charAt(0)}
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2">
+                                        <p className="font-semibold text-sm">{comment.user.name}</p>
+                                        <p className="text-sm mt-1">{comment.content}</p>
+                                      </div>
+                                      <p className="text-xs text-gray-500 mt-1 ml-4">
+                                        {new Date(comment.createdAt).toLocaleTimeString()}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Add Comment */}
+                              <div className="flex gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                                  Y
+                                </div>
+                                <div className="flex-1 flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                                    placeholder="Write a comment..."
+                                    className="flex-1 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                  />
+                                  <button
+                                    onClick={() => handleAddComment(post.id)}
+                                    className="p-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg transition-shadow"
+                                  >
+                                    <Send className="w-5 h-5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="relative overflow-hidden">
