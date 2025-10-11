@@ -13,16 +13,16 @@ const getFileUrl = async (file: Express.Multer.File, folder: string): Promise<st
       console.log('🔄 Attempting Supabase upload for:', file.originalname);
       console.log('   File path:', file.path);
       console.log('   File size:', file.size);
-      
+
       const fileBuffer = fs.readFileSync(file.path);
       const fileName = `${folder}/${Date.now()}-${file.originalname}`;
       console.log('   Target path in Supabase:', fileName);
-      
+
       const publicUrl = await uploadToSupabase(fileBuffer, fileName, file.mimetype);
-      
+
       // Delete local temp file
       fs.unlinkSync(file.path);
-      
+
       console.log('✅ Uploaded to Supabase:', publicUrl);
       return publicUrl;
     } catch (error: any) {
@@ -33,12 +33,12 @@ const getFileUrl = async (file: Express.Multer.File, folder: string): Promise<st
       console.error('   Make sure bucket exists and is PUBLIC in Supabase Storage!');
     }
   }
-  
+
   // Priority 2: Cloudinary (if configured)
   if (useCloudStorage && (file as any).path) {
     return (file as any).path;
   }
-  
+
   // Priority 3: Local/Railway Volume storage
   return `/uploads/${folder}/${file.filename}`;
 };

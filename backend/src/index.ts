@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import passport from 'passport';
 import path from 'path';
 import { configurePassport } from './config/passport';
+import { ensureDatabaseTables } from './startup-fix';
 
 // Routes
 import authRoutes from './routes/auth';
@@ -159,10 +160,22 @@ app.use((err: ApiError, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+// Start server with auto-fix
+async function startServer() {
+  try {
+    // Auto-fix database tables on startup
+    await ensureDatabaseTables();
+    
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+  } catch (error) {
+    console.error('❌ Startup failed:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export default app;
