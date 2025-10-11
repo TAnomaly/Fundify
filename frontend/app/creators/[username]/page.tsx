@@ -137,7 +137,14 @@ export default function CreatorProfilePage() {
       );
 
       if (response.data.success) {
-        setPosts(response.data.data.posts || []);
+        const posts = response.data.data.posts || [];
+        console.log('📰 Loaded posts:', posts.length);
+        posts.forEach((post: any, i: number) => {
+          console.log(`Post ${i + 1}: ${post.title}`);
+          console.log('  - Images:', post.images);
+          console.log('  - Video:', post.videoUrl);
+        });
+        setPosts(posts);
         setHasSubscription(response.data.data.hasSubscription || false);
       }
     } catch (error) {
@@ -462,11 +469,10 @@ export default function CreatorProfilePage() {
                 {posts.map((post) => (
                   <Card
                     key={post.id}
-                    className={`overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 ${
-                      !post.hasAccess
+                    className={`overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 ${!post.hasAccess
                         ? "border-2 border-purple-300 bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20"
                         : "hover:-translate-y-1"
-                    }`}
+                      }`}
                   >
                     {/* Post Header */}
                     <CardHeader className="pb-4">
@@ -498,8 +504,8 @@ export default function CreatorProfilePage() {
 
                         {/* Badge */}
                         {!post.isPublic && (
-                          <Badge 
-                            variant="secondary" 
+                          <Badge
+                            variant="secondary"
                             className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 border-purple-200 dark:border-purple-700"
                           >
                             <Lock className="w-3.5 h-3.5" />
@@ -549,13 +555,12 @@ export default function CreatorProfilePage() {
                                 <Camera className="w-4 h-4" />
                                 <span>{post.images.length} {post.images.length === 1 ? 'Image' : 'Images'}</span>
                               </div>
-                              <div className={`grid gap-4 ${
-                                post.images.length === 1 
-                                  ? "grid-cols-1" 
-                                  : post.images.length === 2 
-                                  ? "grid-cols-2" 
-                                  : "grid-cols-2 md:grid-cols-3"
-                              }`}>
+                              <div className={`grid gap-4 ${post.images.length === 1
+                                  ? "grid-cols-1"
+                                  : post.images.length === 2
+                                    ? "grid-cols-2"
+                                    : "grid-cols-2 md:grid-cols-3"
+                                }`}>
                                 {post.images.map((image, idx) => (
                                   <div
                                     key={idx}

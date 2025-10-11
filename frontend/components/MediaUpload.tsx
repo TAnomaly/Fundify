@@ -60,11 +60,14 @@ export function MediaUpload({
       );
 
       if (response.data.success) {
-        return response.data.data.url;
+        const url = response.data.data.url;
+        console.log(`✅ ${type} uploaded successfully:`, url);
+        return url;
       }
       throw new Error("Upload failed");
     } catch (error: any) {
-      console.error("Upload error:", error);
+      console.error(`❌ Upload error (${type}):`, error);
+      console.error("Error details:", error.response?.data);
       toast.error(error.response?.data?.message || "Upload failed");
       throw error;
     } finally {
@@ -86,6 +89,7 @@ export function MediaUpload({
       const uploadPromises = files.map((file) => uploadFile(file, "image"));
       const urls = await Promise.all(uploadPromises);
       const newImages = [...images, ...urls];
+      console.log('📸 All images uploaded:', newImages);
       setImages(newImages);
       onImagesChange?.(newImages);
       toast.success(`${files.length} image(s) uploaded successfully`);
@@ -108,6 +112,7 @@ export function MediaUpload({
 
     try {
       const url = await uploadFile(file, "video");
+      console.log('🎥 Video uploaded:', url);
       setVideo(url);
       onVideoChange?.(url);
       toast.success("Video uploaded successfully");

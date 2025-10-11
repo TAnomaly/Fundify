@@ -40,20 +40,30 @@ export default function NewPostPage() {
 
     setIsLoading(true);
     try {
-      const response = await creatorPostApi.create({
+      const postData = {
         ...formData,
         images,
         videoUrl: videoUrl || undefined,
         publishedAt: new Date().toISOString(),
-      });
+      };
+      
+      console.log('📝 Creating post with data:', postData);
+      console.log('   - Images:', images);
+      console.log('   - Video:', videoUrl);
+      
+      const response = await creatorPostApi.create(postData);
 
       if (response.success) {
+        console.log('✅ Post created successfully:', response.data);
         toast.success("Post created successfully!");
         router.push("/creator-dashboard");
       } else {
+        console.error('❌ Post creation failed:', response);
         toast.error(response.message || "Failed to create post");
       }
     } catch (error: any) {
+      console.error('❌ Post creation error:', error);
+      console.error('Error response:', error.response?.data);
       toast.error(error.response?.data?.message || "Failed to create post");
     } finally {
       setIsLoading(false);
