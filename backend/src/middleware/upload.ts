@@ -11,11 +11,20 @@ import {
 // Determine which storage to use
 const useCloudStorage = isCloudinaryConfigured();
 
-// Fallback: Local disk storage for development
-const uploadsDir = path.join(__dirname, '../../uploads');
+// Fallback: Local disk storage for development or Railway Volumes
+// On Railway, use /app/uploads (mounted volume)
+// On local dev, use ./uploads
+const uploadsDir = process.env.RAILWAY_ENVIRONMENT 
+  ? '/app/uploads'
+  : path.join(__dirname, '../../uploads');
+
 if (!useCloudStorage && !fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
-  console.warn('⚠️  Using local storage. Configure Cloudinary for production!');
+  if (process.env.RAILWAY_ENVIRONMENT) {
+    console.log('✅ Using Railway Volume for persistent storage at', uploadsDir);
+  } else {
+    console.warn('⚠️  Using local storage. Use Railway Volumes or Cloudinary for production!');
+  }
 }
 
 const localDiskStorage = multer.diskStorage({
