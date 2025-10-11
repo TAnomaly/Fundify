@@ -58,8 +58,35 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 app.use('/api/', limiter);
 
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Serve uploaded files statically with CORS headers
+app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
+  // Set CORS headers for uploaded files
+  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+
+  // Set proper Content-Type for video files
+  const filePath = req.path.toLowerCase();
+  if (filePath.endsWith('.mp4')) {
+    res.setHeader('Content-Type', 'video/mp4');
+  } else if (filePath.endsWith('.webm')) {
+    res.setHeader('Content-Type', 'video/webm');
+  } else if (filePath.endsWith('.ogg')) {
+    res.setHeader('Content-Type', 'video/ogg');
+  } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+    res.setHeader('Content-Type', 'image/jpeg');
+  } else if (filePath.endsWith('.png')) {
+    res.setHeader('Content-Type', 'image/png');
+  } else if (filePath.endsWith('.gif')) {
+    res.setHeader('Content-Type', 'image/gif');
+  } else if (filePath.endsWith('.webp')) {
+    res.setHeader('Content-Type', 'image/webp');
+  }
+
+  next();
+}, express.static(path.join(__dirname, '../uploads')));
 
 // Health check
 app.get('/health', (_req: Request, res: Response) => {
