@@ -26,7 +26,9 @@ export const getMe = async (
         id: true,
         email: true,
         name: true,
+        username: true,
         avatar: true,
+        bannerImage: true,
         bio: true,
         role: true,
         isCreator: true,
@@ -117,9 +119,13 @@ export const updateUser = async (
         id: true,
         email: true,
         name: true,
+        username: true,
         avatar: true,
+        bannerImage: true,
         bio: true,
+        creatorBio: true,
         role: true,
+        isCreator: true,
         createdAt: true,
       },
     });
@@ -417,7 +423,7 @@ export const getCreatorByUsername = async (
       data: {
         user,
         campaign,
-        tiers: tiers.map((tier) => ({
+        tiers: tiers.map((tier: any) => ({
           ...tier,
           currentSubscribers: tier._count.subscriptions,
         })),

@@ -114,8 +114,11 @@ export const updateWithdrawalSchema = z.object({
 // User Update Validation Schema
 export const updateUserSchema = z.object({
   name: z.string().min(2).optional(),
+  username: z.string().min(3).max(50).optional(),
   bio: z.string().optional(),
   avatar: z.string().url().optional(),
+  bannerImage: z.string().url().optional(),
+  creatorBio: z.string().optional(),
 });
 
 // Helper function to validate request body

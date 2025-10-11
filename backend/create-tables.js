@@ -3,15 +3,15 @@ const { PrismaClient } = require('@prisma/client');
 
 async function createTables() {
   console.log('🔧 Checking database tables...\n');
-  
+
   // Check if DATABASE_URL exists
   if (!process.env.DATABASE_URL) {
     console.log('⚠️  DATABASE_URL not set, skipping table creation (this is OK during build)');
     process.exit(0);
   }
-  
+
   const prisma = new PrismaClient();
-  
+
   try {
     // Create PostType enum if not exists
     await prisma.$executeRawUnsafe(`
@@ -22,7 +22,7 @@ async function createTables() {
       END $$;
     `);
     console.log('✅ PostType enum created/verified');
-    
+
     // Add type and audioUrl columns to CreatorPost if not exists
     await prisma.$executeRawUnsafe(`
       DO $$ BEGIN
@@ -31,7 +31,7 @@ async function createTables() {
         WHEN duplicate_column THEN null;
       END $$;
     `);
-    
+
     await prisma.$executeRawUnsafe(`
       DO $$ BEGIN
         ALTER TABLE "CreatorPost" ADD COLUMN "audioUrl" TEXT;
@@ -39,12 +39,12 @@ async function createTables() {
         WHEN duplicate_column THEN null;
       END $$;
     `);
-    
+
     await prisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS "CreatorPost_type_idx" ON "CreatorPost"("type");
     `);
     console.log('✅ CreatorPost columns updated');
-    
+
     // Create PostLike table
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "PostLike" (
@@ -56,7 +56,7 @@ async function createTables() {
       );
     `);
     console.log('✅ PostLike table created');
-    
+
     // Create PostComment table
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "PostComment" (
@@ -70,18 +70,18 @@ async function createTables() {
       );
     `);
     console.log('✅ PostComment table created');
-    
+
     // Create indexes
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PostLike_userId_idx" ON "PostLike"("userId");`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PostLike_postId_idx" ON "PostLike"("postId");`);
     await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "PostLike_userId_postId_key" ON "PostLike"("userId", "postId");`);
-    
+
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PostComment_userId_idx" ON "PostComment"("userId");`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PostComment_postId_idx" ON "PostComment"("postId");`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PostComment_createdAt_idx" ON "PostComment"("createdAt");`);
-    
+
     console.log('✅ Indexes created');
-    
+
     // Add foreign keys
     try {
       await prisma.$executeRawUnsafe(`
@@ -109,14 +109,14 @@ async function createTables() {
     } catch (e) {
       console.log('⚠️  Foreign keys may already exist');
     }
-    
+
     console.log('\n🎉 All tables created successfully!\n');
-    
+
     // Test
     const likeCount = await prisma.postLike.count();
     const commentCount = await prisma.postComment.count();
     console.log(`📊 Current data: ${likeCount} likes, ${commentCount} comments`);
-    
+
   } catch (error) {
     console.error('❌ Error:', error.message);
     process.exit(1);
