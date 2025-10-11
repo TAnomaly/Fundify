@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { redirectToCheckout } from "@/lib/stripe";
 import { isAuthenticated } from "@/lib/auth";
+import { getMediaBaseUrl } from "@/lib/api";
 import toast from "react-hot-toast";
 import axios from "axios";
 import {
@@ -492,12 +493,12 @@ export default function CreatorProfilePage() {
                           {post.videoUrl && (
                             <div className="my-6">
                               <video
-                                src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${post.videoUrl}`}
+                                src={`${getMediaBaseUrl()}${post.videoUrl}`}
                                 controls
                                 className="w-full rounded-lg shadow-lg"
-                                poster={post.images[0] ? `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${post.images[0]}` : undefined}
+                                poster={post.images[0] ? `${getMediaBaseUrl()}${post.images[0]}` : undefined}
                               >
-                                <source src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${post.videoUrl}`} type="video/mp4" />
+                                <source src={`${getMediaBaseUrl()}${post.videoUrl}`} type="video/mp4" />
                                 Your browser does not support the video tag.
                               </video>
                             </div>
@@ -509,7 +510,7 @@ export default function CreatorProfilePage() {
                               {post.images.map((image, idx) => (
                                 <img
                                   key={idx}
-                                  src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${image}`}
+                                  src={`${getMediaBaseUrl()}${image}`}
                                   alt={`Post image ${idx + 1}`}
                                   className="rounded-lg w-full hover:scale-105 transition-transform cursor-pointer"
                                 />

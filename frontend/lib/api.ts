@@ -18,13 +18,20 @@ const getApiUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  
+
   // Production fallback URL - UPDATED with working Railway URL
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     return "https://perfect-happiness-production.up.railway.app/api";
   }
-  
+
   return "http://localhost:4000/api";
+};
+
+// Get base URL for media files (without /api suffix)
+export const getMediaBaseUrl = () => {
+  const apiUrl = getApiUrl();
+  // Remove /api suffix if present
+  return apiUrl.replace(/\/api$/, '');
 };
 
 const api: AxiosInstance = axios.create({
