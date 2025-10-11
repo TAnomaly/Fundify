@@ -11,12 +11,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { MediaUpload } from "@/components/MediaUpload";
+import { 
+  FileText, 
+  Image as ImageIcon, 
+  Video, 
+  Mic, 
+  Layers 
+} from "lucide-react";
+
+type PostType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'MIXED';
+
+const POST_TYPES = [
+  { value: 'TEXT', label: 'Blog Post', icon: FileText, description: 'Text-based content' },
+  { value: 'IMAGE', label: 'Photo Gallery', icon: ImageIcon, description: 'Images & photos' },
+  { value: 'VIDEO', label: 'Video Content', icon: Video, description: 'Video uploads' },
+  { value: 'AUDIO', label: 'Podcast/Audio', icon: Mic, description: 'Audio content' },
+  { value: 'MIXED', label: 'Mixed Media', icon: Layers, description: 'Text, images & videos' },
+] as const;
 
 export default function NewPostPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [postType, setPostType] = useState<PostType>('TEXT');
   const [images, setImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -42,14 +61,18 @@ export default function NewPostPage() {
     try {
       const postData = {
         ...formData,
-        images,
-        videoUrl: videoUrl || undefined,
+        type: postType,
+        images: (postType === 'IMAGE' || postType === 'MIXED') ? images : [],
+        videoUrl: (postType === 'VIDEO' || postType === 'MIXED') ? (videoUrl || undefined) : undefined,
+        audioUrl: (postType === 'AUDIO') ? (audioUrl || undefined) : undefined,
         publishedAt: new Date().toISOString(),
       };
       
       console.log('📝 Creating post with data:', postData);
+      console.log('   - Type:', postType);
       console.log('   - Images:', images);
       console.log('   - Video:', videoUrl);
+      console.log('   - Audio:', audioUrl);
       
       const response = await creatorPostApi.create(postData);
 
@@ -89,6 +112,34 @@ export default function NewPostPage() {
       <Card className="bg-glass-card shadow-soft">
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Post Type Selector */}
+            <div>
+              <Label className="mb-4 block">Content Type *</Label>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {POST_TYPES.map((type) => {
+                  const Icon = type.icon;
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setPostType(type.value)}
+                      className={`p-4 rounded-lg border-2 transition-all text-left ${
+                        postType === type.value
+                          ? 'border-primary bg-primary/10'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+                      }`}
+                    >
+                      <Icon className={`w-6 h-6 mb-2 ${postType === type.value ? 'text-primary' : 'text-gray-500'}`} />
+                      <div className="font-semibold text-sm">{type.label}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {type.description}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div>
               <Label htmlFor="title">Post Title *</Label>
               <Input

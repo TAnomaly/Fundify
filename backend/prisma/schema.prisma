@@ -67,6 +67,14 @@ enum WithdrawalStatus {
   COMPLETED
 }
 
+enum PostType {
+  TEXT      // Blog post, article
+  IMAGE     // Photo gallery
+  VIDEO     // Video content
+  AUDIO     // Podcast, music
+  MIXED     // Multiple media types
+}
+
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -342,10 +350,14 @@ model CreatorPost {
   title           String
   content         String   @db.Text
   excerpt         String?
+  
+  // Post type (blog, video, image, audio, mixed)
+  type            PostType @default(TEXT)
 
-  // Media
+  // Media (all optional based on type)
   images          String[]
   videoUrl        String?
+  audioUrl        String?  // For podcasts/music
   attachments     Json?    // File attachments, links, etc.
 
   // Access control
