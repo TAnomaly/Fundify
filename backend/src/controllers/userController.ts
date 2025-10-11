@@ -109,12 +109,38 @@ export const updateUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user!.userId;
+    const userId = req.user!.userId || req.user!.id;
+
+    // Validate the data (allows partial updates)
     const validatedData = updateUserSchema.parse(req.body);
+
+    // Filter out empty strings and undefined values (Twitter/X style)
+    const updateData: any = {};
+    if (validatedData.name && validatedData.name.trim()) {
+      updateData.name = validatedData.name.trim();
+    }
+    if (validatedData.username !== undefined && validatedData.username.trim()) {
+      updateData.username = validatedData.username.trim();
+    }
+    if (validatedData.bio !== undefined && validatedData.bio.trim()) {
+      updateData.bio = validatedData.bio.trim();
+    }
+    if (validatedData.creatorBio !== undefined && validatedData.creatorBio.trim()) {
+      updateData.creatorBio = validatedData.creatorBio.trim();
+    }
+    if (validatedData.avatar !== undefined && validatedData.avatar.trim()) {
+      updateData.avatar = validatedData.avatar.trim();
+    }
+    if (validatedData.bannerImage !== undefined && validatedData.bannerImage.trim()) {
+      updateData.bannerImage = validatedData.bannerImage.trim();
+    }
+
+    console.log('🔄 Updating user profile:', userId);
+    console.log('📝 Update data:', Object.keys(updateData));
 
     const user = await prisma.user.update({
       where: { id: userId },
-      data: validatedData,
+      data: updateData,
       select: {
         id: true,
         email: true,
@@ -130,12 +156,15 @@ export const updateUser = async (
       },
     });
 
+    console.log('✅ Profile updated successfully');
+
     res.status(200).json({
       success: true,
       message: 'User updated successfully',
       data: user,
     });
   } catch (error) {
+    console.error('❌ Profile update error:', error);
     if (error instanceof ZodError) {
       res.status(400).json({
         success: false,
