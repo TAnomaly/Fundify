@@ -59,8 +59,8 @@ export default function RegisterPage() {
 
       if (response.success && response.data?.token) {
         console.log('Registration successful, saving token...');
-        saveToken(response.data.token);
-        console.log('Token saved, redirecting to dashboard');
+        await saveToken(response.data.token); // Now async - fetches user data too
+        console.log('Token and user data saved, redirecting to dashboard');
         toast.success("Registration successful! Welcome to Fundify!");
         router.push("/dashboard");
       } else {

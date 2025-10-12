@@ -41,8 +41,8 @@ export default function LoginPage() {
 
       if (response.success && response.data?.token) {
         console.log('Login successful, saving token...');
-        saveToken(response.data.token);
-        console.log('Token saved, redirecting to dashboard');
+        await saveToken(response.data.token); // Now async - fetches user data too
+        console.log('Token and user data saved, redirecting to dashboard');
         toast.success("Login successful! Welcome back!");
         router.push("/dashboard");
       } else {

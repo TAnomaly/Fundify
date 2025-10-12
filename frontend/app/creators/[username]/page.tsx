@@ -441,7 +441,7 @@ export default function CreatorProfilePage() {
               <div className="flex-1">
                 <h1 className="text-4xl font-bold mb-2">{profile.user.name}</h1>
                 <p className="text-muted-foreground mb-4">
-                  {profile.campaign.description}
+                  Support {profile.user.name} and get exclusive content!
                 </p>
 
                 {/* Stats */}
