@@ -25,9 +25,9 @@ enum CampaignStatus {
 }
 
 enum CampaignType {
-  PROJECT    // GoFundMe style - one-time goal
-  CREATOR    // Patreon style - recurring support
-  CHARITY    // Pure donation/charity
+  PROJECT // GoFundMe style - one-time goal
+  CREATOR // Patreon style - recurring support
+  CHARITY // Pure donation/charity
 }
 
 enum CampaignCategory {
@@ -68,50 +68,60 @@ enum WithdrawalStatus {
 }
 
 enum PostType {
-  TEXT      // Blog post, article
-  IMAGE     // Photo gallery
-  VIDEO     // Video content
-  AUDIO     // Podcast, music
-  MIXED     // Multiple media types
+  TEXT // Blog post, article
+  IMAGE // Photo gallery
+  VIDEO // Video content
+  AUDIO // Podcast, music
+  MIXED // Multiple media types
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
+  id            String   @id @default(uuid())
+  email         String   @unique
   password      String
   name          String
-  username      String?   @unique
+  username      String?  @unique
   avatar        String?
   bannerImage   String?
   bio           String?
-  role          UserRole  @default(USER)
-  emailVerified Boolean   @default(false)
-  githubId      String?   @unique
+  role          UserRole @default(USER)
+  emailVerified Boolean  @default(false)
+  githubId      String?  @unique
 
   // Creator profile fields
-  isCreator     Boolean   @default(false)
-  creatorBio    String?   @db.Text
-  socialLinks   Json?     // Twitter, Instagram, YouTube, etc.
+  isCreator   Boolean @default(false)
+  creatorBio  String? @db.Text
+  socialLinks Json? // Twitter, Instagram, YouTube, etc.
 
   // Stripe integration
-  stripeCustomerId         String?  @unique  // For customers making payments
-  stripeAccountId          String?  @unique  // For creators receiving payouts (Stripe Connect)
-  stripeOnboardingComplete Boolean  @default(false)
+  stripeCustomerId         String? @unique // For customers making payments
+  stripeAccountId          String? @unique // For creators receiving payouts (Stripe Connect)
+  stripeOnboardingComplete Boolean @default(false)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  campaigns     Campaign[]
-  donations     Donation[]
-  comments      Comment[]
+  campaigns       Campaign[]
+  donations       Donation[]
+  comments        Comment[]
   campaignUpdates CampaignUpdate[]
-  withdrawals   Withdrawal[]
-  subscriptions Subscription[] @relation("Subscriber")
-  subscribers   Subscription[] @relation("Creator")
-  posts         CreatorPost[]
-  postLikes     PostLike[]
-  postComments  PostComment[]
+  withdrawals     Withdrawal[]
+  subscriptions   Subscription[]   @relation("Subscriber")
+  subscribers     Subscription[]   @relation("Creator")
+  posts           CreatorPost[]
+  postLikes       PostLike[]
+  postComments    PostComment[]
+
+  // Blog relations
+  articles        Article[]        @relation("AuthorArticles")
+  articleComments ArticleComment[] @relation("ArticleComments")
+  articleLikes    ArticleLike[]    @relation("ArticleLikes")
+
+  // Event relations
+  hostedEvents   Event[]         @relation("HostedEvents")
+  eventRSVPs     EventRSVP[]     @relation("EventRSVPs")
+  eventReminders EventReminder[] @relation("EventReminders")
 
   @@index([email])
   @@index([githubId])
@@ -121,32 +131,32 @@ model User {
 }
 
 model Campaign {
-  id              String          @id @default(uuid())
-  slug            String          @unique
-  title           String
-  description     String
-  story           String          @db.Text
-  type            CampaignType    @default(PROJECT)
-  category        CampaignCategory
-  goalAmount      Float
-  currentAmount   Float           @default(0)
-  currency        String          @default("USD")
-  status          CampaignStatus  @default(DRAFT)
+  id            String           @id @default(uuid())
+  slug          String           @unique
+  title         String
+  description   String
+  story         String           @db.Text
+  type          CampaignType     @default(PROJECT)
+  category      CampaignCategory
+  goalAmount    Float
+  currentAmount Float            @default(0)
+  currency      String           @default("USD")
+  status        CampaignStatus   @default(DRAFT)
 
   // Media
-  coverImage      String
-  images          String[]
-  videoUrl        String?
+  coverImage String
+  images     String[]
+  videoUrl   String?
 
   // Dates
-  startDate       DateTime?
-  endDate         DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   // Creator
-  creatorId       String
-  creator         User            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
   // Relations
   donations       Donation[]
@@ -174,38 +184,38 @@ model Reward {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  campaignId      String
-  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   // Relations
-  donations       Donation[]
+  donations Donation[]
 
   @@index([campaignId])
 }
 
 model Donation {
-  id          String         @id @default(uuid())
-  amount      Float
-  message     String?
-  anonymous   Boolean        @default(false)
-  status      DonationStatus @default(PENDING)
+  id        String         @id @default(uuid())
+  amount    Float
+  message   String?
+  anonymous Boolean        @default(false)
+  status    DonationStatus @default(PENDING)
 
   // Payment info
   paymentMethod String?
   transactionId String?
 
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  donorId     String
-  donor       User           @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  donorId String
+  donor   User   @relation(fields: [donorId], references: [id], onDelete: Cascade)
 
-  campaignId  String
-  campaign    Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  rewardId    String?
-  reward      Reward?        @relation(fields: [rewardId], references: [id], onDelete: SetNull)
+  rewardId String?
+  reward   Reward? @relation(fields: [rewardId], references: [id], onDelete: SetNull)
 
   @@index([donorId])
   @@index([campaignId])
@@ -213,39 +223,39 @@ model Donation {
 }
 
 model CampaignUpdate {
-  id          String   @id @default(uuid())
-  title       String
-  content     String   @db.Text
-  images      String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @db.Text
+  images    String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  campaignId  String
-  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
   @@index([authorId])
 }
 
 model Comment {
-  id          String   @id @default(uuid())
-  content     String   @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  campaignId  String
-  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   // Self-referential for replies
-  parentId    String?
-  parent      Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies     Comment[] @relation("CommentReplies")
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
 
   @@index([userId])
   @@index([campaignId])
@@ -253,21 +263,21 @@ model Comment {
 }
 
 model Withdrawal {
-  id              String           @id @default(uuid())
-  amount          Float
-  status          WithdrawalStatus @default(PENDING)
-  requestedAt     DateTime         @default(now())
-  processedAt     DateTime?
-  notes           String?
+  id          String           @id @default(uuid())
+  amount      Float
+  status      WithdrawalStatus @default(PENDING)
+  requestedAt DateTime         @default(now())
+  processedAt DateTime?
+  notes       String?
 
   // Bank details (encrypted in production)
-  bankAccount     String?
+  bankAccount String?
 
-  userId          String
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  campaignId      String
-  campaign        Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([campaignId])
@@ -276,35 +286,35 @@ model Withdrawal {
 
 // Patreon-style membership tiers
 model MembershipTier {
-  id              String   @id @default(uuid())
-  name            String
-  description     String   @db.Text
-  price           Float
-  interval        SubscriptionInterval @default(MONTHLY)
+  id          String               @id @default(uuid())
+  name        String
+  description String               @db.Text
+  price       Float
+  interval    SubscriptionInterval @default(MONTHLY)
 
   // Perks and benefits
-  perks           String[]
+  perks String[]
 
   // Access levels
   hasExclusiveContent Boolean @default(false)
   hasEarlyAccess      Boolean @default(false)
   hasPrioritySupport  Boolean @default(false)
-  customPerks         Json?   // Additional custom perks
+  customPerks         Json? // Additional custom perks
 
   // Limits
-  maxSubscribers  Int?
-  currentSubscribers Int @default(0)
+  maxSubscribers     Int?
+  currentSubscribers Int  @default(0)
 
-  position        Int     @default(0) // For ordering tiers
-  isActive        Boolean @default(true)
+  position Int     @default(0) // For ordering tiers
+  isActive Boolean @default(true)
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  campaignId      String
-  campaign        Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  subscriptions   Subscription[]
+  subscriptions Subscription[]
 
   @@index([campaignId])
   @@index([isActive])
@@ -312,31 +322,31 @@ model MembershipTier {
 
 // Subscription model for recurring payments
 model Subscription {
-  id              String             @id @default(uuid())
-  status          SubscriptionStatus @default(ACTIVE)
+  id     String             @id @default(uuid())
+  status SubscriptionStatus @default(ACTIVE)
 
   // Payment details
-  startDate       DateTime           @default(now())
+  startDate       DateTime  @default(now())
   nextBillingDate DateTime
   endDate         DateTime?
   cancelledAt     DateTime?
 
   // Stripe/payment info
-  stripeSubscriptionId String?       @unique
+  stripeSubscriptionId String? @unique
   stripeCustomerId     String?
 
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  subscriberId    String
-  subscriber      User               @relation("Subscriber", fields: [subscriberId], references: [id], onDelete: Cascade)
+  subscriberId String
+  subscriber   User   @relation("Subscriber", fields: [subscriberId], references: [id], onDelete: Cascade)
 
-  creatorId       String
-  creator         User               @relation("Creator", fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String
+  creator   User   @relation("Creator", fields: [creatorId], references: [id], onDelete: Cascade)
 
-  tierId          String
-  tier            MembershipTier     @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  tierId String
+  tier   MembershipTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
 
   @@index([subscriberId])
   @@index([creatorId])
@@ -347,39 +357,39 @@ model Subscription {
 
 // Creator exclusive posts (like Patreon posts)
 model CreatorPost {
-  id              String   @id @default(uuid())
-  title           String
-  content         String   @db.Text
-  excerpt         String?
-  
+  id      String  @id @default(uuid())
+  title   String
+  content String  @db.Text
+  excerpt String?
+
   // Post type (blog, video, image, audio, mixed)
-  type            PostType @default(TEXT)
+  type PostType @default(TEXT)
 
   // Media (all optional based on type)
-  images          String[]
-  videoUrl        String?
-  audioUrl        String?  // For podcasts/music
-  attachments     Json?    // File attachments, links, etc.
+  images      String[]
+  videoUrl    String?
+  audioUrl    String? // For podcasts/music
+  attachments Json? // File attachments, links, etc.
 
   // Access control
-  isPublic        Boolean  @default(false)
-  minimumTierId   String?  // Minimum tier required to view
+  isPublic      Boolean @default(false)
+  minimumTierId String? // Minimum tier required to view
 
   // Engagement
-  likeCount       Int      @default(0)
-  commentCount    Int      @default(0)
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
 
-  published       Boolean  @default(true)
-  publishedAt     DateTime?
+  published   Boolean   @default(true)
+  publishedAt DateTime?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  authorId        String
-  author          User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  likes           PostLike[]
-  comments        PostComment[]
+  likes    PostLike[]
+  comments PostComment[]
 
   @@index([authorId])
   @@index([isPublic])
@@ -418,4 +428,248 @@ model PostComment {
   @@index([userId])
   @@index([postId])
   @@index([createdAt])
+}
+
+// ==================== BLOG/ARTICLES ====================
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Article {
+  id         String  @id @default(uuid())
+  slug       String  @unique
+  title      String
+  excerpt    String? @db.Text
+  content    String  @db.Text // Rich text HTML content
+  coverImage String?
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?  @db.Text
+  keywords        String[]
+
+  // Status & Publishing
+  status       ArticleStatus @default(DRAFT)
+  publishedAt  DateTime?
+  scheduledFor DateTime?
+
+  // Stats
+  viewCount Int  @default(0)
+  readTime  Int? // Reading time in minutes
+
+  // Access control
+  isPublic      Boolean @default(true)
+  isPremium     Boolean @default(false) // Requires subscription
+  minimumTierId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  authorId String
+  author   User   @relation("AuthorArticles", fields: [authorId], references: [id], onDelete: Cascade)
+
+  categories ArticleCategory[]
+  tags       ArticleTag[]
+  comments   ArticleComment[]
+  likes      ArticleLike[]
+
+  @@index([slug])
+  @@index([authorId])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([isPremium])
+}
+
+model Category {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  color       String? // Hex color for UI
+  icon        String? // Icon name or emoji
+
+  articles ArticleCategory[]
+
+  @@index([slug])
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+  slug String @unique
+
+  articles ArticleTag[]
+
+  @@index([slug])
+}
+
+// Join tables
+model ArticleCategory {
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, categoryId])
+  @@index([articleId])
+  @@index([categoryId])
+}
+
+model ArticleTag {
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  tagId String
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@index([articleId])
+  @@index([tagId])
+}
+
+model ArticleComment {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation("ArticleComments", fields: [userId], references: [id], onDelete: Cascade)
+
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Nested comments (replies)
+  parentId String?
+  parent   ArticleComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  ArticleComment[] @relation("CommentReplies")
+
+  @@index([userId])
+  @@index([articleId])
+  @@index([parentId])
+  @@index([createdAt])
+}
+
+model ArticleLike {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation("ArticleLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@index([userId])
+  @@index([articleId])
+}
+
+// ==================== EVENTS & CALENDAR ====================
+
+enum EventType {
+  VIRTUAL // Online event
+  IN_PERSON // Physical location
+  HYBRID // Both
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+model Event {
+  id          String  @id @default(uuid())
+  title       String
+  description String  @db.Text
+  coverImage  String?
+
+  // Event details
+  type   EventType
+  status EventStatus @default(DRAFT)
+
+  // Date & Time
+  startTime DateTime
+  endTime   DateTime
+  timezone  String   @default("UTC")
+
+  // Location
+  location    String? // Physical address or "Online"
+  virtualLink String? // Zoom, Meet, etc.
+
+  // Capacity & Access
+  maxAttendees  Int?
+  isPublic      Boolean @default(true)
+  isPremium     Boolean @default(false)
+  minimumTierId String?
+  price         Float?  @default(0)
+
+  // Additional info
+  agenda String?  @db.Text
+  tags   String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  hostId String
+  host   User   @relation("HostedEvents", fields: [hostId], references: [id], onDelete: Cascade)
+
+  rsvps     EventRSVP[]
+  reminders EventReminder[]
+
+  @@index([hostId])
+  @@index([startTime])
+  @@index([status])
+  @@index([type])
+  @@index([isPublic])
+}
+
+enum RSVPStatus {
+  GOING
+  MAYBE
+  NOT_GOING
+}
+
+model EventRSVP {
+  id        String     @id @default(uuid())
+  status    RSVPStatus @default(GOING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  userId String
+  user   User   @relation("EventRSVPs", fields: [userId], references: [id], onDelete: Cascade)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+}
+
+model EventReminder {
+  id         String    @id @default(uuid())
+  reminderAt DateTime
+  sent       Boolean   @default(false)
+  sentAt     DateTime?
+
+  userId String
+  user   User   @relation("EventReminders", fields: [userId], references: [id], onDelete: Cascade)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([reminderAt])
+  @@index([sent])
 }
