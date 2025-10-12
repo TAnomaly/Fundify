@@ -67,13 +67,36 @@ export const isAuthenticated = (): boolean => {
   }
 };
 
-// Get current user from token
+// Get current user from token AND localStorage (merged)
 export const getCurrentUser = (): Partial<User> | null => {
   const token = getToken();
   if (!token) return null;
 
   try {
     const decoded = jwtDecode<DecodedToken>(token);
+    
+    // Try to get updated user data from localStorage
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        // Merge token data with stored user data (stored data takes priority)
+        return {
+          id: decoded.userId,
+          email: decoded.email,
+          username: userData.username || decoded.username,
+          name: userData.name,
+          avatar: userData.avatar,
+          bannerImage: userData.bannerImage,
+          bio: userData.bio,
+          creatorBio: userData.creatorBio,
+        };
+      } catch (e) {
+        console.error("Failed to parse stored user:", e);
+      }
+    }
+    
+    // Fallback to token data only
     return {
       id: decoded.userId,
       email: decoded.email,

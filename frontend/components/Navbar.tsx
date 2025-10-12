@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 export function Navbar() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<{ username?: string } | null>(null);
+  const [user, setUser] = useState<{ username?: string; name?: string; avatar?: string } | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
@@ -25,14 +25,14 @@ export function Navbar() {
     checkAuth();
     // Check auth on every route change and storage updates
     window.addEventListener("storage", checkAuth);
-    
+
     // Also listen for custom storage events (from same window)
     const handleStorageChange = () => {
       console.log("📡 Storage change detected, updating Navbar...");
       checkAuth();
     };
     window.addEventListener("storage", handleStorageChange);
-    
+
     return () => {
       window.removeEventListener("storage", checkAuth);
       window.removeEventListener("storage", handleStorageChange);
@@ -96,7 +96,7 @@ export function Navbar() {
                     onClick={() => setShowDropdown(!showDropdown)}
                     className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-primary text-white shadow-soft hover:shadow-glow transition-all"
                   >
-                    <span>{user?.username || "Account"}</span>
+                    <span>{user?.name || user?.username || "Account"}</span>
                     <svg
                       className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
                       fill="none"

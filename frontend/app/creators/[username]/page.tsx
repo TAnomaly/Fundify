@@ -34,7 +34,9 @@ interface CreatorProfile {
   user: {
     id: string;
     name: string;
+    username?: string;
     avatar?: string;
+    bannerImage?: string;
     creatorBio?: string;
     socialLinks?: {
       twitter?: string;
@@ -116,6 +118,17 @@ export default function CreatorProfilePage() {
 
   useEffect(() => {
     loadCreatorProfile();
+    
+    // Listen for profile updates (when user updates their profile)
+    const handleStorageChange = () => {
+      console.log("📡 Profile data changed, reloading creator profile...");
+      loadCreatorProfile();
+    };
+    window.addEventListener("storage", handleStorageChange);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, [username]);
 
   useEffect(() => {
@@ -397,7 +410,7 @@ export default function CreatorProfilePage() {
           <div
             className="h-48 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 relative"
             style={{
-              backgroundImage: `url(${profile.campaign.coverImage})`,
+              backgroundImage: `url(${profile.user.bannerImage || profile.campaign.coverImage})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}

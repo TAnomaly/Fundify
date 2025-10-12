@@ -20,14 +20,14 @@ export default function CreatorDashboard() {
 
   useEffect(() => {
     loadDashboard();
-    
+
     // Listen for storage changes (when profile is updated)
     const handleStorageChange = () => {
       console.log("📡 Storage changed, reloading dashboard...");
       loadDashboard();
     };
     window.addEventListener("storage", handleStorageChange);
-    
+
     return () => {
       window.removeEventListener("storage", handleStorageChange);
     };
@@ -304,8 +304,8 @@ export default function CreatorDashboard() {
                 </div>
                 <div className="text-right">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${sub.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' :
-                      sub.status === 'PAUSED' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                    sub.status === 'PAUSED' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                     }`}>
                     {sub.status}
                   </span>
@@ -338,7 +338,7 @@ export default function CreatorDashboard() {
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-semibold text-lg">{post.title}</h3>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${post.isPublic ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                      'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                    'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
                     }`}>
                     {post.isPublic ? 'Public' : 'Members Only'}
                   </span>
