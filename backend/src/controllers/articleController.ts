@@ -405,6 +405,16 @@ export const toggleArticleLike = async (
       return;
     }
 
+    // Check if article exists
+    const article = await prisma.article.findUnique({
+      where: { id },
+    });
+
+    if (!article) {
+      res.status(404).json({ success: false, message: 'Article not found' });
+      return;
+    }
+
     const existingLike = await prisma.articleLike.findUnique({
       where: {
         userId_articleId: {
@@ -414,35 +424,52 @@ export const toggleArticleLike = async (
       },
     });
 
+    let liked: boolean;
+
     if (existingLike) {
+      // Unlike
       await prisma.articleLike.delete({
         where: {
-          userId_articleId: {
+          id: existingLike.id,
+        },
+      });
+      liked = false;
+    } else {
+      // Like - use try/catch to handle race condition
+      try {
+        await prisma.articleLike.create({
+          data: {
             userId,
             articleId: id,
           },
-        },
-      });
-
-      res.json({
-        success: true,
-        liked: false,
-        message: 'Article unliked',
-      });
-    } else {
-      await prisma.articleLike.create({
-        data: {
-          userId,
-          articleId: id,
-        },
-      });
-
-      res.json({
-        success: true,
-        liked: true,
-        message: 'Article liked',
-      });
+        });
+        liked = true;
+      } catch (createError: any) {
+        // If duplicate error, user already liked (race condition)
+        if (createError.code === 'P2002') {
+          res.status(400).json({
+            success: false,
+            message: 'You have already liked this article',
+          });
+          return;
+        }
+        throw createError;
+      }
     }
+
+    // Get updated like count
+    const likeCount = await prisma.articleLike.count({
+      where: { articleId: id },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        liked,
+        likeCount,
+      },
+      message: liked ? 'Article liked' : 'Article unliked',
+    });
   } catch (error) {
     next(error);
   }
