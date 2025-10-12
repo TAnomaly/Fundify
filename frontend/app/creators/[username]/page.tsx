@@ -100,6 +100,44 @@ interface Comment {
   };
 }
 
+interface Article {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  coverImage?: string;
+  status: string;
+  publishedAt?: string;
+  viewCount: number;
+  readTime?: number;
+  author: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  _count?: {
+    likes: number;
+    comments: number;
+  };
+}
+
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  coverImage?: string;
+  type: "VIRTUAL" | "IN_PERSON" | "HYBRID";
+  status: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  virtualLink?: string;
+  price?: number;
+  _count?: {
+    rsvps: number;
+  };
+}
+
 export default function CreatorProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -115,6 +153,10 @@ export default function CreatorProfilePage() {
   const [showComments, setShowComments] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [articlesLoading, setArticlesLoading] = useState(false);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
 
   useEffect(() => {
     loadCreatorProfile();
@@ -134,6 +176,12 @@ export default function CreatorProfilePage() {
   useEffect(() => {
     if (activeTab === "posts" && profile && posts.length === 0) {
       loadCreatorPosts();
+    }
+    if (activeTab === "blog" && profile && articles.length === 0) {
+      loadCreatorArticles();
+    }
+    if (activeTab === "events" && profile && events.length === 0) {
+      loadCreatorEvents();
     }
   }, [activeTab, profile]);
 
@@ -191,6 +239,44 @@ export default function CreatorProfilePage() {
       console.error("Error loading posts:", error);
     } finally {
       setPostsLoading(false);
+    }
+  };
+
+  const loadCreatorArticles = async () => {
+    if (!profile) return;
+
+    try {
+      setArticlesLoading(true);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/articles?authorId=${profile.user.id}`
+      );
+
+      if (response.data.success) {
+        setArticles(response.data.data.articles || []);
+      }
+    } catch (error) {
+      console.error("Error loading articles:", error);
+    } finally {
+      setArticlesLoading(false);
+    }
+  };
+
+  const loadCreatorEvents = async () => {
+    if (!profile) return;
+
+    try {
+      setEventsLoading(true);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/events?hostId=${profile.user.id}`
+      );
+
+      if (response.data.success) {
+        setEvents(response.data.data.events || []);
+      }
+    } catch (error) {
+      console.error("Error loading events:", error);
+    } finally {
+      setEventsLoading(false);
     }
   };
 
@@ -943,19 +1029,103 @@ export default function CreatorProfilePage() {
               </p>
             </div>
 
-            <Card className="shadow-xl">
-              <CardContent className="p-12 text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full mx-auto flex items-center justify-center mb-6">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </div>
-                <h3 className="text-2xl font-bold mb-3">Coming Soon!</h3>
-                <p className="text-muted-foreground mb-6">
-                  {profile.user.name} hasn't published any blog articles yet. Check back soon for updates!
-                </p>
-              </CardContent>
-            </Card>
+            {articlesLoading ? (
+              <div className="space-y-6">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-64 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : articles.length === 0 ? (
+              <Card className="shadow-xl">
+                <CardContent className="p-12 text-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full mx-auto flex items-center justify-center mb-6">
+                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3">No Articles Yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    {profile.user.name} hasn't published any blog articles yet. Check back soon for updates!
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {articles.map((article) => (
+                  <Card
+                    key={article.id}
+                    className="overflow-hidden shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer"
+                    onClick={() => router.push(`/blog/${article.slug}`)}
+                  >
+                    {article.coverImage && (
+                      <div className="relative h-48 overflow-hidden">
+                        <img
+                          src={article.coverImage}
+                          alt={article.title}
+                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                        />
+                      </div>
+                    )}
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-3 mb-3">
+                        {article.author.avatar ? (
+                          <img
+                            src={article.author.avatar}
+                            alt={article.author.name}
+                            className="w-10 h-10 rounded-full border-2 border-purple-200"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                            {article.author.name.charAt(0)}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{article.author.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {article.publishedAt ? formatDate(article.publishedAt) : "Draft"}
+                          </p>
+                        </div>
+                      </div>
+                      <h3 className="font-bold text-xl mb-2 line-clamp-2">{article.title}</h3>
+                      {article.excerpt && (
+                        <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                          {article.excerpt}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        {article.readTime && (
+                          <span className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {article.readTime} min read
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          {article.viewCount}
+                        </span>
+                        {article._count && (
+                          <>
+                            <span className="flex items-center gap-1">
+                              <Heart className="w-4 h-4" />
+                              {article._count.likes}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MessageCircle className="w-4 h-4" />
+                              {article._count.comments}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Events Tab */}
@@ -969,17 +1139,109 @@ export default function CreatorProfilePage() {
               </p>
             </div>
 
-            <Card className="shadow-xl">
-              <CardContent className="p-12 text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-rose-500 to-red-500 rounded-full mx-auto flex items-center justify-center mb-6">
-                  <Calendar className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold mb-3">No Upcoming Events</h3>
-                <p className="text-muted-foreground mb-6">
-                  {profile.user.name} doesn't have any scheduled events at the moment. Check back later for exciting meetups and sessions!
-                </p>
-              </CardContent>
-            </Card>
+            {eventsLoading ? (
+              <div className="space-y-6">
+                {[1, 2].map((i) => (
+                  <Skeleton key={i} className="h-64 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : events.length === 0 ? (
+              <Card className="shadow-xl">
+                <CardContent className="p-12 text-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-rose-500 to-red-500 rounded-full mx-auto flex items-center justify-center mb-6">
+                    <Calendar className="w-10 h-10 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3">No Upcoming Events</h3>
+                  <p className="text-muted-foreground mb-6">
+                    {profile.user.name} doesn't have any scheduled events at the moment. Check back later for exciting meetups and sessions!
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {events.map((event) => (
+                  <Card
+                    key={event.id}
+                    className="overflow-hidden shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer"
+                    onClick={() => router.push(`/events/${event.id}`)}
+                  >
+                    {event.coverImage && (
+                      <div className="relative h-48 overflow-hidden">
+                        <img
+                          src={event.coverImage}
+                          alt={event.title}
+                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                        />
+                      </div>
+                    )}
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Badge
+                          variant="secondary"
+                          className={`${
+                            event.type === "VIRTUAL"
+                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                              : event.type === "IN_PERSON"
+                              ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+                              : "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300"
+                          }`}
+                        >
+                          {event.type}
+                        </Badge>
+                        {event.status === "PUBLISHED" && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                            Published
+                          </Badge>
+                        )}
+                      </div>
+                      <h3 className="font-bold text-xl mb-2 line-clamp-2">{event.title}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                        {event.description}
+                      </p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="w-4 h-4" />
+                          <span>
+                            {new Date(event.startTime).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        {event.location && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Globe className="w-4 h-4" />
+                            <span className="line-clamp-1">{event.location}</span>
+                          </div>
+                        )}
+                        {event._count && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Users className="w-4 h-4" />
+                            <span>{event._count.rsvps} attending</span>
+                          </div>
+                        )}
+                        {event.price !== undefined && event.price > 0 && (
+                          <div className="flex items-center gap-2 text-sm font-semibold text-green-600 dark:text-green-400">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            <span>${event.price.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
