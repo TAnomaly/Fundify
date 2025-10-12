@@ -166,8 +166,14 @@ async function createTables() {
 
     // Create Event table
     console.log('\n📅 Creating Event table...');
+    
+    // Drop existing Event tables to recreate with correct schema
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "EventReminder" CASCADE;`);
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "EventRSVP" CASCADE;`);
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Event" CASCADE;`);
+    
     await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "Event" (
+      CREATE TABLE "Event" (
         "id" TEXT NOT NULL,
         "title" TEXT NOT NULL,
         "description" TEXT NOT NULL,
@@ -195,7 +201,7 @@ async function createTables() {
 
     // Create EventRSVP table
     await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "EventRSVP" (
+      CREATE TABLE "EventRSVP" (
         "id" TEXT NOT NULL,
         "status" "RSVPStatus" NOT NULL DEFAULT 'GOING',
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -208,7 +214,7 @@ async function createTables() {
 
     // Create EventReminder table
     await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "EventReminder" (
+      CREATE TABLE "EventReminder" (
         "id" TEXT NOT NULL,
         "reminderAt" TIMESTAMP(3) NOT NULL,
         "sent" BOOLEAN NOT NULL DEFAULT false,
