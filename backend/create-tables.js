@@ -126,6 +126,44 @@ async function createTables() {
     const likeCount = await prisma.postLike.count();
     const commentCount = await prisma.postComment.count();
     console.log(`📊 Current data: ${likeCount} likes, ${commentCount} comments`);
+    
+    // Create new enums for blog/events (if not exist)
+    console.log('\n📝 Setting up Blog & Events enums...');
+    
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "ArticleStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "EventType" AS ENUM ('VIRTUAL', 'IN_PERSON', 'HYBRID');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "EventStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'CANCELLED', 'COMPLETED');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "RSVPStatus" AS ENUM ('GOING', 'MAYBE', 'NOT_GOING');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    
+    console.log('✅ Blog & Events enums created!');
+    console.log('✅ All database setup complete! Blog and Events are ready! 🎉');
 
   } catch (error) {
     console.error('❌ Error:', error.message);
