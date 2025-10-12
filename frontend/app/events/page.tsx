@@ -151,6 +151,53 @@ export default function EventsPage() {
 
       <div className="container mx-auto px-4 py-12 max-w-7xl">
         {/* Filters */}
+        <div className="flex gap-4 mb-8">
+          {[
+            { key: "upcoming", label: "Upcoming" },
+            { key: "all", label: "All Events" },
+            { key: "past", label: "Past" },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key as any)}
+              className={`px-6 py-2 rounded-full font-semibold transition-all ${
+                filter === tab.key
+                  ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Events Grid */}
+        {events.length === 0 ? (
+          <div className="text-center py-20">
+            <CalendarIcon className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-2xl font-semibold text-gray-700 mb-2">No Events Found</h3>
+            <p className="text-gray-500 mb-6">
+              {filter === "upcoming"
+                ? "No upcoming events at the moment."
+                : filter === "past"
+                ? "No past events to show."
+                : "Be the first to create an event!"}
+            </p>
+            {isAuthenticated() && (
+              <Button
+                onClick={() => router.push("/events/new")}
+                className="bg-white text-purple-600 hover:bg-gray-100"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Event
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-12 max-w-7xl">
+        {/* Filters */}
         <div className="mb-8 flex gap-3">
           <Button
             variant={filter === "upcoming" ? "default" : "outline"}
