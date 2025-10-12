@@ -71,8 +71,8 @@ api.interceptors.response.use(
       }
       // Only redirect if not already on login/register page
       if (typeof window !== 'undefined' &&
-          !window.location.pathname.startsWith('/login') &&
-          !window.location.pathname.startsWith('/register')) {
+        !window.location.pathname.startsWith('/login') &&
+        !window.location.pathname.startsWith('/register')) {
         window.location.href = "/login";
       }
     }

@@ -150,12 +150,42 @@ export default function ProfileEditPage() {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            if (response.data.success) {
-                console.log("✅ Profile updated successfully");
-                toast.success("Profile updated successfully!");
-                setOriginalData(formData); // Update original to current
-                // Don't redirect, let user continue editing (Twitter/X style)
-            }
+      if (response.data.success) {
+        console.log("✅ Profile updated successfully");
+        
+        // Update localStorage with new user data
+        const currentUser = localStorage.getItem("user");
+        if (currentUser) {
+          try {
+            const userData = JSON.parse(currentUser);
+            const updatedUser = {
+              ...userData,
+              name: response.data.data.name || userData.name,
+              username: response.data.data.username || userData.username,
+              avatar: response.data.data.avatar || userData.avatar,
+              bannerImage: response.data.data.bannerImage || userData.bannerImage,
+              bio: response.data.data.bio || userData.bio,
+              creatorBio: response.data.data.creatorBio || userData.creatorBio,
+            };
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            console.log("✅ localStorage updated with new user data");
+          } catch (e) {
+            console.error("Failed to update localStorage:", e);
+          }
+        }
+        
+        toast.success("Profile updated successfully!");
+        setOriginalData(formData); // Update original to current
+        
+        // Trigger storage event to update other components (like Navbar)
+        window.dispatchEvent(new Event('storage'));
+        console.log("✅ Storage event dispatched to update UI");
+        
+        // Optional: Refresh the page after 1 second to show changes everywhere
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
         } catch (error: any) {
             console.error("❌ Profile update error:", error);
             console.error("   Response:", error.response?.data);

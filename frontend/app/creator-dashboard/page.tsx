@@ -20,6 +20,17 @@ export default function CreatorDashboard() {
 
   useEffect(() => {
     loadDashboard();
+    
+    // Listen for storage changes (when profile is updated)
+    const handleStorageChange = () => {
+      console.log("📡 Storage changed, reloading dashboard...");
+      loadDashboard();
+    };
+    window.addEventListener("storage", handleStorageChange);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   const loadDashboard = async () => {

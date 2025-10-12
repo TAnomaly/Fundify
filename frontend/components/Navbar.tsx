@@ -16,14 +16,27 @@ export function Navbar() {
       const authenticated = isAuthenticated();
       setIsLoggedIn(authenticated);
       if (authenticated) {
-        setUser(getCurrentUser());
+        const currentUser = getCurrentUser();
+        setUser(currentUser);
+        console.log("🔄 Navbar updated with user:", currentUser);
       }
     };
 
     checkAuth();
-    // Check auth on every route change
+    // Check auth on every route change and storage updates
     window.addEventListener("storage", checkAuth);
-    return () => window.removeEventListener("storage", checkAuth);
+    
+    // Also listen for custom storage events (from same window)
+    const handleStorageChange = () => {
+      console.log("📡 Storage change detected, updating Navbar...");
+      checkAuth();
+    };
+    window.addEventListener("storage", handleStorageChange);
+    
+    return () => {
+      window.removeEventListener("storage", checkAuth);
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   const handleLogout = () => {
