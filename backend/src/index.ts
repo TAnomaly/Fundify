@@ -23,6 +23,7 @@ import webhookRoutes from './routes/webhook.routes';
 import uploadRoutes from './routes/upload.routes';
 import postEngagementRoutes from './routes/postEngagement.routes';
 import articleRoutes from './routes/article.routes';
+import eventRoutes from './routes/event.routes';
 
 // Types
 import { ApiError } from './types';
@@ -138,6 +139,7 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api', postEngagementRoutes);
 app.use('/api', articleRoutes);
+app.use('/api', eventRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
