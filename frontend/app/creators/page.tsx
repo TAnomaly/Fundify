@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import axios from "axios";
-import { 
-  Search, 
-  Users, 
-  TrendingUp, 
-  Sparkles, 
+import {
+  Search,
+  Users,
+  TrendingUp,
+  Sparkles,
   Star,
   Clock,
   Heart,
@@ -165,25 +165,25 @@ export default function CreatorsPage() {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-teal-600 text-white py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-        
+
         {/* Floating Elements */}
         <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-pulse"></div>
         <div className="absolute bottom-10 right-20 w-32 h-32 bg-pink-400/20 rounded-full blur-2xl animate-pulse delay-75"></div>
-        
+
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full mb-6 animate-fade-in">
               <Sparkles className="w-5 h-5 animate-pulse" />
               <span className="text-sm font-semibold">Discover Amazing Creators</span>
             </div>
-            
+
             <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in-up">
               Support Your Favorite <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-pink-200 to-purple-200">
                 Creators
               </span>
             </h1>
-            
+
             <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto animate-fade-in-up delay-100">
               Browse {creators.length}+ talented creators, subscribe to exclusive content, and become part of their creative journey
             </p>
@@ -283,7 +283,7 @@ export default function CreatorsPage() {
                         {creator.name}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-3">@{username}</p>
-                      
+
                       {creator.creatorBio && (
                         <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
                           {creator.creatorBio}
@@ -405,11 +405,10 @@ export default function CreatorsPage() {
                 <button
                   key={category.value}
                   onClick={() => setSelectedCategory(category.value)}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg ${
-                    selectedCategory === category.value
+                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg ${selectedCategory === category.value
                       ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white scale-105"
                       : "bg-white text-gray-700 hover:scale-105"
-                  }`}
+                    }`}
                 >
                   <span className="mr-2">{category.icon}</span>
                   {category.label}
@@ -428,11 +427,10 @@ export default function CreatorsPage() {
                   <button
                     key={option.value}
                     onClick={() => setSortBy(option.value)}
-                    className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2 ${
-                      sortBy === option.value
+                    className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2 ${sortBy === option.value
                         ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white scale-105"
                         : "bg-white text-gray-700 hover:scale-105"
-                    }`}
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     {option.label}

@@ -17,6 +17,7 @@ export default function CreatorDashboard() {
   const [posts, setPosts] = useState<CreatorPost[]>([]);
   const [stats, setStats] = useState({ totalSubscribers: 0, monthlyRevenue: 0 });
   const [isCreator, setIsCreator] = useState(false);
+  const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
     loadDashboard();
@@ -46,6 +47,7 @@ export default function CreatorDashboard() {
       const userResponse = await userApi.getMe();
       if (userResponse.success && userResponse.data) {
         setIsCreator(userResponse.data.isCreator || false);
+        setUserName(userResponse.data.name || "");
 
         if (!userResponse.data.isCreator) {
           // Not a creator yet
@@ -155,7 +157,9 @@ export default function CreatorDashboard() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2 text-gradient">Creator Dashboard</h1>
+        <h1 className="text-4xl font-bold mb-2 text-gradient">
+          {userName ? `Welcome back, ${userName}! 👋` : "Creator Dashboard"}
+        </h1>
         <p className="text-gray-600 dark:text-gray-400">Manage your supporters and content</p>
       </div>
 
