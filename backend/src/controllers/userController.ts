@@ -415,8 +415,10 @@ export const getCreatorByUsername = async (
             select: {
               id: true,
               name: true,
+              username: true,
               email: true,
               avatar: true,
+              bannerImage: true,
               creatorBio: true,
               socialLinks: true,
             },

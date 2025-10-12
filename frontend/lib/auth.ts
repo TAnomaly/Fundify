@@ -74,7 +74,7 @@ export const getCurrentUser = (): Partial<User> | null => {
 
   try {
     const decoded = jwtDecode<DecodedToken>(token);
-    
+
     // Try to get updated user data from localStorage
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -95,7 +95,7 @@ export const getCurrentUser = (): Partial<User> | null => {
         console.error("Failed to parse stored user:", e);
       }
     }
-    
+
     // Fallback to token data only
     return {
       id: decoded.userId,
