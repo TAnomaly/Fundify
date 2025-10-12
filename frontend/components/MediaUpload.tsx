@@ -253,3 +253,5 @@ export function MediaUpload({
     </div>
   );
 }
+
+export default MediaUpload;

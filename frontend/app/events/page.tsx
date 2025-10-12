@@ -124,14 +124,14 @@ export default function EventsPage() {
               <CalendarIcon className="w-5 h-5" />
               <span className="text-sm font-semibold">Creator Events</span>
             </div>
-            
+
             <h1 className="text-5xl font-bold mb-4">
               Join Amazing <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-pink-200">
                 Creative Events
               </span>
             </h1>
-            
+
             <p className="text-xl text-white/90 mb-6">
               Connect with creators through workshops, Q&As, and meetups
             </p>
@@ -160,11 +160,10 @@ export default function EventsPage() {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key as any)}
-              className={`px-6 py-2 rounded-full font-semibold transition-all ${
-                filter === tab.key
+              className={`px-6 py-2 rounded-full font-semibold transition-all ${filter === tab.key
                   ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
                   : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -180,8 +179,8 @@ export default function EventsPage() {
               {filter === "upcoming"
                 ? "No upcoming events at the moment."
                 : filter === "past"
-                ? "No past events to show."
-                : "Be the first to create an event!"}
+                  ? "No past events to show."
+                  : "Be the first to create an event!"}
             </p>
             {isAuthenticated() && (
               <Button
