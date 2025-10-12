@@ -506,3 +506,161 @@ export const getTags = async (
   }
 };
 
+// Get article comments
+export const getArticleComments = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const comments = await prisma.articleComment.findMany({
+      where: {
+        articleId: id,
+        parentId: null, // Only get top-level comments
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        replies: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.json({
+      success: true,
+      data: comments,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Add article comment
+export const addArticleComment = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const { id } = req.params;
+    const { content, parentId } = req.body;
+
+    if (!content || !content.trim()) {
+      res.status(400).json({ success: false, message: 'Comment content is required' });
+      return;
+    }
+
+    // Check if article exists
+    const article = await prisma.article.findUnique({
+      where: { id },
+    });
+
+    if (!article) {
+      res.status(404).json({ success: false, message: 'Article not found' });
+      return;
+    }
+
+    // Create comment
+    const comment = await prisma.articleComment.create({
+      data: {
+        content,
+        articleId: id,
+        userId,
+        parentId: parentId || null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Comment added successfully',
+      data: comment,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Delete article comment
+export const deleteArticleComment = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const { id, commentId } = req.params;
+
+    const comment = await prisma.articleComment.findUnique({
+      where: { id: commentId },
+    });
+
+    if (!comment) {
+      res.status(404).json({ success: false, message: 'Comment not found' });
+      return;
+    }
+
+    // Check if user owns the comment or is the article author
+    const article = await prisma.article.findUnique({
+      where: { id },
+    });
+
+    if (comment.userId !== userId && article?.authorId !== userId) {
+      res.status(403).json({ success: false, message: 'Unauthorized to delete this comment' });
+      return;
+    }
+
+    await prisma.articleComment.delete({
+      where: { id: commentId },
+    });
+
+    res.json({
+      success: true,
+      message: 'Comment deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
