@@ -28,9 +28,12 @@ export default function ProfileEditPage() {
         bannerImage: "",
     });
 
-    useEffect(() => {
-        loadProfile();
-    }, []);
+  useEffect(() => {
+    console.log("🚀 PROFILE EDIT PAGE LOADED");
+    console.log("   API URL:", getApiUrl());
+    console.log("   Has token:", !!localStorage.getItem("authToken"));
+    loadProfile();
+  }, []);
 
     const loadProfile = async () => {
         try {
@@ -71,30 +74,30 @@ export default function ProfileEditPage() {
         }
     };
 
-  const hasChanges = () => {
-    if (!originalData) {
-      console.log("⚠️ No original data yet, hasChanges = false");
-      return false;
-    }
-    
-    const changed = Object.keys(formData).some(
-      (key) => {
-        const formValue = formData[key as keyof typeof formData];
-        const originalValue = originalData[key as keyof typeof originalData];
-        return formValue !== originalValue;
-      }
-    );
-    
-    if (changed) {
-      console.log("✅ Changes detected!");
-      const changedFields = Object.keys(formData).filter(
-        (key) => formData[key as keyof typeof formData] !== originalData[key as keyof typeof originalData]
-      );
-      console.log("   Changed fields:", changedFields);
-    }
-    
-    return changed;
-  };
+    const hasChanges = () => {
+        if (!originalData) {
+            console.log("⚠️ No original data yet, hasChanges = false");
+            return false;
+        }
+
+        const changed = Object.keys(formData).some(
+            (key) => {
+                const formValue = formData[key as keyof typeof formData];
+                const originalValue = originalData[key as keyof typeof originalData];
+                return formValue !== originalValue;
+            }
+        );
+
+        if (changed) {
+            console.log("✅ Changes detected!");
+            const changedFields = Object.keys(formData).filter(
+                (key) => formData[key as keyof typeof formData] !== originalData[key as keyof typeof originalData]
+            );
+            console.log("   Changed fields:", changedFields);
+        }
+
+        return changed;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -166,73 +169,84 @@ export default function ProfileEditPage() {
     };
 
   const handleImageUpload = async (field: 'avatar' | 'bannerImage', file: File) => {
+    console.log("=".repeat(50));
+    console.log(`🎯 UPLOAD STARTED: ${field}`);
+    console.log("   File name:", file.name);
+    console.log("   File size:", (file.size / 1024).toFixed(2), "KB");
+    console.log("   File type:", file.type);
+    console.log("=".repeat(50));
+    
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
+      console.error("❌ File too large:", (file.size / 1024 / 1024).toFixed(2), "MB");
       toast.error("Image too large. Max 5MB.");
       return;
     }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      console.error("❌ Invalid file type:", file.type);
       toast.error("Please upload an image file");
       return;
     }
+    
+    console.log("✅ Validation passed");
 
-    const uploadData = new FormData();
-    uploadData.append('image', file);
+        const uploadData = new FormData();
+        uploadData.append('image', file);
 
-    setUploadingField(field);
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        toast.error("Please login first");
-        return;
-      }
+        setUploadingField(field);
+        try {
+            const token = localStorage.getItem("authToken");
+            if (!token) {
+                toast.error("Please login first");
+                return;
+            }
 
-      console.log(`📤 Uploading ${field}:`, file.name, `(${(file.size / 1024).toFixed(2)} KB)`);
+            console.log(`📤 Uploading ${field}:`, file.name, `(${(file.size / 1024).toFixed(2)} KB)`);
 
-      const response = await axios.post(
-        `${getApiUrl()}/upload/image`,
-        uploadData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          // Don't set Content-Type manually, let axios handle it with FormData
+            const response = await axios.post(
+                `${getApiUrl()}/upload/image`,
+                uploadData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    // Don't set Content-Type manually, let axios handle it with FormData
+                }
+            );
+
+            if (response.data.success) {
+                const newUrl = response.data.data.url;
+
+                // Update formData AND trigger change detection
+                setFormData(prev => {
+                    const newData = {
+                        ...prev,
+                        [field]: newUrl,
+                    };
+                    console.log(`✅ ${field} uploaded:`, newUrl);
+                    console.log(`🔄 FormData updated, hasChanges will be true`);
+                    return newData;
+                });
+
+                toast.success(`${field === 'avatar' ? 'Profile picture' : 'Banner'} uploaded successfully!`);
+            }
+        } catch (error: any) {
+            console.error(`❌ ${field} upload error:`, error);
+            console.error("   Status:", error.response?.status);
+            console.error("   Response:", error.response?.data);
+            console.error("   Message:", error.message);
+
+            const errorMsg = error.response?.data?.message ||
+                error.response?.statusText ||
+                error.message ||
+                "Failed to upload image. Please try again.";
+            toast.error(errorMsg);
+        } finally {
+            setUploadingField(null);
         }
-      );
-
-      if (response.data.success) {
-        const newUrl = response.data.data.url;
-        
-        // Update formData AND trigger change detection
-        setFormData(prev => {
-          const newData = {
-            ...prev,
-            [field]: newUrl,
-          };
-          console.log(`✅ ${field} uploaded:`, newUrl);
-          console.log(`🔄 FormData updated, hasChanges will be true`);
-          return newData;
-        });
-        
-        toast.success(`${field === 'avatar' ? 'Profile picture' : 'Banner'} uploaded successfully!`);
-      }
-    } catch (error: any) {
-      console.error(`❌ ${field} upload error:`, error);
-      console.error("   Status:", error.response?.status);
-      console.error("   Response:", error.response?.data);
-      console.error("   Message:", error.message);
-      
-      const errorMsg = error.response?.data?.message || 
-                      error.response?.statusText ||
-                      error.message ||
-                      "Failed to upload image. Please try again.";
-      toast.error(errorMsg);
-    } finally {
-      setUploadingField(null);
-    }
-  };
+    };
 
     if (isLoadingProfile) {
         return (
