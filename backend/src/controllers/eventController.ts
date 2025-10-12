@@ -4,337 +4,337 @@ import { AuthRequest } from '../types';
 
 // Create event
 export const createEvent = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Unauthorized' });
-      return;
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        if (!userId) {
+            res.status(401).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
+
+        const event = await prisma.event.create({
+            data: {
+                ...req.body,
+                hostId: userId,
+            },
+            include: {
+                host: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatar: true,
+                    },
+                },
+            },
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Event created successfully',
+            data: event,
+        });
+    } catch (error) {
+        next(error);
     }
-
-    const event = await prisma.event.create({
-      data: {
-        ...req.body,
-        hostId: userId,
-      },
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
-        },
-      },
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Event created successfully',
-      data: event,
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
 // Get all events
 export const getEvents = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const { page = '1', limit = '20', type, status, hostId, upcoming } = req.query;
-    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
-    const take = parseInt(limit as string);
+    try {
+        const { page = '1', limit = '20', type, status, hostId, upcoming } = req.query;
+        const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+        const take = parseInt(limit as string);
 
-    const where: any = {
-      status: status || 'PUBLISHED',
-    };
+        const where: any = {
+            status: status || 'PUBLISHED',
+        };
 
-    if (type) where.type = type;
-    if (hostId) where.hostId = hostId;
-    if (upcoming === 'true') {
-      where.startTime = { gte: new Date() };
+        if (type) where.type = type;
+        if (hostId) where.hostId = hostId;
+        if (upcoming === 'true') {
+            where.startTime = { gte: new Date() };
+        }
+
+        const [events, total] = await Promise.all([
+            prisma.event.findMany({
+                where,
+                skip,
+                take,
+                include: {
+                    host: {
+                        select: {
+                            id: true,
+                            name: true,
+                            avatar: true,
+                        },
+                    },
+                    _count: {
+                        select: {
+                            rsvps: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    startTime: 'asc',
+                },
+            }),
+            prisma.event.count({ where }),
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                events,
+                pagination: {
+                    page: parseInt(page as string),
+                    limit: parseInt(limit as string),
+                    total,
+                    pages: Math.ceil(total / take),
+                },
+            },
+        });
+    } catch (error) {
+        next(error);
     }
-
-    const [events, total] = await Promise.all([
-      prisma.event.findMany({
-        where,
-        skip,
-        take,
-        include: {
-          host: {
-            select: {
-              id: true,
-              name: true,
-              avatar: true,
-            },
-          },
-          _count: {
-            select: {
-              rsvps: true,
-            },
-          },
-        },
-        orderBy: {
-          startTime: 'asc',
-        },
-      }),
-      prisma.event.count({ where }),
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        events,
-        pagination: {
-          page: parseInt(page as string),
-          limit: parseInt(limit as string),
-          total,
-          pages: Math.ceil(total / take),
-        },
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
 // Get event by ID
 export const getEventById = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const userId = req.user?.id || req.user?.userId;
+    try {
+        const { id } = req.params;
+        const userId = req.user?.id || req.user?.userId;
 
-    const event = await prisma.event.findUnique({
-      where: { id },
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-            bio: true,
-          },
-        },
-        _count: {
-          select: {
-            rsvps: true,
-          },
-        },
-      },
-    });
+        const event = await prisma.event.findUnique({
+            where: { id },
+            include: {
+                host: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatar: true,
+                        bio: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        rsvps: true,
+                    },
+                },
+            },
+        });
 
-    if (!event) {
-      res.status(404).json({ success: false, message: 'Event not found' });
-      return;
+        if (!event) {
+            res.status(404).json({ success: false, message: 'Event not found' });
+            return;
+        }
+
+        // Check user's RSVP status
+        let userRSVP = null;
+        if (userId) {
+            userRSVP = await prisma.eventRSVP.findUnique({
+                where: {
+                    userId_eventId: {
+                        userId,
+                        eventId: id,
+                    },
+                },
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                ...event,
+                userRSVPStatus: userRSVP?.status || null,
+            },
+        });
+    } catch (error) {
+        next(error);
     }
-
-    // Check user's RSVP status
-    let userRSVP = null;
-    if (userId) {
-      userRSVP = await prisma.eventRSVP.findUnique({
-        where: {
-          userId_eventId: {
-            userId,
-            eventId: id,
-          },
-        },
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        ...event,
-        userRSVPStatus: userRSVP?.status || null,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
 // Update event
 export const updateEvent = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    const { id } = req.params;
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        const { id } = req.params;
 
-    const event = await prisma.event.findUnique({ where: { id } });
+        const event = await prisma.event.findUnique({ where: { id } });
 
-    if (!event) {
-      res.status(404).json({ success: false, message: 'Event not found' });
-      return;
+        if (!event) {
+            res.status(404).json({ success: false, message: 'Event not found' });
+            return;
+        }
+
+        if (event.hostId !== userId) {
+            res.status(403).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
+
+        const updatedEvent = await prisma.event.update({
+            where: { id },
+            data: req.body,
+        });
+
+        res.json({
+            success: true,
+            message: 'Event updated successfully',
+            data: updatedEvent,
+        });
+    } catch (error) {
+        next(error);
     }
-
-    if (event.hostId !== userId) {
-      res.status(403).json({ success: false, message: 'Unauthorized' });
-      return;
-    }
-
-    const updatedEvent = await prisma.event.update({
-      where: { id },
-      data: req.body,
-    });
-
-    res.json({
-      success: true,
-      message: 'Event updated successfully',
-      data: updatedEvent,
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
 // Delete event
 export const deleteEvent = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    const { id } = req.params;
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        const { id } = req.params;
 
-    const event = await prisma.event.findUnique({ where: { id } });
+        const event = await prisma.event.findUnique({ where: { id } });
 
-    if (!event) {
-      res.status(404).json({ success: false, message: 'Event not found' });
-      return;
+        if (!event) {
+            res.status(404).json({ success: false, message: 'Event not found' });
+            return;
+        }
+
+        if (event.hostId !== userId) {
+            res.status(403).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
+
+        await prisma.event.delete({ where: { id } });
+
+        res.json({
+            success: true,
+            message: 'Event deleted successfully',
+        });
+    } catch (error) {
+        next(error);
     }
-
-    if (event.hostId !== userId) {
-      res.status(403).json({ success: false, message: 'Unauthorized' });
-      return;
-    }
-
-    await prisma.event.delete({ where: { id } });
-
-    res.json({
-      success: true,
-      message: 'Event deleted successfully',
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
 // RSVP to event
 export const rsvpToEvent = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    const { id } = req.params;
-    const { status } = req.body; // GOING, MAYBE, NOT_GOING
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        const { id } = req.params;
+        const { status } = req.body; // GOING, MAYBE, NOT_GOING
 
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Unauthorized' });
-      return;
-    }
+        if (!userId) {
+            res.status(401).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
 
-    const event = await prisma.event.findUnique({ where: { id } });
+        const event = await prisma.event.findUnique({ where: { id } });
 
-    if (!event) {
-      res.status(404).json({ success: false, message: 'Event not found' });
-      return;
-    }
+        if (!event) {
+            res.status(404).json({ success: false, message: 'Event not found' });
+            return;
+        }
 
-    // Check capacity
-    if (status === 'GOING' && event.maxAttendees) {
-      const goingCount = await prisma.eventRSVP.count({
-        where: {
-          eventId: id,
-          status: 'GOING',
-        },
-      });
+        // Check capacity
+        if (status === 'GOING' && event.maxAttendees) {
+            const goingCount = await prisma.eventRSVP.count({
+                where: {
+                    eventId: id,
+                    status: 'GOING',
+                },
+            });
 
-      if (goingCount >= event.maxAttendees) {
-        res.status(400).json({
-          success: false,
-          message: 'Event is at full capacity',
+            if (goingCount >= event.maxAttendees) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Event is at full capacity',
+                });
+                return;
+            }
+        }
+
+        // Upsert RSVP
+        const rsvp = await prisma.eventRSVP.upsert({
+            where: {
+                userId_eventId: {
+                    userId,
+                    eventId: id,
+                },
+            },
+            update: {
+                status,
+            },
+            create: {
+                userId,
+                eventId: id,
+                status,
+            },
         });
-        return;
-      }
+
+        res.json({
+            success: true,
+            message: 'RSVP updated successfully',
+            data: rsvp,
+        });
+    } catch (error) {
+        next(error);
     }
-
-    // Upsert RSVP
-    const rsvp = await prisma.eventRSVP.upsert({
-      where: {
-        userId_eventId: {
-          userId,
-          eventId: id,
-        },
-      },
-      update: {
-        status,
-      },
-      create: {
-        userId,
-        eventId: id,
-        status,
-      },
-    });
-
-    res.json({
-      success: true,
-      message: 'RSVP updated successfully',
-      data: rsvp,
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
 // Get event RSVPs
 export const getEventRSVPs = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { status } = req.query;
+    try {
+        const { id } = req.params;
+        const { status } = req.query;
 
-    const where: any = { eventId: id };
-    if (status) where.status = status;
+        const where: any = { eventId: id };
+        if (status) where.status = status;
 
-    const rsvps = await prisma.eventRSVP.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
-        },
-      },
-    });
+        const rsvps = await prisma.eventRSVP.findMany({
+            where,
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatar: true,
+                    },
+                },
+            },
+        });
 
-    res.json({
-      success: true,
-      data: rsvps,
-    });
-  } catch (error) {
-    next(error);
-  }
+        res.json({
+            success: true,
+            data: rsvps,
+        });
+    } catch (error) {
+        next(error);
+    }
 };
 

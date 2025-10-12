@@ -167,7 +167,7 @@ app.use((err: ApiError, _req: Request, res: Response, _next: NextFunction) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  
+
   // Auto-fix database tables in background (non-blocking)
   import('./startup-fix').then(({ ensureDatabaseTables }) => {
     ensureDatabaseTables().catch(err => {
