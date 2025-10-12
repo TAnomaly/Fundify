@@ -163,6 +163,71 @@ async function createTables() {
     `);
 
     console.log('✅ Blog & Events enums created!');
+
+    // Create Event table
+    console.log('\n📅 Creating Event table...');
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Event" (
+        "id" TEXT NOT NULL,
+        "title" TEXT NOT NULL,
+        "description" TEXT NOT NULL,
+        "coverImage" TEXT,
+        "type" "EventType" NOT NULL,
+        "status" "EventStatus" NOT NULL DEFAULT 'DRAFT',
+        "startTime" TIMESTAMP(3) NOT NULL,
+        "endTime" TIMESTAMP(3) NOT NULL,
+        "timezone" TEXT NOT NULL DEFAULT 'UTC',
+        "location" TEXT,
+        "virtualLink" TEXT,
+        "maxAttendees" INTEGER,
+        "isPublic" BOOLEAN NOT NULL DEFAULT true,
+        "isPremium" BOOLEAN NOT NULL DEFAULT false,
+        "minimumTierId" TEXT,
+        "price" DOUBLE PRECISION DEFAULT 0,
+        "agenda" TEXT,
+        "tags" TEXT[],
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "hostId" TEXT NOT NULL,
+        CONSTRAINT "Event_pkey" PRIMARY KEY ("id")
+      );
+    `);
+
+    // Create EventRSVP table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "EventRSVP" (
+        "id" TEXT NOT NULL,
+        "status" "RSVPStatus" NOT NULL DEFAULT 'GOING',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "userId" TEXT NOT NULL,
+        "eventId" TEXT NOT NULL,
+        CONSTRAINT "EventRSVP_pkey" PRIMARY KEY ("id")
+      );
+    `);
+
+    // Create EventReminder table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "EventReminder" (
+        "id" TEXT NOT NULL,
+        "reminderAt" TIMESTAMP(3) NOT NULL,
+        "sent" BOOLEAN NOT NULL DEFAULT false,
+        "sentAt" TIMESTAMP(3),
+        "userId" TEXT NOT NULL,
+        "eventId" TEXT NOT NULL,
+        CONSTRAINT "EventReminder_pkey" PRIMARY KEY ("id")
+      );
+    `);
+
+    // Create indexes
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Event_hostId_idx" ON "Event"("hostId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Event_status_idx" ON "Event"("status");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Event_startTime_idx" ON "Event"("startTime");`);
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "EventRSVP_userId_eventId_key" ON "EventRSVP"("userId", "eventId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "EventRSVP_eventId_idx" ON "EventRSVP"("eventId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "EventReminder_eventId_idx" ON "EventReminder"("eventId");`);
+
+    console.log('✅ Event tables created!');
     console.log('✅ All database setup complete! Blog and Events are ready! 🎉');
 
   } catch (error) {
