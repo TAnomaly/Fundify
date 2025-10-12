@@ -13,7 +13,7 @@ import {
 } from "./types";
 
 // Create axios instance with default config
-const getApiUrl = () => {
+export const getApiUrl = () => {
   // Try environment variable first, then fallback to hardcoded URLs
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;

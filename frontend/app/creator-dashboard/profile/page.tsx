@@ -28,12 +28,12 @@ export default function ProfileEditPage() {
         bannerImage: "",
     });
 
-  useEffect(() => {
-    console.log("🚀 PROFILE EDIT PAGE LOADED");
-    console.log("   API URL:", getApiUrl());
-    console.log("   Has token:", !!localStorage.getItem("authToken"));
-    loadProfile();
-  }, []);
+    useEffect(() => {
+        console.log("🚀 PROFILE EDIT PAGE LOADED");
+        console.log("   API URL:", getApiUrl());
+        console.log("   Has token:", !!localStorage.getItem("authToken"));
+        loadProfile();
+    }, []);
 
     const loadProfile = async () => {
         try {
@@ -168,29 +168,29 @@ export default function ProfileEditPage() {
         }
     };
 
-  const handleImageUpload = async (field: 'avatar' | 'bannerImage', file: File) => {
-    console.log("=".repeat(50));
-    console.log(`🎯 UPLOAD STARTED: ${field}`);
-    console.log("   File name:", file.name);
-    console.log("   File size:", (file.size / 1024).toFixed(2), "KB");
-    console.log("   File type:", file.type);
-    console.log("=".repeat(50));
-    
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      console.error("❌ File too large:", (file.size / 1024 / 1024).toFixed(2), "MB");
-      toast.error("Image too large. Max 5MB.");
-      return;
-    }
+    const handleImageUpload = async (field: 'avatar' | 'bannerImage', file: File) => {
+        console.log("=".repeat(50));
+        console.log(`🎯 UPLOAD STARTED: ${field}`);
+        console.log("   File name:", file.name);
+        console.log("   File size:", (file.size / 1024).toFixed(2), "KB");
+        console.log("   File type:", file.type);
+        console.log("=".repeat(50));
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      console.error("❌ Invalid file type:", file.type);
-      toast.error("Please upload an image file");
-      return;
-    }
-    
-    console.log("✅ Validation passed");
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            console.error("❌ File too large:", (file.size / 1024 / 1024).toFixed(2), "MB");
+            toast.error("Image too large. Max 5MB.");
+            return;
+        }
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            console.error("❌ Invalid file type:", file.type);
+            toast.error("Please upload an image file");
+            return;
+        }
+
+        console.log("✅ Validation passed");
 
         const uploadData = new FormData();
         uploadData.append('image', file);
