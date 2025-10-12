@@ -74,6 +74,20 @@ export function Navbar() {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary group-hover:w-full transition-all"></span>
               </a>
               <a
+                href="/blog"
+                className="text-sm font-semibold text-foreground/70 hover:text-foreground transition-colors relative group"
+              >
+                📝 Blog
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary group-hover:w-full transition-all"></span>
+              </a>
+              <a
+                href="/events"
+                className="text-sm font-semibold text-foreground/70 hover:text-foreground transition-colors relative group"
+              >
+                📅 Events
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary group-hover:w-full transition-all"></span>
+              </a>
+              <a
                 href="/campaigns?category=trending"
                 className="text-sm font-semibold text-foreground/70 hover:text-foreground transition-colors relative group"
               >

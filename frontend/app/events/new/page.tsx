@@ -191,7 +191,7 @@ export default function NewEventPage() {
               </p>
               <MediaUpload
                 onImagesChange={handleImageUpload}
-                onVideoChange={() => {}}
+                onVideoChange={() => { }}
                 maxImages={1}
                 allowVideo={false}
                 allowAttachments={false}
