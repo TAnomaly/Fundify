@@ -203,7 +203,7 @@ export default function CreatorDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <button
           onClick={() => router.push("/creator-dashboard/new-post")}
           className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
@@ -217,6 +217,40 @@ export default function CreatorDashboard() {
             <div>
               <h3 className="font-semibold text-lg">Create New Post</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">Share updates with your supporters</p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/creator-dashboard/blog")}
+          className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Blog Articles</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Write & manage blog posts</p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/creator-dashboard/events")}
+          className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-red-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Events</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Schedule & host events</p>
             </div>
           </div>
         </button>
@@ -285,6 +319,23 @@ export default function CreatorDashboard() {
             <div>
               <h3 className="font-semibold text-lg">Stream Widgets</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">OBS alerts & integrations</p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/creator-dashboard/posts")}
+          className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">All Posts</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">View all your posts</p>
             </div>
           </div>
         </button>
