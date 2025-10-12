@@ -497,10 +497,12 @@ export default function CreatorProfilePage() {
 
         {/* Tabs Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto">
+          <TabsList className="grid w-full grid-cols-5 max-w-3xl mx-auto">
             <TabsTrigger value="about">About</TabsTrigger>
             <TabsTrigger value="tiers">Membership</TabsTrigger>
             <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="blog">Blog</TabsTrigger>
+            <TabsTrigger value="events">Events</TabsTrigger>
           </TabsList>
 
           {/* About Tab */}
@@ -928,6 +930,56 @@ export default function CreatorProfilePage() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* Blog Tab */}
+          <TabsContent value="blog">
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold mb-2">
+                Blog by <span className="text-gradient">{profile.user.name}</span>
+              </h2>
+              <p className="text-muted-foreground">
+                Read articles and insights from {profile.user.name}
+              </p>
+            </div>
+
+            <Card className="shadow-xl">
+              <CardContent className="p-12 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full mx-auto flex items-center justify-center mb-6">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold mb-3">Coming Soon!</h3>
+                <p className="text-muted-foreground mb-6">
+                  {profile.user.name} hasn't published any blog articles yet. Check back soon for updates!
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Events Tab */}
+          <TabsContent value="events">
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold mb-2">
+                Events by <span className="text-gradient">{profile.user.name}</span>
+              </h2>
+              <p className="text-muted-foreground">
+                Join upcoming events and meetups
+              </p>
+            </div>
+
+            <Card className="shadow-xl">
+              <CardContent className="p-12 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-rose-500 to-red-500 rounded-full mx-auto flex items-center justify-center mb-6">
+                  <Calendar className="w-10 h-10 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold mb-3">No Upcoming Events</h3>
+                <p className="text-muted-foreground mb-6">
+                  {profile.user.name} doesn't have any scheduled events at the moment. Check back later for exciting meetups and sessions!
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
