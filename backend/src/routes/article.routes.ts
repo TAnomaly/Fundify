@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuth } from '../middleware/auth';
 import * as articleController from '../controllers/articleController';
 
 const router = Router();
 
 // Public routes
 router.get('/articles', articleController.getArticles as any);
-router.get('/articles/:slug', articleController.getArticleBySlug as any);
+router.get('/articles/:slug', optionalAuth as any, articleController.getArticleBySlug as any);
 router.get('/categories', articleController.getCategories as any);
 router.get('/tags', articleController.getTags as any);
 
