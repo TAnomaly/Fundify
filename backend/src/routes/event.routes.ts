@@ -15,5 +15,10 @@ router.put('/events/:id', authenticate as any, eventController.updateEvent as an
 router.delete('/events/:id', authenticate as any, eventController.deleteEvent as any);
 router.post('/events/:id/rsvp', authenticate as any, eventController.rsvpToEvent as any);
 
+// Ticket routes
+router.get('/events/:id/ticket', authenticate as any, eventController.getEventTicket as any);
+router.post('/events/checkin', authenticate as any, eventController.checkInAttendee as any);
+router.get('/events/verify/:ticketCode', eventController.verifyTicket as any);
+
 export default router;
 

@@ -206,9 +206,16 @@ async function createTables() {
         "status" "RSVPStatus" NOT NULL DEFAULT 'GOING',
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "ticketCode" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+        "isPaid" BOOLEAN NOT NULL DEFAULT false,
+        "paymentId" TEXT,
+        "checkedIn" BOOLEAN NOT NULL DEFAULT false,
+        "checkedInAt" TIMESTAMP(3),
+        "checkedInBy" TEXT,
         "userId" TEXT NOT NULL,
         "eventId" TEXT NOT NULL,
-        CONSTRAINT "EventRSVP_pkey" PRIMARY KEY ("id")
+        CONSTRAINT "EventRSVP_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "EventRSVP_ticketCode_key" UNIQUE ("ticketCode")
       );
     `);
 
@@ -231,6 +238,8 @@ async function createTables() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Event_startTime_idx" ON "Event"("startTime");`);
     await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "EventRSVP_userId_eventId_key" ON "EventRSVP"("userId", "eventId");`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "EventRSVP_eventId_idx" ON "EventRSVP"("eventId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "EventRSVP_ticketCode_idx" ON "EventRSVP"("ticketCode");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "EventRSVP_checkedIn_idx" ON "EventRSVP"("checkedIn");`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "EventReminder_eventId_idx" ON "EventReminder"("eventId");`);
 
     console.log('✅ Event tables created!');

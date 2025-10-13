@@ -648,6 +648,14 @@ model EventRSVP {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
+  // Ticket information
+  ticketCode    String   @unique @default(uuid()) // Unique ticket code for QR
+  isPaid        Boolean  @default(false) // For premium events
+  paymentId     String? // Stripe payment intent ID
+  checkedIn     Boolean  @default(false) // Has the user checked in?
+  checkedInAt   DateTime?
+  checkedInBy   String? // Staff member who checked them in
+
   userId String
   user   User   @relation("EventRSVPs", fields: [userId], references: [id], onDelete: Cascade)
 
@@ -658,6 +666,8 @@ model EventRSVP {
   @@index([userId])
   @@index([eventId])
   @@index([status])
+  @@index([ticketCode])
+  @@index([checkedIn])
 }
 
 model EventReminder {

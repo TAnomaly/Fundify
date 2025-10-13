@@ -338,3 +338,209 @@ export const getEventRSVPs = async (
     }
 };
 
+// Get user's ticket for an event
+export const getEventTicket = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        const { id } = req.params;
+
+        if (!userId) {
+            res.status(401).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
+
+        const rsvp = await prisma.eventRSVP.findUnique({
+            where: {
+                userId_eventId: {
+                    userId,
+                    eventId: id,
+                },
+            },
+            include: {
+                event: {
+                    select: {
+                        id: true,
+                        title: true,
+                        startTime: true,
+                        endTime: true,
+                        location: true,
+                        virtualLink: true,
+                        type: true,
+                        coverImage: true,
+                    },
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+            },
+        });
+
+        if (!rsvp || rsvp.status === 'NOT_GOING') {
+            res.status(404).json({ success: false, message: 'Ticket not found' });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: rsvp,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Check in attendee with ticket code (for event hosts/staff)
+export const checkInAttendee = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        const { ticketCode } = req.body;
+
+        if (!userId) {
+            res.status(401).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
+
+        if (!ticketCode) {
+            res.status(400).json({ success: false, message: 'Ticket code is required' });
+            return;
+        }
+
+        // Find the RSVP by ticket code
+        const rsvp = await prisma.eventRSVP.findUnique({
+            where: {ticketCode},
+            include: {
+                event: {
+                    select: {
+                        id: true,
+                        title: true,
+                        hostId: true,
+                    },
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+            },
+        });
+
+        if (!rsvp) {
+            res.status(404).json({ success: false, message: 'Invalid ticket code' });
+            return;
+        }
+
+        // Check if user is the event host
+        if (rsvp.event.hostId !== userId) {
+            res.status(403).json({ success: false, message: 'Only event host can check in attendees' });
+            return;
+        }
+
+        // Check if already checked in
+        if (rsvp.checkedIn) {
+            res.json({
+                success: true,
+                alreadyCheckedIn: true,
+                message: 'Attendee already checked in',
+                data: rsvp,
+            });
+            return;
+        }
+
+        // Check in the attendee
+        const updatedRsvp = await prisma.eventRSVP.update({
+            where: { id: rsvp.id },
+            data: {
+                checkedIn: true,
+                checkedInAt: new Date(),
+                checkedInBy: userId,
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+            },
+        });
+
+        res.json({
+            success: true,
+            message: 'Attendee checked in successfully',
+            data: updatedRsvp,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Verify ticket code (public endpoint for quick validation)
+export const verifyTicket = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const { ticketCode } = req.params;
+
+        const rsvp = await prisma.eventRSVP.findUnique({
+            where: { ticketCode },
+            include: {
+                event: {
+                    select: {
+                        id: true,
+                        title: true,
+                        startTime: true,
+                        type: true,
+                    },
+                },
+                user: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
+        });
+
+        if (!rsvp) {
+            res.status(404).json({
+                success: false,
+                valid: false,
+                message: 'Invalid ticket code'
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            valid: true,
+            data: {
+                eventTitle: rsvp.event.title,
+                attendeeName: rsvp.user.name,
+                checkedIn: rsvp.checkedIn,
+                status: rsvp.status,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
