@@ -176,6 +176,13 @@ app.listen(PORT, () => {
   }).catch(() => {
     // Silently ignore if startup-fix doesn't exist
   });
+
+  // Start content schedulers (auto-publish scheduled content)
+  import('./services/scheduler').then(({ startSchedulers }) => {
+    startSchedulers();
+  }).catch(err => {
+    console.error('⚠️  Failed to start schedulers:', err.message);
+  });
 });
 
 export default app;
