@@ -32,6 +32,7 @@ interface Article {
     publishedAt: string;
     readTime: number;
     viewCount: number;
+    hasLiked?: boolean;
     author: {
         id: string;
         name: string;
@@ -83,22 +84,20 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     const loadArticle = async () => {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-            const response = await axios.get(`${apiUrl}/articles/${params.slug}`);
+
+            // Add auth token if user is logged in
+            const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            const response = await axios.get(`${apiUrl}/articles/${params.slug}`, { headers });
 
             if (response.data.success) {
                 const articleData = response.data.data;
                 setArticle(articleData);
                 setLikeCount(articleData._count?.likes || 0);
 
-                // Check if user liked this article
-                if (isAuthenticated()) {
-                    const token = localStorage.getItem("authToken");
-                    const likedResponse = await axios.get(`${apiUrl}/articles/likes`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-                    const likedArticleIds = likedResponse.data.data.map((like: any) => like.articleId);
-                    setIsLiked(likedArticleIds.includes(articleData.id));
-                }
+                // Use hasLiked from backend response
+                setIsLiked(articleData.hasLiked || false);
             }
         } catch (error: any) {
             console.error("Load article error:", error);
@@ -143,16 +142,25 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
             const token = localStorage.getItem("authToken");
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-            await axios.post(
+            const response = await axios.post(
                 `${apiUrl}/articles/${article.id}/like`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-        } catch (error) {
+
+            // Update with actual values from server
+            if (response.data.success && response.data.data) {
+                setIsLiked(response.data.data.liked);
+                setLikeCount(response.data.data.likeCount);
+            }
+        } catch (error: any) {
             // Revert on error
             setIsLiked(wasLiked);
             setLikeCount(originalCount);
-            toast.error("Failed to update like");
+
+            // Show specific error message if available
+            const message = error.response?.data?.message || "Failed to update like";
+            toast.error(message);
         }
     };
 
