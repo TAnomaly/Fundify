@@ -277,7 +277,24 @@ export const rsvpToEvent = async (
             }
         }
 
-        // Upsert RSVP
+        // If status is NOT_GOING, delete the RSVP instead of updating
+        if (status === 'NOT_GOING') {
+            await prisma.eventRSVP.deleteMany({
+                where: {
+                    userId,
+                    eventId: id,
+                },
+            });
+
+            res.json({
+                success: true,
+                message: 'RSVP cancelled successfully',
+                data: null,
+            });
+            return;
+        }
+
+        // Upsert RSVP for GOING or MAYBE
         const rsvp = await prisma.eventRSVP.upsert({
             where: {
                 userId_eventId: {

@@ -86,7 +86,7 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
   pdf.roundedRect(pageWidth / 2 - 35, 34, 70, 8, 2, 2, "F");
   pdf.setGState(pdf.GState({ opacity: 1 }));
   pdf.setFontSize(8);
-  pdf.text(`Ticket #${ticketData.ticketCode.substring(0, 12).toUpperCase()}`, pageWidth / 2, 39, { align: "center" });
+  pdf.text(`TICKET #${ticketData.ticketCode.substring(0, 12).toUpperCase()}`, pageWidth / 2, 39, { align: "center" });
 
   // ==================== STATUS BADGE ====================
   let yPos = 55;
@@ -120,21 +120,19 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
 
   // ==================== DATE & TIME BOX ====================
   pdf.setFillColor(249, 250, 251);
-  pdf.roundedRect(20, yPos, pageWidth - 40, 28, 4, 4, "F");
+  pdf.roundedRect(20, yPos, pageWidth - 40, 30, 4, 4, "F");
 
+  // Icon circle (no emoji)
   pdf.setFillColor(147, 51, 234);
-  pdf.circle(30, yPos + 14, 6, "F");
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(10);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("📅", 26.5, yPos + 16);
+  pdf.circle(30, yPos + 15, 6, "F");
 
   const startDate = new Date(ticketData.event.startTime);
   const endDate = new Date(ticketData.event.endTime);
 
   pdf.setTextColor(40, 40, 40);
   pdf.setFontSize(12);
-  pdf.text("Date & Time", 40, yPos + 10);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Date & Time", 42, yPos + 10);
 
   pdf.setFontSize(10);
   pdf.setFont("helvetica", "normal");
@@ -144,7 +142,7 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
     year: "numeric",
     month: "long",
     day: "numeric",
-  }), 40, yPos + 17);
+  }), 42, yPos + 17);
 
   pdf.text(`${startDate.toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -152,34 +150,32 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
   })} - ${endDate.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
-  })}`, 40, yPos + 23);
+  })}`, 42, yPos + 24);
 
-  yPos += 35;
+  yPos += 37;
 
   // ==================== LOCATION BOX ====================
   pdf.setFillColor(249, 250, 251);
-  pdf.roundedRect(20, yPos, pageWidth - 40, 22, 4, 4, "F");
+  pdf.roundedRect(20, yPos, pageWidth - 40, 24, 4, 4, "F");
 
+  // Icon circle
   pdf.setFillColor(59, 130, 246);
-  pdf.circle(30, yPos + 11, 6, "F");
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(10);
-  pdf.text(ticketData.event.type === "VIRTUAL" ? "💻" : "📍", 26.5, yPos + 13);
+  pdf.circle(30, yPos + 12, 6, "F");
 
   pdf.setTextColor(40, 40, 40);
   pdf.setFontSize(12);
   pdf.setFont("helvetica", "bold");
   pdf.text(ticketData.event.type === "VIRTUAL" ? "Virtual Event" :
-           ticketData.event.type === "HYBRID" ? "Hybrid Event" : "Location", 40, yPos + 10);
+           ticketData.event.type === "HYBRID" ? "Hybrid Event" : "Location", 42, yPos + 10);
 
   pdf.setFontSize(10);
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(75, 85, 99);
   const locationText = ticketData.event.location || "Join online via virtual link";
-  const wrappedLocation = pdf.splitTextToSize(locationText, pageWidth - 60);
-  pdf.text(wrappedLocation, 40, yPos + 17);
+  const wrappedLocation = pdf.splitTextToSize(locationText, pageWidth - 64);
+  pdf.text(wrappedLocation, 42, yPos + 17);
 
-  yPos += 30;
+  yPos += 32;
 
   // ==================== DIVIDER ====================
   pdf.setDrawColor(229, 231, 235);
@@ -204,14 +200,16 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
   pdf.setFontSize(11);
   pdf.setTextColor(40, 40, 40);
   pdf.setFont("helvetica", "bold");
-  pdf.text(pdf.splitTextToSize(ticketData.user.name, ((pageWidth - 50) / 2) - 14), 27, yPos + 13);
+  const userName = pdf.splitTextToSize(ticketData.user.name, ((pageWidth - 50) / 2) - 14);
+  pdf.text(userName, 27, yPos + 13);
   pdf.setFontSize(9);
   pdf.setTextColor(107, 114, 128);
   pdf.setFont("helvetica", "normal");
   pdf.text("Email", 27, yPos + 20);
   pdf.setFontSize(9);
   pdf.setTextColor(40, 40, 40);
-  pdf.text(pdf.splitTextToSize(ticketData.user.email, ((pageWidth - 50) / 2) - 14), 27, yPos + 25);
+  const userEmail = pdf.splitTextToSize(ticketData.user.email, ((pageWidth - 50) / 2) - 14);
+  pdf.text(userEmail, 27, yPos + 25);
 
   // Organizer box
   pdf.setFillColor(249, 250, 251);
@@ -223,14 +221,16 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
   pdf.setFontSize(11);
   pdf.setTextColor(40, 40, 40);
   pdf.setFont("helvetica", "bold");
-  pdf.text(pdf.splitTextToSize(ticketData.host.name, ((pageWidth - 50) / 2) - 14), (pageWidth / 2) + 12, yPos + 13);
+  const hostName = pdf.splitTextToSize(ticketData.host.name, ((pageWidth - 50) / 2) - 14);
+  pdf.text(hostName, (pageWidth / 2) + 12, yPos + 13);
   pdf.setFontSize(9);
   pdf.setTextColor(107, 114, 128);
   pdf.setFont("helvetica", "normal");
   pdf.text("Contact", (pageWidth / 2) + 12, yPos + 20);
   pdf.setFontSize(9);
   pdf.setTextColor(40, 40, 40);
-  pdf.text(pdf.splitTextToSize(ticketData.host.email, ((pageWidth - 50) / 2) - 14), (pageWidth / 2) + 12, yPos + 25);
+  const hostEmail = pdf.splitTextToSize(ticketData.host.email, ((pageWidth - 50) / 2) - 14);
+  pdf.text(hostEmail, (pageWidth / 2) + 12, yPos + 25);
 
   yPos += 36;
 
@@ -239,13 +239,13 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
   pdf.setDrawColor(200, 200, 200);
   pdf.line(20, yPos, pageWidth - 20, yPos);
   pdf.setLineDash([]);
-  yPos += 10;
+  yPos += 12;
 
   pdf.setFontSize(16);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(147, 51, 234);
   pdf.text("CHECK-IN QR CODE", pageWidth / 2, yPos, { align: "center" });
-  yPos += 7;
+  yPos += 10;
 
   const qrSize = 70;
   const qrX = (pageWidth - qrSize) / 2;
@@ -258,13 +258,14 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
   pdf.setFillColor(255, 255, 255);
   pdf.roundedRect(qrX - 3, yPos - 3, qrSize + 6, qrSize + 6, 5, 5, "F");
   pdf.addImage(qrCodeDataUrl, "PNG", qrX, yPos, qrSize, qrSize);
-  yPos += qrSize + 7;
+  yPos += qrSize + 8;
 
-  pdf.setFontSize(10);
+  // Ticket code text below QR
+  pdf.setFontSize(9);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(107, 114, 128);
   pdf.text(`CODE: ${ticketData.ticketCode.toUpperCase()}`, pageWidth / 2, yPos, { align: "center" });
-  yPos += 10;
+  yPos += 12;
 
   // ==================== CHECK-IN STATUS ====================
   if (ticketData.checkedIn) {
@@ -275,12 +276,12 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
     pdf.setFontSize(13);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(22, 163, 74);
-    pdf.text("✓ CHECKED IN", pageWidth / 2, yPos + 8, { align: "center" });
+    pdf.text("CHECKED IN", pageWidth / 2, yPos + 9, { align: "center" });
     if (ticketData.checkedInAt) {
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
       pdf.setTextColor(75, 85, 99);
-      pdf.text(`on ${new Date(ticketData.checkedInAt).toLocaleString("en-US")}`, pageWidth / 2, yPos + 14, { align: "center" });
+      pdf.text(`on ${new Date(ticketData.checkedInAt).toLocaleString("en-US")}`, pageWidth / 2, yPos + 15, { align: "center" });
     }
     yPos += 23;
   } else {
@@ -291,23 +292,24 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(59, 130, 246);
-    pdf.text("⏳ AWAITING CHECK-IN", pageWidth / 2, yPos + 10, { align: "center" });
+    pdf.text("AWAITING CHECK-IN", pageWidth / 2, yPos + 10, { align: "center" });
     yPos += 20;
   }
 
   // ==================== INSTRUCTIONS ====================
   pdf.setFillColor(254, 252, 232);
-  pdf.roundedRect(20, yPos, pageWidth - 40, 20, 4, 4, "F");
+  pdf.roundedRect(20, yPos, pageWidth - 40, 22, 4, 4, "F");
   pdf.setFontSize(9);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(161, 98, 7);
-  pdf.text("📱 How to Use:", 27, yPos + 7);
+  pdf.text("How to Use This Ticket:", 27, yPos + 8);
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(120, 80, 20);
-  pdf.text(pdf.splitTextToSize("Show this QR code at event entrance. Staff will scan to check you in.", pageWidth - 54), 27, yPos + 13);
+  const instructions = pdf.splitTextToSize("Show this QR code at event entrance. Staff will scan it to check you in. Keep this ticket on your device or print it.", pageWidth - 54);
+  pdf.text(instructions, 27, yPos + 14);
 
   // ==================== FOOTER ====================
-  yPos = pageHeight - 25;
+  yPos = pageHeight - 22;
   pdf.setDrawColor(229, 231, 235);
   pdf.setLineWidth(0.5);
   pdf.line(20, yPos, pageWidth - 20, yPos);
@@ -318,7 +320,7 @@ export async function generateTicketPDF(ticketData: TicketData): Promise<void> {
   pdf.setTextColor(156, 163, 175);
   pdf.text("Non-transferable. Valid only for person named above.", pageWidth / 2, yPos, { align: "center" });
   yPos += 4;
-  pdf.text(`Generated ${new Date().toLocaleDateString("en-US")} at ${new Date().toLocaleTimeString("en-US")}`, pageWidth / 2, yPos, { align: "center" });
+  pdf.text(`Generated on ${new Date().toLocaleDateString("en-US")} at ${new Date().toLocaleTimeString("en-US")}`, pageWidth / 2, yPos, { align: "center" });
   yPos += 4;
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(147, 51, 234);
