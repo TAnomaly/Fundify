@@ -71,29 +71,25 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
     const loadEvent = async () => {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-            const response = await axios.get(`${apiUrl}/events/${params.id}`);
+
+            // Make request with auth token if user is authenticated
+            const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            const response = await axios.get(`${apiUrl}/events/${params.id}`, { headers });
 
             if (response.data.success) {
-                setEvent(response.data.data);
+                const eventData = response.data.data;
+                setEvent(eventData);
 
-                // Check user's RSVP status
-                if (isAuthenticated()) {
-                    const token = localStorage.getItem("authToken");
-                    const rsvpResponse = await axios.get(`${apiUrl}/events/${params.id}/rsvps`, {
-                        headers: { Authorization: `Bearer ${token}` },
+                // Set user's RSVP status from the event response
+                if (eventData.userRSVPStatus) {
+                    setUserRSVP({
+                        status: eventData.userRSVPStatus,
+                        isPaid: eventData.userRSVPIsPaid || false
                     });
-
-                    if (rsvpResponse.data.success && rsvpResponse.data.data.length > 0) {
-                        const currentUser = rsvpResponse.data.data.find(
-                            (rsvp: any) => rsvp.userId === localStorage.getItem("userId")
-                        );
-                        if (currentUser) {
-                            setUserRSVP({
-                                status: currentUser.status,
-                                isPaid: currentUser.isPaid || false
-                            });
-                        }
-                    }
+                } else {
+                    setUserRSVP(null);
                 }
             }
         } catch (error: any) {
@@ -117,7 +113,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
         if (event.isPremium && event.price > 0 && status === "GOING") {
             // Check if user already paid
             if (userRSVP?.isPaid) {
-                toast.info("You've already purchased a ticket for this event");
+                toast.success("You've already purchased a ticket for this event");
                 return;
             }
             setShowPaymentModal(true);

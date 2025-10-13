@@ -158,6 +158,7 @@ export const getEventById = async (
             data: {
                 ...event,
                 userRSVPStatus: userRSVP?.status || null,
+                userRSVPIsPaid: userRSVP?.isPaid || false,
             },
         });
     } catch (error) {
@@ -372,6 +373,12 @@ export const getEventTicket = async (
                         virtualLink: true,
                         type: true,
                         coverImage: true,
+                        host: {
+                            select: {
+                                name: true,
+                                email: true,
+                            },
+                        },
                     },
                 },
                 user: {

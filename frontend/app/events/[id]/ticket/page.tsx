@@ -16,8 +16,10 @@ import {
   Clock,
   CheckCircle,
   Video,
-  Share2
+  Share2,
+  FileDown
 } from "lucide-react";
+import { generateTicketPDF } from "@/lib/generateTicketPDF";
 
 interface Ticket {
   id: string;
@@ -35,6 +37,10 @@ interface Ticket {
     virtualLink?: string;
     type: string;
     coverImage?: string;
+    host?: {
+      name: string;
+      email: string;
+    };
   };
   user: {
     id: string;
@@ -82,31 +88,46 @@ export default function EventTicketPage() {
     }
   };
 
-  const downloadTicket = () => {
+  const downloadTicketPDF = async () => {
     if (!ticket) return;
 
-    // Create a canvas and draw the ticket
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    try {
+      toast.loading("Generating PDF ticket...");
 
-    canvas.width = 800;
-    canvas.height = 1000;
+      // Prepare ticket data with host information
+      const ticketData = {
+        ticketCode: ticket.ticketCode,
+        event: {
+          title: ticket.event.title,
+          startTime: ticket.event.startTime,
+          endTime: ticket.event.endTime,
+          location: ticket.event.location,
+          virtualLink: ticket.event.virtualLink,
+          type: ticket.event.type,
+          coverImage: ticket.event.coverImage,
+        },
+        user: {
+          name: ticket.user.name,
+          email: ticket.user.email,
+        },
+        host: ticket.event.host || {
+          name: "Event Organizer",
+          email: "organizer@fundify.com",
+        },
+        isPaid: ticket.isPaid,
+        status: ticket.status,
+        checkedIn: ticket.checkedIn,
+        checkedInAt: ticket.checkedInAt,
+      };
 
-    // Draw background
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Draw ticket content
-    ctx.fillStyle = "#000000";
-    ctx.font = "bold 32px Arial";
-    ctx.fillText(ticket.event.title, 50, 100);
-
-    // Convert to image and download
-    const link = document.createElement("a");
-    link.download = `ticket-${ticket.ticketCode}.png`;
-    link.href = canvas.toDataURL();
-    link.click();
+      await generateTicketPDF(ticketData);
+      toast.dismiss();
+      toast.success("PDF ticket downloaded successfully!");
+    } catch (error) {
+      console.error("Download PDF error:", error);
+      toast.dismiss();
+      toast.error("Failed to generate PDF ticket");
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -164,13 +185,13 @@ export default function EventTicketPage() {
 
           <div className="flex gap-2">
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
-              onClick={downloadTicket}
-              className="flex items-center gap-2"
+              onClick={downloadTicketPDF}
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
             >
-              <Download className="w-4 h-4" />
-              Download
+              <FileDown className="w-4 h-4" />
+              Download PDF
             </Button>
             <Button
               variant="outline"
