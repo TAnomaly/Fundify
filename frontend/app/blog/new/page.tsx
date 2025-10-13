@@ -24,6 +24,7 @@ export default function NewArticlePage() {
     keywords: [] as string[],
     status: "DRAFT",
     isPublic: true,
+    scheduledFor: "",
   });
 
   const handleSubmit = async (status: "DRAFT" | "PUBLISHED") => {
@@ -35,12 +36,17 @@ export default function NewArticlePage() {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem("authToken");
+
+      // Prepare data
+      const dataToSend = {
+        ...formData,
+        status,
+        scheduledFor: formData.scheduledFor ? new Date(formData.scheduledFor).toISOString() : null,
+      };
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/articles`,
-        {
-          ...formData,
-          status,
-        },
+        dataToSend,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -159,6 +165,30 @@ export default function NewArticlePage() {
                   onChange={(html) => setFormData({ ...formData, content: html })}
                   placeholder="Write your article content here..."
                 />
+              </div>
+            </div>
+
+            {/* Scheduling Section */}
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold mb-4">⏰ Schedule Publishing (Optional)</h3>
+
+              <div>
+                <Label htmlFor="scheduledFor">Scheduled Publish Date & Time</Label>
+                <Input
+                  id="scheduledFor"
+                  type="datetime-local"
+                  value={formData.scheduledFor}
+                  onChange={(e) =>
+                    setFormData({ ...formData, scheduledFor: e.target.value })
+                  }
+                  className="mt-2"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  {formData.scheduledFor
+                    ? `Article will auto-publish on ${new Date(formData.scheduledFor).toLocaleString()}`
+                    : "Leave empty to publish immediately or save as draft"
+                  }
+                </p>
               </div>
             </div>
 
