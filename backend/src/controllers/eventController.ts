@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { AuthRequest } from '../types';
+import { stripe, getOrCreateStripeCustomer, formatAmountForStripe } from '../config/stripe';
 
 // Create event
 export const createEvent = async (
@@ -540,6 +541,249 @@ export const verifyTicket = async (
             },
         });
     } catch (error) {
+        next(error);
+    }
+};
+
+// Create payment intent for premium event RSVP
+export const createEventPaymentIntent = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        const userEmail = req.user?.email;
+        const userName = (req.user as any)?.name;
+        const { id } = req.params;
+
+        if (!userId || !userEmail) {
+            res.status(401).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
+
+        // Get event details
+        const event = await prisma.event.findUnique({
+            where: { id },
+            include: {
+                host: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+        });
+
+        if (!event) {
+            res.status(404).json({ success: false, message: 'Event not found' });
+            return;
+        }
+
+        // Check if event requires payment
+        if (!event.isPremium || !event.price || event.price <= 0) {
+            res.status(400).json({
+                success: false,
+                message: 'This event does not require payment',
+            });
+            return;
+        }
+
+        // Check if user already has a paid RSVP
+        const existingRsvp = await prisma.eventRSVP.findUnique({
+            where: {
+                userId_eventId: {
+                    userId,
+                    eventId: id,
+                },
+            },
+        });
+
+        if (existingRsvp && existingRsvp.isPaid) {
+            res.status(400).json({
+                success: false,
+                message: 'You have already purchased a ticket for this event',
+            });
+            return;
+        }
+
+        // Check capacity
+        if (event.maxAttendees) {
+            const goingCount = await prisma.eventRSVP.count({
+                where: {
+                    eventId: id,
+                    status: 'GOING',
+                },
+            });
+
+            if (goingCount >= event.maxAttendees) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Event is at full capacity',
+                });
+                return;
+            }
+        }
+
+        // Get or create Stripe customer
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        let stripeCustomerId = user?.stripeCustomerId;
+
+        if (!stripeCustomerId) {
+            stripeCustomerId = await getOrCreateStripeCustomer(userId, userEmail, userName);
+
+            await prisma.user.update({
+                where: { id: userId },
+                data: { stripeCustomerId },
+            });
+        }
+
+        // Create payment intent
+        const amount = formatAmountForStripe(event.price);
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount,
+            currency: 'usd',
+            customer: stripeCustomerId,
+            metadata: {
+                userId,
+                eventId: id,
+                eventTitle: event.title,
+                hostId: event.hostId,
+            },
+            description: `Ticket for ${event.title}`,
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                clientSecret: paymentIntent.client_secret,
+                amount: event.price,
+            },
+        });
+    } catch (error) {
+        console.error('Create event payment intent error:', error);
+        next(error);
+    }
+};
+
+// Complete event RSVP after successful payment
+export const completeEventRSVP = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        const { id } = req.params;
+        const { paymentIntentId } = req.body;
+
+        if (!userId) {
+            res.status(401).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
+
+        if (!paymentIntentId) {
+            res.status(400).json({
+                success: false,
+                message: 'Payment intent ID is required',
+            });
+            return;
+        }
+
+        // Verify payment intent
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+        if (paymentIntent.status !== 'succeeded') {
+            res.status(400).json({
+                success: false,
+                message: 'Payment has not been completed',
+            });
+            return;
+        }
+
+        // Verify payment intent belongs to this user and event
+        if (
+            paymentIntent.metadata.userId !== userId ||
+            paymentIntent.metadata.eventId !== id
+        ) {
+            res.status(403).json({
+                success: false,
+                message: 'Invalid payment verification',
+            });
+            return;
+        }
+
+        // Check if RSVP already exists with this payment
+        const existingRsvp = await prisma.eventRSVP.findFirst({
+            where: {
+                paymentId: paymentIntentId,
+            },
+        });
+
+        if (existingRsvp) {
+            res.json({
+                success: true,
+                message: 'RSVP already completed',
+                data: existingRsvp,
+            });
+            return;
+        }
+
+        // Create or update RSVP with payment information
+        const rsvp = await prisma.eventRSVP.upsert({
+            where: {
+                userId_eventId: {
+                    userId,
+                    eventId: id,
+                },
+            },
+            update: {
+                status: 'GOING',
+                isPaid: true,
+                paymentId: paymentIntentId,
+            },
+            create: {
+                userId,
+                eventId: id,
+                status: 'GOING',
+                isPaid: true,
+                paymentId: paymentIntentId,
+            },
+            include: {
+                event: {
+                    select: {
+                        id: true,
+                        title: true,
+                        startTime: true,
+                        endTime: true,
+                        location: true,
+                        virtualLink: true,
+                        type: true,
+                        coverImage: true,
+                    },
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+            },
+        });
+
+        res.json({
+            success: true,
+            message: 'RSVP completed successfully',
+            data: rsvp,
+        });
+    } catch (error) {
+        console.error('Complete event RSVP error:', error);
         next(error);
     }
 };

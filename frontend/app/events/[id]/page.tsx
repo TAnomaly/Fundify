@@ -23,6 +23,7 @@ import {
     HelpCircle,
 } from "lucide-react";
 import SocialShare from "@/components/SocialShare";
+import EventPaymentModal from "@/components/EventPaymentModal";
 
 interface Event {
     id: string;
@@ -37,6 +38,7 @@ interface Event {
     coverImage?: string;
     maxAttendees?: number;
     price: number;
+    isPremium: boolean;
     agenda?: string;
     tags: string[];
     host: {
@@ -51,6 +53,7 @@ interface Event {
 
 interface RSVP {
     status: "GOING" | "MAYBE" | "NOT_GOING";
+    isPaid?: boolean;
 }
 
 export default function EventDetailPage({ params }: { params: { id: string } }) {
@@ -59,6 +62,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
     const [isLoading, setIsLoading] = useState(true);
     const [userRSVP, setUserRSVP] = useState<RSVP | null>(null);
     const [showShareMenu, setShowShareMenu] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     useEffect(() => {
         loadEvent();
@@ -84,7 +88,10 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                             (rsvp: any) => rsvp.userId === localStorage.getItem("userId")
                         );
                         if (currentUser) {
-                            setUserRSVP({ status: currentUser.status });
+                            setUserRSVP({
+                                status: currentUser.status,
+                                isPaid: currentUser.isPaid || false
+                            });
                         }
                     }
                 }
@@ -106,6 +113,18 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
 
         if (!event) return;
 
+        // If event is premium and user is trying to RSVP as GOING, show payment modal
+        if (event.isPremium && event.price > 0 && status === "GOING") {
+            // Check if user already paid
+            if (userRSVP?.isPaid) {
+                toast.info("You've already purchased a ticket for this event");
+                return;
+            }
+            setShowPaymentModal(true);
+            return;
+        }
+
+        // For free events or non-GOING status, proceed with regular RSVP
         try {
             const token = localStorage.getItem("authToken");
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
@@ -125,10 +144,15 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                         : "RSVP cancelled"
             );
             loadEvent();
-        } catch (error) {
+        } catch (error: any) {
             console.error("RSVP error:", error);
-            toast.error("Failed to update RSVP");
+            toast.error(error.response?.data?.message || "Failed to update RSVP");
         }
+    };
+
+    const handlePaymentSuccess = () => {
+        setUserRSVP({ status: "GOING", isPaid: true });
+        loadEvent();
     };
 
     const formatDate = (dateString: string) => {
@@ -438,6 +462,18 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                     </div>
                 </div>
             </div>
+
+            {/* Payment Modal */}
+            {event && (
+                <EventPaymentModal
+                    isOpen={showPaymentModal}
+                    onClose={() => setShowPaymentModal(false)}
+                    eventId={event.id}
+                    eventTitle={event.title}
+                    eventPrice={event.price}
+                    onSuccess={handlePaymentSuccess}
+                />
+            )}
         </div>
     );
 }

@@ -20,5 +20,9 @@ router.get('/events/:id/ticket', authenticate as any, eventController.getEventTi
 router.post('/events/checkin', authenticate as any, eventController.checkInAttendee as any);
 router.get('/events/verify/:ticketCode', eventController.verifyTicket as any);
 
+// Payment routes (for premium events)
+router.post('/events/:id/payment-intent', authenticate as any, eventController.createEventPaymentIntent as any);
+router.post('/events/:id/complete-rsvp', authenticate as any, eventController.completeEventRSVP as any);
+
 export default router;
 
