@@ -127,6 +127,10 @@ model User {
   notifications      Notification[] @relation("Notifications")
   triggeredNotifications Notification[] @relation("NotificationActors")
 
+  // Poll relations
+  createdPolls Poll[]     @relation("CreatorPolls")
+  pollVotes    PollVote[]
+
   @@index([email])
   @@index([githubId])
   @@index([isCreator])
@@ -723,4 +727,54 @@ model Notification {
   @@index([userId])
   @@index([userId, isRead])
   @@index([createdAt])
+}
+
+// Poll System
+model Poll {
+  id        String   @id @default(uuid())
+  question  String   @db.Text
+  options   String[] // JSON array of options
+
+  // Settings
+  expiresAt      DateTime?
+  multipleChoice Boolean   @default(false)
+  allowAddOption Boolean   @default(false)
+
+  // Access control
+  isPublic       Boolean @default(false) // If false, only supporters can vote
+  minimumTierId  String? // Minimum tier required to vote
+
+  // Stats
+  totalVotes Int @default(0)
+
+  // Status
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creatorId String
+  creator   User   @relation("CreatorPolls", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  votes PollVote[]
+
+  @@index([creatorId])
+  @@index([createdAt])
+  @@index([isActive])
+}
+
+model PollVote {
+  id           String   @id @default(uuid())
+  optionIndex  Int // Index of the option in the options array
+  optionText   String // Store the text in case poll is deleted
+  createdAt    DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  pollId String
+  poll   Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pollId, optionIndex]) // Allow multiple votes if multipleChoice
+  @@index([userId])
+  @@index([pollId])
 }

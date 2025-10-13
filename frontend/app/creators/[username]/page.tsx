@@ -29,6 +29,7 @@ import {
   Bookmark,
   Send,
 } from "lucide-react";
+import PollsList from "@/components/polls/PollsList";
 
 interface CreatorProfile {
   user: {
@@ -583,10 +584,11 @@ export default function CreatorProfilePage() {
 
         {/* Tabs Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-5 max-w-3xl mx-auto">
+          <TabsList className="grid w-full grid-cols-6 max-w-4xl mx-auto">
             <TabsTrigger value="about">About</TabsTrigger>
             <TabsTrigger value="tiers">Membership</TabsTrigger>
             <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="polls">Polls</TabsTrigger>
             <TabsTrigger value="blog">Blog</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
           </TabsList>
@@ -1241,6 +1243,17 @@ export default function CreatorProfilePage() {
                   </Card>
                 ))}
               </div>
+            )}
+          </TabsContent>
+
+          {/* Polls Tab */}
+          <TabsContent value="polls">
+            {profile && (
+              <PollsList
+                creatorId={profile.user.id}
+                isOwner={false}
+                showCreateButton={false}
+              />
             )}
           </TabsContent>
         </Tabs>
