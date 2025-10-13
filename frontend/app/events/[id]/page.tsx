@@ -385,6 +385,15 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                                             <HelpCircle className="w-4 h-4 mr-2" />
                                             {userRSVP?.status === "MAYBE" ? "Marked as Maybe" : "Maybe"}
                                         </Button>
+                                        {userRSVP?.status === "GOING" && (
+                                            <Button
+                                                onClick={() => router.push(`/events/${event.id}/ticket`)}
+                                                variant="outline"
+                                                className="w-full border-purple-500 text-purple-600 hover:bg-purple-50"
+                                            >
+                                                🎟️ View My Ticket
+                                            </Button>
+                                        )}
                                         {userRSVP && (
                                             <Button
                                                 onClick={() => handleRSVP("NOT_GOING")}
