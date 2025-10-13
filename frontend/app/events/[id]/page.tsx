@@ -131,7 +131,13 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            setUserRSVP({ status });
+            // If user cancels RSVP, set to null to hide buttons
+            if (status === "NOT_GOING") {
+                setUserRSVP(null);
+            } else {
+                setUserRSVP({ status });
+            }
+
             toast.success(
                 status === "GOING"
                     ? "You're going! 🎉"
