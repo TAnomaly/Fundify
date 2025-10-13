@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuth } from '../middleware/auth';
 import * as eventController from '../controllers/eventController';
 
 const router = Router();
 
 // Public routes
 router.get('/events', eventController.getEvents as any);
-router.get('/events/:id', eventController.getEventById as any);
+router.get('/events/:id', optionalAuth as any, eventController.getEventById as any);
 router.get('/events/:id/rsvps', eventController.getEventRSVPs as any);
 
 // Protected routes
