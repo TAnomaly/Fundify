@@ -123,6 +123,10 @@ model User {
   eventRSVPs     EventRSVP[]     @relation("EventRSVPs")
   eventReminders EventReminder[] @relation("EventReminders")
 
+  // Notification relations
+  notifications      Notification[] @relation("Notifications")
+  triggeredNotifications Notification[] @relation("NotificationActors")
+
   @@index([email])
   @@index([githubId])
   @@index([isCreator])
@@ -672,4 +676,41 @@ model EventReminder {
   @@index([eventId])
   @@index([reminderAt])
   @@index([sent])
+}
+
+// ==================== NOTIFICATIONS ====================
+
+enum NotificationType {
+  NEW_SUBSCRIBER // Someone subscribed to your tier
+  NEW_COMMENT // Someone commented on your content
+  NEW_LIKE // Someone liked your content
+  NEW_DONATION // Someone donated to your campaign
+  EVENT_RSVP // Someone RSVPed to your event
+  NEW_POST // Creator you follow posted new content
+  EVENT_REMINDER // Upcoming event reminder
+  SUBSCRIPTION_EXPIRING // Your subscription is expiring soon
+  PAYOUT_COMPLETED // Your payout was processed
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  link      String? // URL to the relevant content
+  imageUrl  String? // Optional image for the notification
+
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  userId String
+  user   User   @relation("Notifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional: Reference to the actor (who triggered the notification)
+  actorId String?
+  actor   User?   @relation("NotificationActors", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt])
 }

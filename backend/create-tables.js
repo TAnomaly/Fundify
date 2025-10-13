@@ -417,7 +417,67 @@ async function createTables() {
     `);
 
     console.log('✅ Article tables created!');
-    console.log('✅ All database setup complete! Blog and Events are ready! 🎉');
+
+    // Create Notification tables
+    console.log('\n🔔 Creating Notification tables...');
+
+    // Create NotificationType enum if it doesn't exist
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "NotificationType" AS ENUM (
+          'NEW_SUBSCRIBER',
+          'NEW_COMMENT',
+          'NEW_LIKE',
+          'NEW_DONATION',
+          'EVENT_RSVP',
+          'NEW_POST',
+          'EVENT_REMINDER',
+          'SUBSCRIPTION_EXPIRING',
+          'PAYOUT_COMPLETED'
+        );
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    // Drop existing Notification table to recreate
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Notification" CASCADE;`);
+
+    // Create Notification table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE "Notification" (
+        "id" TEXT NOT NULL,
+        "type" "NotificationType" NOT NULL,
+        "title" TEXT NOT NULL,
+        "message" TEXT NOT NULL,
+        "link" TEXT,
+        "imageUrl" TEXT,
+        "isRead" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "userId" TEXT NOT NULL,
+        "actorId" TEXT,
+        CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+      );
+    `);
+
+    // Create indexes for Notification
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Notification_userId_idx" ON "Notification"("userId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Notification_userId_isRead_idx" ON "Notification"("userId", "isRead");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Notification_createdAt_idx" ON "Notification"("createdAt");`);
+
+    // Add foreign keys for Notification
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey"
+      FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "Notification" ADD CONSTRAINT "Notification_actorId_fkey"
+      FOREIGN KEY ("actorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    `);
+
+    console.log('✅ Notification tables created!');
+    console.log('✅ All database setup complete! Blog, Events, and Notifications are ready! 🎉');
 
   } catch (error) {
     console.error('❌ Error:', error.message);
