@@ -131,6 +131,19 @@ model User {
   createdPolls Poll[]     @relation("CreatorPolls")
   pollVotes    PollVote[]
 
+  // Goal Tracking relations
+  goals Goal[] @relation("CreatorGoals")
+
+  // Digital Downloads relations
+  downloads         Download[]       @relation("CreatorDownloads")
+  downloadRecords   DownloadRecord[]
+
+  // Direct Messaging relations
+  sentMessages     Message[]      @relation("SentMessages")
+  receivedMessages Message[]      @relation("ReceivedMessages")
+  conversations1   Conversation[] @relation("Conversations1")
+  conversations2   Conversation[] @relation("Conversations2")
+
   @@index([email])
   @@index([githubId])
   @@index([isCreator])
@@ -777,4 +790,177 @@ model PollVote {
   @@unique([userId, pollId, optionIndex]) // Allow multiple votes if multipleChoice
   @@index([userId])
   @@index([pollId])
+}
+
+// ============================================
+// GOAL TRACKING SYSTEM
+// ============================================
+
+enum GoalType {
+  REVENUE      // Monthly revenue goal
+  SUBSCRIBERS  // Subscriber count goal
+  CUSTOM       // Custom metric goal
+}
+
+model Goal {
+  id          String   @id @default(uuid())
+  title       String   @db.Text
+  description String?  @db.Text
+  type        GoalType @default(REVENUE)
+
+  // Target and Progress
+  targetAmount Decimal  @db.Decimal(10, 2)
+  currentAmount Decimal @db.Decimal(10, 2) @default(0)
+
+  // Reward for reaching goal
+  rewardDescription String? @db.Text
+
+  // Timeline
+  deadline    DateTime?
+  completedAt DateTime?
+
+  // Visibility
+  isPublic Boolean @default(true)
+
+  // Status
+  isActive    Boolean  @default(true)
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creatorId String
+  creator   User   @relation("CreatorGoals", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([isActive])
+  @@index([isCompleted])
+}
+
+// ============================================
+// DIGITAL DOWNLOADS SYSTEM
+// ============================================
+
+enum FileType {
+  AUDIO    // MP3, WAV, etc
+  VIDEO    // MP4, MOV, etc
+  DOCUMENT // PDF, DOCX, etc
+  IMAGE    // JPG, PNG, etc
+  ARCHIVE  // ZIP, RAR, etc
+  OTHER
+}
+
+model Download {
+  id          String   @id @default(uuid())
+  title       String   @db.Text
+  description String?  @db.Text
+
+  // File Info
+  fileUrl      String   @db.Text
+  fileName     String
+  fileSize     BigInt   // Size in bytes
+  fileType     FileType
+  mimeType     String
+
+  // Thumbnail/Preview
+  thumbnailUrl String?  @db.Text
+
+  // Access Control
+  isPublic       Boolean @default(false)
+  minimumTierId  String? // Tier required to download
+
+  // Stats
+  downloadCount Int @default(0)
+
+  // Status
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creatorId String
+  creator   User   @relation("CreatorDownloads", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  downloads DownloadRecord[]
+
+  @@index([creatorId])
+  @@index([isActive])
+  @@index([fileType])
+}
+
+model DownloadRecord {
+  id         String   @id @default(uuid())
+  downloadedAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  downloadId String
+  download   Download @relation(fields: [downloadId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([downloadId])
+  @@index([downloadedAt])
+}
+
+// ============================================
+// DIRECT MESSAGING SYSTEM
+// ============================================
+
+enum MessageType {
+  TEXT      // Regular text message
+  IMAGE     // Image message
+  FILE      // File attachment
+  BROADCAST // Broadcast to all supporters
+}
+
+model Message {
+  id      String      @id @default(uuid())
+  content String      @db.Text
+  type    MessageType @default(TEXT)
+
+  // Attachments
+  attachmentUrl  String? @db.Text
+  attachmentName String?
+
+  // Read status
+  isRead   Boolean  @default(false)
+  readAt   DateTime?
+
+  // Broadcast
+  isBroadcast Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Sender
+  senderId String
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  // Receiver (null if broadcast)
+  receiverId String?
+  receiver   User?   @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+  @@index([isRead])
+}
+
+model Conversation {
+  id           String   @id @default(uuid())
+  lastMessageAt DateTime @default(now())
+
+  // Participants
+  user1Id String
+  user1   User   @relation("Conversations1", fields: [user1Id], references: [id], onDelete: Cascade)
+
+  user2Id String
+  user2   User   @relation("Conversations2", fields: [user2Id], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id])
+  @@index([user2Id])
+  @@index([lastMessageAt])
 }
