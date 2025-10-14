@@ -963,6 +963,144 @@ async function createTables() {
 
     console.log('✅ Scheduled Posts, Welcome Messages, Analytics foreign keys created');
 
+    // Create Podcast tables
+    console.log('\n🎙️ Creating Podcast tables...');
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Podcast" (
+        "id" TEXT NOT NULL,
+        "title" TEXT NOT NULL,
+        "description" TEXT,
+        "coverImage" TEXT,
+        "author" TEXT NOT NULL,
+        "email" TEXT,
+        "category" TEXT NOT NULL DEFAULT 'Technology',
+        "language" TEXT NOT NULL DEFAULT 'en',
+        "isExplicit" BOOLEAN NOT NULL DEFAULT false,
+        "isPublic" BOOLEAN NOT NULL DEFAULT true,
+        "minimumTierId" TEXT,
+        "totalEpisodes" INTEGER NOT NULL DEFAULT 0,
+        "totalListens" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "creatorId" TEXT NOT NULL,
+        CONSTRAINT "Podcast_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✅ Podcast table created');
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PodcastEpisode" (
+        "id" TEXT NOT NULL,
+        "title" TEXT NOT NULL,
+        "description" TEXT,
+        "audioUrl" TEXT NOT NULL,
+        "duration" INTEGER NOT NULL,
+        "fileSize" BIGINT NOT NULL,
+        "mimeType" TEXT NOT NULL DEFAULT 'audio/mpeg',
+        "episodeNumber" INTEGER,
+        "season" INTEGER,
+        "coverImage" TEXT,
+        "showNotes" TEXT,
+        "timestamps" JSONB,
+        "isPublic" BOOLEAN NOT NULL DEFAULT true,
+        "minimumTierId" TEXT,
+        "listenCount" INTEGER NOT NULL DEFAULT 0,
+        "likeCount" INTEGER NOT NULL DEFAULT 0,
+        "published" BOOLEAN NOT NULL DEFAULT true,
+        "publishedAt" TIMESTAMP(3),
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "podcastId" TEXT NOT NULL,
+        "creatorId" TEXT NOT NULL,
+        CONSTRAINT "PodcastEpisode_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✅ PodcastEpisode table created');
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "EpisodeListen" (
+        "id" TEXT NOT NULL,
+        "progress" INTEGER NOT NULL DEFAULT 0,
+        "completed" BOOLEAN NOT NULL DEFAULT false,
+        "listenedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "userId" TEXT NOT NULL,
+        "episodeId" TEXT NOT NULL,
+        CONSTRAINT "EpisodeListen_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✅ EpisodeListen table created');
+
+    // Create indexes for Podcast
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Podcast_creatorId_idx" ON "Podcast"("creatorId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Podcast_isPublic_idx" ON "Podcast"("isPublic");`);
+
+    // Create indexes for PodcastEpisode
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PodcastEpisode_podcastId_idx" ON "PodcastEpisode"("podcastId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PodcastEpisode_creatorId_idx" ON "PodcastEpisode"("creatorId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PodcastEpisode_published_idx" ON "PodcastEpisode"("published");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PodcastEpisode_publishedAt_idx" ON "PodcastEpisode"("publishedAt");`);
+
+    // Create indexes for EpisodeListen
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "EpisodeListen_userId_episodeId_key" ON "EpisodeListen"("userId", "episodeId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "EpisodeListen_userId_idx" ON "EpisodeListen"("userId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "EpisodeListen_episodeId_idx" ON "EpisodeListen"("episodeId");`);
+
+    console.log('✅ Podcast indexes created');
+
+    // Add foreign keys for Podcast tables
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Podcast" ADD CONSTRAINT "Podcast_creatorId_fkey"
+        FOREIGN KEY ("creatorId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "PodcastEpisode" ADD CONSTRAINT "PodcastEpisode_podcastId_fkey"
+        FOREIGN KEY ("podcastId") REFERENCES "Podcast"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "PodcastEpisode" ADD CONSTRAINT "PodcastEpisode_creatorId_fkey"
+        FOREIGN KEY ("creatorId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "EpisodeListen" ADD CONSTRAINT "EpisodeListen_userId_fkey"
+        FOREIGN KEY ("userId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "EpisodeListen" ADD CONSTRAINT "EpisodeListen_episodeId_fkey"
+        FOREIGN KEY ("episodeId") REFERENCES "PodcastEpisode"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    console.log('✅ Podcast foreign keys created');
+
     console.log('✅ All database setup complete! All features ready! 🎉');
 
   } catch (error) {

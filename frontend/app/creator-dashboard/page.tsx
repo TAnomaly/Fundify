@@ -47,7 +47,7 @@ export default function CreatorDashboard() {
       const userResponse = await userApi.getMe();
       if (userResponse.success && userResponse.data) {
         setIsCreator(userResponse.data.isCreator || false);
-        setUserName(userResponse.data.name || "");
+        setUserName(userResponse.data.username || "");
 
         if (!userResponse.data.isCreator) {
           // Not a creator yet
@@ -421,6 +421,23 @@ export default function CreatorDashboard() {
             <div>
               <h3 className="font-semibold text-lg">Welcome Messages</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">Auto-welcome new subscribers</p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/creator-dashboard/podcasts")}
+          className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Podcasts</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Manage podcast episodes</p>
             </div>
           </div>
         </button>
