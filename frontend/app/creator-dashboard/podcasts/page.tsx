@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
-import { ArrowLeft, Plus, Mic, Music, Rss, Upload } from "lucide-react";
+import { ArrowLeft, Mic, Music, Rss, Upload } from "lucide-react";
 import AudioPlayer from "@/components/podcast/AudioPlayer";
 
 export default function PodcastsPage() {
@@ -31,7 +31,10 @@ export default function PodcastsPage() {
     duration: 0,
     episodeNumber: "",
     showNotes: "",
+    fileSize: 0,
   });
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
 
   useEffect(() => {
     loadPodcasts();
@@ -129,6 +132,50 @@ export default function PodcastsPage() {
     }
   };
 
+  const handleAudioFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("audio/")) {
+      toast.error("Please select an audio file");
+      return;
+    }
+
+    setAudioFile(file);
+    setUploadingAudio(true);
+
+    try {
+      // For now, we'll use a placeholder URL since we don't have S3/CDN setup
+      // In production, you would upload to S3, Cloudflare R2, or similar
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Get audio duration using HTML5 Audio API
+      const audio = new Audio();
+      audio.src = URL.createObjectURL(file);
+
+      await new Promise((resolve) => {
+        audio.addEventListener("loadedmetadata", () => {
+          const duration = Math.floor(audio.duration);
+          setEpisodeForm({
+            ...episodeForm,
+            duration,
+            fileSize: file.size,
+            audioUrl: URL.createObjectURL(file), // Temporary - replace with actual upload
+          });
+          resolve(null);
+        });
+      });
+
+      toast.success(`Audio file loaded: ${file.name}`);
+    } catch (error) {
+      toast.error("Failed to process audio file");
+    } finally {
+      setUploadingAudio(false);
+    }
+  };
+
   const createEpisode = async () => {
     if (!episodeForm.title || !episodeForm.audioUrl || !episodeForm.duration) {
       toast.error("Title, audio URL, and duration are required");
@@ -137,6 +184,12 @@ export default function PodcastsPage() {
 
     if (!selectedPodcast) {
       toast.error("Please select a podcast first");
+      return;
+    }
+
+    // If audioUrl is a blob URL, warn user
+    if (episodeForm.audioUrl.startsWith("blob:")) {
+      toast.error("Please upload your audio file to a server and paste the URL");
       return;
     }
 
@@ -154,6 +207,7 @@ export default function PodcastsPage() {
             episodeNumber: episodeForm.episodeNumber
               ? parseInt(episodeForm.episodeNumber)
               : null,
+            fileSize: episodeForm.fileSize || 1000000, // Default 1MB if not set
           }),
         }
       );
@@ -169,7 +223,9 @@ export default function PodcastsPage() {
           duration: 0,
           episodeNumber: "",
           showNotes: "",
+          fileSize: 0,
         });
+        setAudioFile(null);
         loadEpisodes(selectedPodcast);
       } else {
         toast.error(data.message || "Failed to create episode");
@@ -493,17 +549,41 @@ export default function PodcastsPage() {
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Audio URL * (Upload to your server first)
+                  Audio File *
                 </label>
-                <input
-                  type="text"
-                  value={episodeForm.audioUrl}
-                  onChange={(e) =>
-                    setEpisodeForm({ ...episodeForm, audioUrl: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="https://example.com/episode.mp3"
-                />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      onChange={handleAudioFileChange}
+                      className="hidden"
+                      id="audioFileInput"
+                    />
+                    <label
+                      htmlFor="audioFileInput"
+                      className="px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {audioFile ? audioFile.name : "Choose Audio File"}
+                    </label>
+                    {uploadingAudio && (
+                      <span className="text-sm text-gray-500">Processing...</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Or paste a direct URL below (MP3, WAV, etc.)
+                  </p>
+                  <input
+                    type="text"
+                    value={episodeForm.audioUrl.startsWith("blob:") ? "" : episodeForm.audioUrl}
+                    onChange={(e) =>
+                      setEpisodeForm({ ...episodeForm, audioUrl: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border rounded-lg"
+                    placeholder="https://example.com/episode.mp3"
+                  />
+                </div>
               </div>
 
               <div>

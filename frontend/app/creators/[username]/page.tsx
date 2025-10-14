@@ -158,6 +158,8 @@ export default function CreatorProfilePage() {
   const [articlesLoading, setArticlesLoading] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
+  const [podcasts, setPodcasts] = useState<any[]>([]);
+  const [podcastsLoading, setPodcastsLoading] = useState(false);
 
   useEffect(() => {
     loadCreatorProfile();
@@ -183,6 +185,9 @@ export default function CreatorProfilePage() {
     }
     if (activeTab === "events" && profile && events.length === 0) {
       loadCreatorEvents();
+    }
+    if (activeTab === "podcasts" && profile && podcasts.length === 0) {
+      loadCreatorPodcasts();
     }
   }, [activeTab, profile]);
 
@@ -278,6 +283,25 @@ export default function CreatorProfilePage() {
       console.error("Error loading events:", error);
     } finally {
       setEventsLoading(false);
+    }
+  };
+
+  const loadCreatorPodcasts = async () => {
+    if (!profile) return;
+
+    try {
+      setPodcastsLoading(true);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/creator/${profile.user.id}`
+      );
+
+      if (response.data.success) {
+        setPodcasts(response.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error loading podcasts:", error);
+    } finally {
+      setPodcastsLoading(false);
     }
   };
 
@@ -584,10 +608,11 @@ export default function CreatorProfilePage() {
 
         {/* Tabs Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-6 max-w-4xl mx-auto">
+          <TabsList className="grid w-full grid-cols-7 max-w-5xl mx-auto">
             <TabsTrigger value="about">About</TabsTrigger>
             <TabsTrigger value="tiers">Membership</TabsTrigger>
             <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="podcasts">Podcasts</TabsTrigger>
             <TabsTrigger value="polls">Polls</TabsTrigger>
             <TabsTrigger value="blog">Blog</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
@@ -1239,6 +1264,108 @@ export default function CreatorProfilePage() {
                           </div>
                         )}
                       </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Podcasts Tab */}
+          <TabsContent value="podcasts">
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold mb-2">
+                Podcasts by <span className="text-gradient">{profile.user.name}</span>
+              </h2>
+              <p className="text-muted-foreground">
+                Listen to exclusive podcast content
+              </p>
+            </div>
+
+            {podcastsLoading ? (
+              <div className="space-y-6">
+                {[1, 2].map((i) => (
+                  <Skeleton key={i} className="h-64 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : podcasts.length === 0 ? (
+              <Card className="shadow-xl">
+                <CardContent className="p-12 text-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-pink-500 rounded-full mx-auto flex items-center justify-center mb-6">
+                    <Play className="w-10 h-10 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3">No Podcasts Yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    {profile.user.name} hasn't published any podcast episodes yet. Check back later for audio content!
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {podcasts.map((podcast) => (
+                  <Card key={podcast.id} className="overflow-hidden shadow-xl">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4 mb-6">
+                        {podcast.coverImage && (
+                          <img
+                            src={podcast.coverImage}
+                            alt={podcast.title}
+                            className="w-24 h-24 rounded-lg object-cover"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold mb-2">{podcast.title}</h3>
+                          <p className="text-muted-foreground mb-2">
+                            by {podcast.author}
+                          </p>
+                          {podcast.description && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              {podcast.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <span>{podcast._count?.episodes || 0} episodes</span>
+                            <span>•</span>
+                            <span>{podcast.totalListens} listens</span>
+                            <span>•</span>
+                            <Badge variant="secondary">{podcast.category}</Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      {podcast.episodes && podcast.episodes.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400">
+                            Latest Episodes
+                          </h4>
+                          {podcast.episodes.slice(0, 3).map((episode: any) => (
+                            <div
+                              key={episode.id}
+                              className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                            >
+                              <div className="flex items-center gap-3">
+                                {episode.episodeNumber && (
+                                  <span className="text-sm font-medium text-gray-500">
+                                    #{episode.episodeNumber}
+                                  </span>
+                                )}
+                                <div className="flex-1">
+                                  <h5 className="font-medium">{episode.title}</h5>
+                                  {episode.description && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
+                                      {episode.description}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-3 text-sm text-gray-500">
+                                  <span>{Math.floor(episode.duration / 60)} min</span>
+                                  <Play className="w-4 h-4" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
