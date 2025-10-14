@@ -373,6 +373,57 @@ export default function CreatorDashboard() {
             </div>
           </div>
         </button>
+
+        <button
+          onClick={() => router.push("/creator-dashboard/subscribers")}
+          className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Subscribers</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Manage your supporters</p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/creator-dashboard/scheduled-posts")}
+          className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Scheduled Posts</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Schedule content for later</p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => router.push("/creator-dashboard/welcome-messages")}
+          className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-lg transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Welcome Messages</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Auto-welcome new subscribers</p>
+            </div>
+          </div>
+        </button>
       </div>
 
       {/* Recent Supporters */}
