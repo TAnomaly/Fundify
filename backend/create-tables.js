@@ -579,7 +579,279 @@ async function createTables() {
     `);
     console.log('✅ Poll foreign keys created');
 
-    console.log('✅ All database setup complete! Blog, Events, Notifications, and Polls are ready! 🎉');
+    // Create Goal, Download, and Message tables
+    console.log('\n🎯 Creating Goal, Download, and Message tables...');
+
+    // Create enums for new features
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "GoalType" AS ENUM ('REVENUE', 'SUBSCRIBERS', 'CUSTOM');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "FileType" AS ENUM ('IMAGE', 'VIDEO', 'AUDIO', 'DOCUMENT', 'ARCHIVE', 'OTHER');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "MessageType" AS ENUM ('TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'FILE');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    console.log('✅ Goal, Download, Message enums created');
+
+    // Create Goal table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Goal" (
+        "id" TEXT NOT NULL,
+        "title" TEXT NOT NULL,
+        "description" TEXT,
+        "type" "GoalType" NOT NULL DEFAULT 'REVENUE',
+        "targetAmount" DECIMAL(10,2) NOT NULL,
+        "currentAmount" DECIMAL(10,2) NOT NULL DEFAULT 0,
+        "rewardDescription" TEXT,
+        "deadline" TIMESTAMP(3),
+        "completedAt" TIMESTAMP(3),
+        "isPublic" BOOLEAN NOT NULL DEFAULT true,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "isCompleted" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "creatorId" TEXT NOT NULL,
+        CONSTRAINT "Goal_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✅ Goal table created');
+
+    // Create Download table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Download" (
+        "id" TEXT NOT NULL,
+        "title" TEXT NOT NULL,
+        "description" TEXT,
+        "fileUrl" TEXT NOT NULL,
+        "fileName" TEXT NOT NULL,
+        "fileSize" BIGINT NOT NULL,
+        "fileType" "FileType" NOT NULL,
+        "mimeType" TEXT NOT NULL,
+        "isPublic" BOOLEAN NOT NULL DEFAULT false,
+        "minimumTierId" TEXT,
+        "downloadCount" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "creatorId" TEXT NOT NULL,
+        CONSTRAINT "Download_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✅ Download table created');
+
+    // Create DownloadRecord table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "DownloadRecord" (
+        "id" TEXT NOT NULL,
+        "downloadedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "userId" TEXT NOT NULL,
+        "downloadId" TEXT NOT NULL,
+        CONSTRAINT "DownloadRecord_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✅ DownloadRecord table created');
+
+    // Create Conversation table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Conversation" (
+        "id" TEXT NOT NULL,
+        "lastMessageAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "user1Id" TEXT NOT NULL,
+        "user2Id" TEXT NOT NULL,
+        CONSTRAINT "Conversation_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✅ Conversation table created');
+
+    // Create Message table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Message" (
+        "id" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "type" "MessageType" NOT NULL DEFAULT 'TEXT',
+        "fileUrl" TEXT,
+        "isRead" BOOLEAN NOT NULL DEFAULT false,
+        "isBroadcast" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "senderId" TEXT NOT NULL,
+        "receiverId" TEXT,
+        "conversationId" TEXT,
+        CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✅ Message table created');
+
+    // Create indexes for Goal
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Goal_creatorId_idx" ON "Goal"("creatorId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Goal_type_idx" ON "Goal"("type");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Goal_isActive_idx" ON "Goal"("isActive");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Goal_isCompleted_idx" ON "Goal"("isCompleted");
+    `);
+
+    // Create indexes for Download
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Download_creatorId_idx" ON "Download"("creatorId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Download_fileType_idx" ON "Download"("fileType");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Download_isPublic_idx" ON "Download"("isPublic");
+    `);
+
+    // Create indexes for DownloadRecord
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "DownloadRecord_userId_idx" ON "DownloadRecord"("userId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "DownloadRecord_downloadId_idx" ON "DownloadRecord"("downloadId");
+    `);
+
+    // Create indexes for Conversation
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Conversation_user1Id_idx" ON "Conversation"("user1Id");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Conversation_user2Id_idx" ON "Conversation"("user2Id");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_user1Id_user2Id_key" ON "Conversation"("user1Id", "user2Id");
+    `);
+
+    // Create indexes for Message
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Message_senderId_idx" ON "Message"("senderId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Message_receiverId_idx" ON "Message"("receiverId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Message_conversationId_idx" ON "Message"("conversationId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Message_createdAt_idx" ON "Message"("createdAt");
+    `);
+
+    console.log('✅ Goal, Download, Message indexes created');
+
+    // Add foreign keys
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Goal" ADD CONSTRAINT "Goal_creatorId_fkey"
+        FOREIGN KEY ("creatorId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Download" ADD CONSTRAINT "Download_creatorId_fkey"
+        FOREIGN KEY ("creatorId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "DownloadRecord" ADD CONSTRAINT "DownloadRecord_userId_fkey"
+        FOREIGN KEY ("userId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "DownloadRecord" ADD CONSTRAINT "DownloadRecord_downloadId_fkey"
+        FOREIGN KEY ("downloadId") REFERENCES "Download"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Conversation" ADD CONSTRAINT "Conversation_user1Id_fkey"
+        FOREIGN KEY ("user1Id") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Conversation" ADD CONSTRAINT "Conversation_user2Id_fkey"
+        FOREIGN KEY ("user2Id") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Message" ADD CONSTRAINT "Message_senderId_fkey"
+        FOREIGN KEY ("senderId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Message" ADD CONSTRAINT "Message_receiverId_fkey"
+        FOREIGN KEY ("receiverId") REFERENCES "User"("id")
+        ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Message" ADD CONSTRAINT "Message_conversationId_fkey"
+        FOREIGN KEY ("conversationId") REFERENCES "Conversation"("id")
+        ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    console.log('✅ Goal, Download, Message foreign keys created');
+
+    console.log('✅ All database setup complete! Blog, Events, Notifications, Polls, Goals, Downloads, and Messages are ready! 🎉');
 
   } catch (error) {
     console.error('❌ Error:', error.message);
