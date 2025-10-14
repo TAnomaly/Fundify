@@ -851,7 +851,119 @@ async function createTables() {
 
     console.log('✅ Goal, Download, Message foreign keys created');
 
-    console.log('✅ All database setup complete! Blog, Events, Notifications, Polls, Goals, Downloads, and Messages are ready! 🎉');
+    // Create Scheduled Posts, Welcome Messages, and Analytics tables
+    console.log('\n📅 Creating Scheduled Posts, Welcome Messages, and Analytics tables...');
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ScheduledPost" (
+        "id" TEXT NOT NULL,
+        "title" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "excerpt" TEXT,
+        "coverImage" TEXT,
+        "mediaUrls" TEXT[],
+        "scheduledFor" TIMESTAMP(3) NOT NULL,
+        "published" BOOLEAN NOT NULL DEFAULT false,
+        "publishedAt" TIMESTAMP(3),
+        "isPublic" BOOLEAN NOT NULL DEFAULT true,
+        "minimumTierId" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "creatorId" TEXT NOT NULL,
+        CONSTRAINT "ScheduledPost_pkey" PRIMARY KEY ("id")
+      );
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "WelcomeMessage" (
+        "id" TEXT NOT NULL,
+        "subject" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "tierId" TEXT,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "delay" INTEGER NOT NULL DEFAULT 0,
+        "sentCount" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "creatorId" TEXT NOT NULL,
+        CONSTRAINT "WelcomeMessage_pkey" PRIMARY KEY ("id")
+      );
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "AnalyticsCache" (
+        "id" TEXT NOT NULL,
+        "date" DATE NOT NULL,
+        "month" INTEGER NOT NULL,
+        "year" INTEGER NOT NULL,
+        "revenue" DECIMAL(10,2) NOT NULL DEFAULT 0,
+        "newSubscribers" INTEGER NOT NULL DEFAULT 0,
+        "canceledSubscribers" INTEGER NOT NULL DEFAULT 0,
+        "activeSubscribers" INTEGER NOT NULL DEFAULT 0,
+        "totalSubscribers" INTEGER NOT NULL DEFAULT 0,
+        "postsPublished" INTEGER NOT NULL DEFAULT 0,
+        "pollsCreated" INTEGER NOT NULL DEFAULT 0,
+        "eventsCreated" INTEGER NOT NULL DEFAULT 0,
+        "totalViews" INTEGER NOT NULL DEFAULT 0,
+        "totalLikes" INTEGER NOT NULL DEFAULT 0,
+        "totalComments" INTEGER NOT NULL DEFAULT 0,
+        "totalDownloads" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "creatorId" TEXT NOT NULL,
+        CONSTRAINT "AnalyticsCache_pkey" PRIMARY KEY ("id")
+      );
+    `);
+
+    console.log('✅ Scheduled Posts, Welcome Messages, Analytics tables created');
+
+    // Create indexes
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ScheduledPost_creatorId_idx" ON "ScheduledPost"("creatorId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ScheduledPost_scheduledFor_idx" ON "ScheduledPost"("scheduledFor");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ScheduledPost_published_idx" ON "ScheduledPost"("published");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "WelcomeMessage_creatorId_idx" ON "WelcomeMessage"("creatorId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "WelcomeMessage_tierId_idx" ON "WelcomeMessage"("tierId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "WelcomeMessage_isActive_idx" ON "WelcomeMessage"("isActive");`);
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "AnalyticsCache_creatorId_date_key" ON "AnalyticsCache"("creatorId", "date");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "AnalyticsCache_creatorId_month_idx" ON "AnalyticsCache"("creatorId", "month");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "AnalyticsCache_date_idx" ON "AnalyticsCache"("date");`);
+
+    console.log('✅ Scheduled Posts, Welcome Messages, Analytics indexes created');
+
+    // Add foreign keys
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "ScheduledPost" ADD CONSTRAINT "ScheduledPost_creatorId_fkey"
+        FOREIGN KEY ("creatorId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "WelcomeMessage" ADD CONSTRAINT "WelcomeMessage_creatorId_fkey"
+        FOREIGN KEY ("creatorId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "AnalyticsCache" ADD CONSTRAINT "AnalyticsCache_creatorId_fkey"
+        FOREIGN KEY ("creatorId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    console.log('✅ Scheduled Posts, Welcome Messages, Analytics foreign keys created');
+
+    console.log('✅ All database setup complete! All features ready! 🎉');
 
   } catch (error) {
     console.error('❌ Error:', error.message);

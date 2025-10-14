@@ -144,6 +144,15 @@ model User {
   conversations1   Conversation[] @relation("Conversations1")
   conversations2   Conversation[] @relation("Conversations2")
 
+  // Content Scheduling relations
+  scheduledPosts ScheduledPost[] @relation("CreatorScheduledPosts")
+
+  // Welcome Messages relations
+  welcomeMessages WelcomeMessage[] @relation("CreatorWelcomeMessages")
+
+  // Analytics relations
+  analytics AnalyticsCache[] @relation("CreatorAnalytics")
+
   @@index([email])
   @@index([githubId])
   @@index([isCreator])
@@ -335,7 +344,9 @@ model MembershipTier {
   campaignId String
   campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  subscriptions Subscription[]
+  subscriptions    Subscription[]
+  scheduledPosts   ScheduledPost[]
+  welcomeMessages  WelcomeMessage[]
 
   @@index([campaignId])
   @@index([isActive])
@@ -963,4 +974,103 @@ model Conversation {
   @@index([user1Id])
   @@index([user2Id])
   @@index([lastMessageAt])
+}
+
+// Scheduled Posts - Content Scheduling System
+model ScheduledPost {
+  id          String   @id @default(uuid())
+  title       String   @db.Text
+  content     String   @db.Text
+  excerpt     String?  @db.Text
+  coverImage  String?  @db.Text
+  mediaUrls   String[] // Array of media URLs
+
+  // Scheduling
+  scheduledFor DateTime // When to publish
+  published    Boolean  @default(false)
+  publishedAt  DateTime?
+
+  // Access Control
+  isPublic       Boolean @default(true)
+  minimumTierId  String?
+  minimumTier    MembershipTier? @relation(fields: [minimumTierId], references: [id], onDelete: SetNull)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  creatorId String
+  creator   User   @relation("CreatorScheduledPosts", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([scheduledFor])
+  @@index([published])
+}
+
+// Welcome Messages - Auto-send to new subscribers
+model WelcomeMessage {
+  id      String @id @default(uuid())
+  subject String @db.Text
+  content String @db.Text
+
+  // Targeting
+  tierId String? // If null, applies to all tiers
+  tier   MembershipTier? @relation(fields: [tierId], references: [id], onDelete: Cascade)
+
+  // Settings
+  isActive Boolean @default(true)
+  delay    Int     @default(0) // Minutes to wait before sending (0 = immediate)
+
+  // Stats
+  sentCount Int @default(0)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  creatorId String
+  creator   User   @relation("CreatorWelcomeMessages", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([tierId])
+  @@index([isActive])
+}
+
+// Analytics Cache - Store computed analytics for performance
+model AnalyticsCache {
+  id String @id @default(uuid())
+
+  // Time period
+  date  DateTime @db.Date
+  month Int // YYYYMM format (e.g., 202501)
+  year  Int
+
+  // Metrics
+  revenue            Decimal @db.Decimal(10, 2) @default(0)
+  newSubscribers     Int     @default(0)
+  canceledSubscribers Int    @default(0)
+  activeSubscribers  Int     @default(0)
+  totalSubscribers   Int     @default(0)
+  postsPublished     Int     @default(0)
+  pollsCreated       Int     @default(0)
+  eventsCreated      Int     @default(0)
+  totalViews         Int     @default(0)
+  totalLikes         Int     @default(0)
+  totalComments      Int     @default(0)
+  totalDownloads     Int     @default(0)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  creatorId String
+  creator   User   @relation("CreatorAnalytics", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([creatorId, date])
+  @@index([creatorId, month])
+  @@index([creatorId, year])
+  @@index([date])
 }

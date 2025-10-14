@@ -28,6 +28,9 @@ import pollRoutes from './routes/poll.routes';
 import goalRoutes from './routes/goal.routes';
 import downloadRoutes from './routes/download.routes';
 import messageRoutes from './routes/message.routes';
+import analyticsRoutes from './routes/analytics.routes';
+import scheduledPostRoutes from './routes/scheduledPost.routes';
+import welcomeMessageRoutes from './routes/welcomeMessage.routes';
 
 // Types
 import { ApiError } from './types';
@@ -148,6 +151,9 @@ app.use('/api', pollRoutes);
 app.use('/api', goalRoutes);
 app.use('/api', downloadRoutes);
 app.use('/api', messageRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/scheduled-posts', scheduledPostRoutes);
+app.use('/api/welcome-messages', welcomeMessageRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
