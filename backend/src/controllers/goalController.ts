@@ -106,7 +106,7 @@ export const getCreatorGoals = async (
     // Calculate progress for each goal
     const goalsWithProgress = goals.map((goal) => ({
       ...goal,
-      progress: goal.targetAmount > 0
+      progress: Number(goal.targetAmount) > 0
         ? Math.min(100, Math.round((Number(goal.currentAmount) / Number(goal.targetAmount)) * 100))
         : 0,
       remaining: Math.max(0, Number(goal.targetAmount) - Number(goal.currentAmount)),
@@ -155,7 +155,7 @@ export const getGoalById = async (
 
     const goalWithProgress = {
       ...goal,
-      progress: goal.targetAmount > 0
+      progress: Number(goal.targetAmount) > 0
         ? Math.min(100, Math.round((Number(goal.currentAmount) / Number(goal.targetAmount)) * 100))
         : 0,
       remaining: Math.max(0, Number(goal.targetAmount) - Number(goal.currentAmount)),
