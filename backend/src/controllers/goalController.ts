@@ -231,7 +231,7 @@ export const updateGoalProgress = async (
 
     const goalWithProgress = {
       ...updatedGoal,
-      progress: updatedGoal.targetAmount > 0
+      progress: Number(updatedGoal.targetAmount) > 0
         ? Math.min(100, Math.round((Number(updatedGoal.currentAmount) / Number(updatedGoal.targetAmount)) * 100))
         : 0,
       remaining: Math.max(0, Number(updatedGoal.targetAmount) - Number(updatedGoal.currentAmount)),
