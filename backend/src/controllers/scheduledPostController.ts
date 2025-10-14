@@ -361,12 +361,11 @@ export const publishScheduledPosts = async (
             title: scheduledPost.title,
             content: scheduledPost.content,
             excerpt: scheduledPost.excerpt,
-            coverImage: scheduledPost.coverImage,
-            mediaUrls: scheduledPost.mediaUrls,
+            images: scheduledPost.coverImage ? [scheduledPost.coverImage] : [],
             type: scheduledPost.coverImage ? 'IMAGE' : 'TEXT',
             isPublic: scheduledPost.isPublic,
             minimumTierId: scheduledPost.minimumTierId,
-            creatorId: scheduledPost.creatorId,
+            authorId: scheduledPost.creatorId,
           },
         });
 

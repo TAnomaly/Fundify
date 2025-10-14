@@ -103,12 +103,12 @@ export const getAnalytics = async (
 
     // Get content stats
     const totalPosts = await prisma.creatorPost.count({
-      where: { creatorId: userId },
+      where: { authorId: userId },
     });
 
     const postsInPeriod = await prisma.creatorPost.count({
       where: {
-        creatorId: userId,
+        authorId: userId,
         createdAt: {
           gte: startDate,
         },
@@ -139,7 +139,7 @@ export const getAnalytics = async (
     const totalLikes = await prisma.postLike.count({
       where: {
         post: {
-          creatorId: userId,
+          authorId: userId,
         },
       },
     });
@@ -147,7 +147,7 @@ export const getAnalytics = async (
     const totalComments = await prisma.postComment.count({
       where: {
         post: {
-          creatorId: userId,
+          authorId: userId,
         },
       },
     });
@@ -162,7 +162,7 @@ export const getAnalytics = async (
 
     // Get top-performing content
     const topPosts = await prisma.creatorPost.findMany({
-      where: { creatorId: userId },
+      where: { authorId: userId },
       orderBy: { likeCount: 'desc' },
       take: 5,
       select: {
