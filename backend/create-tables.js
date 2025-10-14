@@ -486,7 +486,100 @@ async function createTables() {
     `);
 
     console.log('✅ Notification tables created!');
-    console.log('✅ All database setup complete! Blog, Events, and Notifications are ready! 🎉');
+
+    // Create Poll table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Poll" (
+        "id" TEXT NOT NULL,
+        "question" TEXT NOT NULL,
+        "options" TEXT[],
+        "expiresAt" TIMESTAMP(3),
+        "multipleChoice" BOOLEAN NOT NULL DEFAULT false,
+        "allowAddOption" BOOLEAN NOT NULL DEFAULT false,
+        "isPublic" BOOLEAN NOT NULL DEFAULT false,
+        "minimumTierId" TEXT,
+        "totalVotes" INTEGER NOT NULL DEFAULT 0,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "creatorId" TEXT NOT NULL,
+        CONSTRAINT "Poll_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✅ Poll table created');
+
+    // Create PollVote table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PollVote" (
+        "id" TEXT NOT NULL,
+        "optionIndex" INTEGER NOT NULL,
+        "optionText" TEXT NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "userId" TEXT NOT NULL,
+        "pollId" TEXT NOT NULL,
+        CONSTRAINT "PollVote_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✅ PollVote table created');
+
+    // Create Poll indexes
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Poll_creatorId_idx" ON "Poll"("creatorId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Poll_createdAt_idx" ON "Poll"("createdAt");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Poll_isActive_idx" ON "Poll"("isActive");
+    `);
+    console.log('✅ Poll indexes created');
+
+    // Create PollVote indexes
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "PollVote_userId_idx" ON "PollVote"("userId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "PollVote_pollId_idx" ON "PollVote"("pollId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "PollVote_userId_pollId_optionIndex_key"
+      ON "PollVote"("userId", "pollId", "optionIndex");
+    `);
+    console.log('✅ PollVote indexes created');
+
+    // Add Poll foreign keys
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Poll" ADD CONSTRAINT "Poll_creatorId_fkey"
+        FOREIGN KEY ("creatorId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "PollVote" ADD CONSTRAINT "PollVote_userId_fkey"
+        FOREIGN KEY ("userId") REFERENCES "User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "PollVote" ADD CONSTRAINT "PollVote_pollId_fkey"
+        FOREIGN KEY ("pollId") REFERENCES "Poll"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    console.log('✅ Poll foreign keys created');
+
+    console.log('✅ All database setup complete! Blog, Events, Notifications, and Polls are ready! 🎉');
 
   } catch (error) {
     console.error('❌ Error:', error.message);
