@@ -68,7 +68,7 @@ export default function CreatePollModal({ onPollCreated, triggerButton }: Create
 
     setIsCreating(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/polls`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/polls`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

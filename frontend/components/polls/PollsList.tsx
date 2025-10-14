@@ -49,7 +49,7 @@ export default function PollsList({
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/polls/creator/${creatorId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/polls/creator/${creatorId}`,
         { headers }
       );
 

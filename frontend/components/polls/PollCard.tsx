@@ -5,12 +5,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-interface PollOption {
-  text: string;
-  votes: number;
-  percentage: number;
-}
-
 interface Poll {
   id: string;
   question: string;
@@ -46,7 +40,7 @@ export default function PollCard({ poll, onVote, showCreator = false }: PollCard
   const [hasVoted, setHasVoted] = useState(poll.hasVoted);
 
   const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
-  const isClosed = !poll.isActive || isExpired;
+  const isClosed = !poll.isActive || !!isExpired;
 
   const handleVote = async (optionIndex: number) => {
     if (hasVoted && !poll.multipleChoice) {
@@ -61,7 +55,7 @@ export default function PollCard({ poll, onVote, showCreator = false }: PollCard
 
     setIsVoting(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/polls/${poll.id}/vote`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/polls/${poll.id}/vote`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
