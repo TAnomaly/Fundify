@@ -40,7 +40,7 @@ export default function PollsList({
 
   const fetchPolls = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("authToken");
       const headers: HeadersInit = {
         "Content-Type": "application/json",
       };
