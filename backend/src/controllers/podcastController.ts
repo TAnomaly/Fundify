@@ -89,6 +89,24 @@ export const getCreatorPodcasts = async (
             avatar: true,
           },
         },
+        episodes: {
+          take: 3,
+          orderBy: [
+            { season: 'desc' },
+            { episodeNumber: 'desc' },
+            { publishedAt: 'desc' },
+          ],
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            duration: true,
+            episodeNumber: true,
+            season: true,
+            listenCount: true,
+            publishedAt: true,
+          },
+        },
         _count: {
           select: {
             episodes: true,
