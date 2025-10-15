@@ -40,7 +40,7 @@ export default function ProductCard({ product, onBuy }: ProductCardProps) {
                 </p>
                 <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                        <div className="font-semibold">${product.price.toFixed(2)}</div>
+                        <div className="font-semibold">{product.price ? `$${product.price.toFixed(2)}` : 'Free'}</div>
                         <div className="text-xs text-muted-foreground">
                             {product.salesCount} sold
                         </div>
