@@ -9,19 +9,16 @@ import { Campaign } from "@/lib/types";
 import { motion } from "framer-motion";
 import {
   Sparkles, Rocket, Shield, TrendingUp, Users, Heart,
-  Zap, Globe, DollarSign, Star, ArrowRight, Play,
-  CheckCircle2, MessageCircle, Award
+  Zap, Globe, DollarSign, Star, ArrowRight, Play, Award
 } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
-  const [isVisible, setIsVisible] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    setIsVisible(true);
     loadTrendingCampaigns();
 
     // Mouse tracking for interactive effects
@@ -103,19 +100,19 @@ export default function Home() {
 
   return (
     <div className="flex flex-col overflow-hidden">
-      {/* Animated Background */}
+      {/* Animated Background - Monokai */}
       <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900" />
+        <div className="absolute inset-0 bg-gradient-to-br from-pink-50 via-purple-50 to-cyan-50 dark:from-[#1E1E1E] dark:via-[#272822] dark:to-[#2D2A2E]" />
         <div
-          className="absolute inset-0 opacity-30"
+          className="absolute inset-0 opacity-20"
           style={{
-            background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(124, 58, 237, 0.15), transparent 50%)`
+            background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(249, 38, 114, 0.2), transparent 50%)`
           }}
         />
-        {/* Floating orbs */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
-        <div className="absolute top-40 right-10 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
-        <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000" />
+        {/* Floating orbs - Monokai colors */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-[#F92672]/20 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob dark:bg-[#F92672]/10" />
+        <div className="absolute top-40 right-10 w-72 h-72 bg-[#E6DB74]/20 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000 dark:bg-[#E6DB74]/10" />
+        <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-[#66D9EF]/20 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000 dark:bg-[#66D9EF]/10" />
       </div>
 
       {/* Hero Section */}
@@ -295,7 +292,17 @@ export default function Home() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   viewport={{ once: true }}
                 >
-                  <CampaignCard campaign={campaign} />
+                  <CampaignCard
+                    title={campaign.title}
+                    description={campaign.description}
+                    imageUrl={campaign.imageUrl}
+                    currentAmount={campaign.currentAmount}
+                    goal={campaign.goal}
+                    slug={campaign.slug}
+                    category={campaign.category}
+                    daysRemaining={Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
+                    backers={campaign.backers}
+                  />
                 </motion.div>
               ))}
             </div>

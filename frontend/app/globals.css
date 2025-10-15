@@ -4,58 +4,79 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 220 15% 15%;
+    /* Monokai Light Theme */
+    --background: 48 17% 92%; /* Light cream background */
+    --foreground: 0 0% 13%; /* Dark gray text */
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
+    --card-foreground: 0 0% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
-    --primary: 210 85% 58%;
+    --popover-foreground: 0 0% 13%;
+
+    /* Monokai Vibrant Colors */
+    --primary: 330 100% 71%; /* Pink/Magenta */
     --primary-foreground: 0 0% 100%;
-    --secondary: 155 60% 50%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 220 15% 92%;
-    --muted-foreground: 220 10% 45%;
-    --accent: 25 90% 62%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 75% 60%;
+    --secondary: 81 97% 55%; /* Monokai Green */
+    --secondary-foreground: 0 0% 13%;
+    --accent: 54 100% 68%; /* Monokai Yellow */
+    --accent-foreground: 0 0% 13%;
+    --destructive: 4 90% 58%; /* Monokai Red */
     --destructive-foreground: 0 0% 100%;
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: 210 85% 58%;
+
+    --muted: 48 10% 88%;
+    --muted-foreground: 0 0% 45%;
+    --border: 48 10% 85%;
+    --input: 48 10% 85%;
+    --ring: 330 100% 71%;
     --radius: 0.75rem;
-    --chart-1: 210 85% 58%;
-    --chart-2: 155 60% 50%;
-    --chart-3: 25 90% 62%;
-    --chart-4: 280 60% 65%;
-    --chart-5: 340 75% 60%;
+
+    /* Monokai Chart Colors */
+    --chart-1: 330 100% 71%; /* Pink */
+    --chart-2: 81 97% 55%; /* Green */
+    --chart-3: 54 100% 68%; /* Yellow */
+    --chart-4: 180 97% 53%; /* Cyan */
+    --chart-5: 31 100% 71%; /* Orange */
+
+    /* Monokai Specific Colors */
+    --monokai-pink: 330 100% 71%;
+    --monokai-green: 81 97% 55%;
+    --monokai-yellow: 54 100% 68%;
+    --monokai-orange: 31 100% 71%;
+    --monokai-purple: 261 100% 75%;
+    --monokai-cyan: 180 97% 53%;
+    --monokai-red: 4 90% 58%;
   }
 
   .dark {
-    --background: 222 25% 8%;
-    --foreground: 210 20% 98%;
-    --card: 222 25% 11%;
-    --card-foreground: 210 20% 98%;
-    --popover: 222 25% 11%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 210 90% 65%;
-    --primary-foreground: 222 25% 8%;
-    --secondary: 155 50% 45%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 222 20% 18%;
-    --muted-foreground: 215 15% 65%;
-    --accent: 25 85% 58%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 70% 55%;
+    /* Monokai Dark Theme - Classic */
+    --background: 0 0% 13%; /* #272822 Monokai dark background */
+    --foreground: 60 30% 96%; /* #F8F8F2 Monokai light text */
+    --card: 60 7% 17%; /* #2D2A2E Slightly lighter than bg */
+    --card-foreground: 60 30% 96%;
+    --popover: 60 7% 17%;
+    --popover-foreground: 60 30% 96%;
+
+    /* Monokai Vibrant Colors */
+    --primary: 330 100% 71%; /* #F92672 Monokai Pink */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 81 97% 55%; /* #A6E22E Monokai Green */
+    --secondary-foreground: 0 0% 13%;
+    --accent: 54 100% 68%; /* #E6DB74 Monokai Yellow */
+    --accent-foreground: 0 0% 13%;
+    --destructive: 4 90% 58%; /* #F92672 Monokai Red */
     --destructive-foreground: 0 0% 100%;
-    --border: 222 20% 18%;
-    --input: 222 20% 18%;
-    --ring: 210 90% 65%;
-    --chart-1: 210 90% 65%;
-    --chart-2: 155 50% 45%;
-    --chart-3: 25 85% 58%;
-    --chart-4: 280 55% 60%;
-    --chart-5: 340 70% 55%;
+
+    --muted: 60 7% 23%;
+    --muted-foreground: 60 5% 65%;
+    --border: 60 7% 23%;
+    --input: 60 7% 23%;
+    --ring: 330 100% 71%;
+
+    /* Monokai Chart Colors */
+    --chart-1: 330 100% 71%; /* Pink */
+    --chart-2: 81 97% 55%; /* Green */
+    --chart-3: 54 100% 68%; /* Yellow */
+    --chart-4: 180 97% 53%; /* Cyan */
+    --chart-5: 31 100% 71%; /* Orange */
   }
 }
 
@@ -70,61 +91,98 @@
 }
 
 @layer utilities {
+  /* Monokai Gradient Text */
   .text-gradient {
-    @apply bg-gradient-to-r from-blue-500 via-teal-500 to-emerald-500 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] bg-clip-text text-transparent;
   }
 
   .text-gradient-secondary {
-    @apply bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#FD971F] via-[#E6DB74] to-[#A6E22E] bg-clip-text text-transparent;
   }
 
+  .text-gradient-monokai {
+    @apply bg-gradient-to-r from-[#F92672] via-[#FD971F] to-[#E6DB74] bg-clip-text text-transparent;
+  }
+
+  /* Monokai Background Gradients */
   .bg-gradient-primary {
-    @apply bg-gradient-to-br from-blue-500 via-teal-500 to-emerald-500;
+    @apply bg-gradient-to-br from-[#F92672] via-[#AE81FF] to-[#66D9EF];
+  }
+
+  .bg-gradient-monokai {
+    @apply bg-gradient-to-br from-[#272822] via-[#2D2A2E] to-[#1E1E1E] dark:from-[#1E1E1E] dark:via-[#272822] dark:to-[#2D2A2E];
   }
 
   .bg-gradient-soft {
-    @apply bg-gradient-to-br from-blue-50 via-teal-50 to-emerald-50 dark:from-blue-950/30 dark:via-teal-950/30 dark:to-emerald-950/30;
+    @apply bg-gradient-to-br from-pink-50 via-purple-50 to-cyan-50 dark:from-[#272822] dark:via-[#2D2A2E] dark:to-[#1E1E1E];
   }
 
+  /* Glassmorphism with Monokai */
   .bg-glass {
-    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50;
+    @apply bg-white/80 dark:bg-[#272822]/90 backdrop-blur-xl border border-gray-200/50 dark:border-[#3E3D32]/50;
   }
 
   .bg-glass-card {
-    @apply bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800;
+    @apply bg-white/90 dark:bg-[#2D2A2E]/95 backdrop-blur-md border border-gray-200 dark:border-[#3E3D32];
   }
 
+  /* Monokai Shadows */
   .shadow-soft {
-    box-shadow: 0 4px 24px -2px rgba(59, 130, 246, 0.12),
-                0 2px 8px -2px rgba(16, 185, 129, 0.08);
+    box-shadow: 0 4px 24px -2px rgba(249, 38, 114, 0.12),
+                0 2px 8px -2px rgba(166, 226, 46, 0.08);
   }
 
   .shadow-soft-hover {
-    box-shadow: 0 8px 32px -4px rgba(59, 130, 246, 0.2),
-                0 4px 16px -4px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 8px 32px -4px rgba(249, 38, 114, 0.2),
+                0 4px 16px -4px rgba(174, 129, 255, 0.15);
   }
 
   .shadow-glow {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3),
-                0 0 40px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 20px rgba(249, 38, 114, 0.3),
+                0 0 40px rgba(174, 129, 255, 0.2);
+  }
+
+  .shadow-glow-green {
+    box-shadow: 0 0 20px rgba(166, 226, 46, 0.3),
+                0 0 40px rgba(166, 226, 46, 0.2);
+  }
+
+  .shadow-glow-cyan {
+    box-shadow: 0 0 20px rgba(102, 217, 239, 0.3),
+                0 0 40px rgba(102, 217, 239, 0.2);
+  }
+
+  /* Monokai Button Styles */
+  .btn-monokai-pink {
+    @apply bg-gradient-to-r from-[#F92672] to-[#FD5C8E] hover:from-[#FD5C8E] hover:to-[#F92672] text-white font-semibold transition-all shadow-lg hover:shadow-glow;
+  }
+
+  .btn-monokai-green {
+    @apply bg-gradient-to-r from-[#A6E22E] to-[#88C425] hover:from-[#88C425] hover:to-[#A6E22E] text-[#272822] font-semibold transition-all shadow-lg hover:shadow-glow-green;
+  }
+
+  .btn-monokai-cyan {
+    @apply bg-gradient-to-r from-[#66D9EF] to-[#4EC9E0] hover:from-[#4EC9E0] hover:to-[#66D9EF] text-[#272822] font-semibold transition-all shadow-lg hover:shadow-glow-cyan;
   }
 }
 
-/* Custom scrollbar */
+/* Custom Monokai scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-secondary;
+  background: hsl(var(--background));
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gradient-primary rounded-full;
+  background: linear-gradient(180deg, #F92672, #AE81FF);
+  border-radius: 10px;
+  border: 2px solid hsl(var(--background));
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply opacity-80;
+  background: linear-gradient(180deg, #FD5C8E, #C49BFF);
 }
 
 /* Smooth scroll behavior */
@@ -132,9 +190,15 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Selection styles */
+/* Monokai Selection styles */
 ::selection {
-  @apply bg-primary/30 text-foreground;
+  background: rgba(249, 38, 114, 0.3); /* Monokai Pink */
+  color: hsl(var(--foreground));
+}
+
+::-moz-selection {
+  background: rgba(249, 38, 114, 0.3);
+  color: hsl(var(--foreground));
 }
 
 /* Loading animation */
