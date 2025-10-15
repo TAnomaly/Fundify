@@ -30,6 +30,8 @@ import {
   Send,
 } from "lucide-react";
 import PollsList from "@/components/polls/PollsList";
+import ProductCard from "@/components/products/ProductCard";
+import { digitalProductsApi, type DigitalProduct } from "@/lib/api/digitalProducts";
 
 interface CreatorProfile {
   user: {
@@ -160,6 +162,8 @@ export default function CreatorProfilePage() {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [podcasts, setPodcasts] = useState<any[]>([]);
   const [podcastsLoading, setPodcastsLoading] = useState(false);
+  const [products, setProducts] = useState<DigitalProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
 
   useEffect(() => {
     loadCreatorProfile();
@@ -188,6 +192,19 @@ export default function CreatorProfilePage() {
     }
     if (activeTab === "podcasts" && profile && podcasts.length === 0) {
       loadCreatorPodcasts();
+    }
+    if (activeTab === "shop" && profile && products.length === 0) {
+      (async () => {
+        try {
+          setProductsLoading(true);
+          const { success, data } = await digitalProductsApi.list({ creatorId: profile.user.id });
+          if (success) setProducts(data);
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setProductsLoading(false);
+        }
+      })();
     }
   }, [activeTab, profile]);
 
@@ -608,7 +625,7 @@ export default function CreatorProfilePage() {
 
         {/* Tabs Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-7 max-w-5xl mx-auto">
+          <TabsList className="grid w-full grid-cols-8 max-w-5xl mx-auto">
             <TabsTrigger value="about">About</TabsTrigger>
             <TabsTrigger value="tiers">Membership</TabsTrigger>
             <TabsTrigger value="posts">Posts</TabsTrigger>
@@ -616,6 +633,7 @@ export default function CreatorProfilePage() {
             <TabsTrigger value="polls">Polls</TabsTrigger>
             <TabsTrigger value="blog">Blog</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
+            <TabsTrigger value="shop">Shop</TabsTrigger>
           </TabsList>
 
           {/* About Tab */}
@@ -1205,13 +1223,12 @@ export default function CreatorProfilePage() {
                       <div className="flex items-center gap-2 mb-3">
                         <Badge
                           variant="secondary"
-                          className={`${
-                            event.type === "VIRTUAL"
+                          className={`${event.type === "VIRTUAL"
                               ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
                               : event.type === "IN_PERSON"
-                              ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                              : "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300"
-                          }`}
+                                ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+                                : "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300"
+                            }`}
                         >
                           {event.type}
                         </Badge>
@@ -1381,6 +1398,38 @@ export default function CreatorProfilePage() {
                 isOwner={false}
                 showCreateButton={false}
               />
+            )}
+          </TabsContent>
+
+          {/* Shop Tab */}
+          <TabsContent value="shop">
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold mb-2">
+                Shop by <span className="text-gradient">{profile.user.name}</span>
+              </h2>
+              <p className="text-muted-foreground">
+                Browse and purchase digital products created by {profile.user.name}
+              </p>
+            </div>
+
+            {productsLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <Skeleton key={i} className="h-64 w-full" />
+                ))}
+              </div>
+            ) : products.length === 0 ? (
+              <Card className="shadow-xl">
+                <CardContent className="p-12 text-center">
+                  <p className="text-muted-foreground">No products yet.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {products.map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
             )}
           </TabsContent>
         </Tabs>

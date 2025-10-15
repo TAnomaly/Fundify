@@ -32,6 +32,7 @@ import analyticsRoutes from './routes/analytics.routes';
 import scheduledPostRoutes from './routes/scheduledPost.routes';
 import welcomeMessageRoutes from './routes/welcomeMessage.routes';
 import podcastRoutes from './routes/podcast.routes';
+import digitalProductRoutes from './routes/digitalProduct.routes';
 
 // Types
 import { ApiError } from './types';
@@ -156,6 +157,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/scheduled-posts', scheduledPostRoutes);
 app.use('/api/welcome-messages', welcomeMessageRoutes);
 app.use('/api', podcastRoutes);
+app.use('/api', digitalProductRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
