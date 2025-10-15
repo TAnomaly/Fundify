@@ -158,6 +158,10 @@ model User {
   podcastEpisodes PodcastEpisode[] @relation("CreatorEpisodes")
   episodeListens  EpisodeListen[]  @relation("UserEpisodeListens")
 
+  // Digital Products relations
+  digitalProducts DigitalProduct[] @relation("CreatorDigitalProducts")
+  purchases       Purchase[]
+
   @@index([email])
   @@index([githubId])
   @@index([isCreator])
@@ -1182,4 +1186,95 @@ model EpisodeListen {
   @@unique([userId, episodeId])
   @@index([userId])
   @@index([episodeId])
+}
+
+enum ProductType {
+  EBOOK       // Digital books, PDFs
+  COURSE      // Online courses, tutorials
+  TEMPLATE    // Design templates, code templates
+  AUDIO       // Music, audio files
+  VIDEO       // Video content
+  SOFTWARE    // Apps, plugins, tools
+  ASSET       // 3D models, graphics, etc
+  OTHER
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model DigitalProduct {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  price       Float    // Price in USD
+
+  // Product Details
+  productType ProductType
+  fileUrl     String?  @db.Text // File download URL
+  fileSize    BigInt?  // Size in bytes
+
+  // Media
+  coverImage  String?  @db.Text
+  previewUrl  String?  @db.Text // Demo/preview file
+
+  // Content
+  features    String[] // List of features/what's included
+  requirements String[] // System requirements or prerequisites
+
+  // Sales Info
+  salesCount  Int      @default(0)
+  revenue     Float    @default(0)
+
+  // Status
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  creatorId   String
+  creator     User     @relation("CreatorDigitalProducts", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  purchases   Purchase[]
+
+  @@index([creatorId])
+  @@index([productType])
+  @@index([isActive])
+  @@index([isFeatured])
+}
+
+model Purchase {
+  id          String         @id @default(uuid())
+  amount      Float          // Purchase amount
+  status      PurchaseStatus @default(PENDING)
+
+  // Payment Info
+  paymentMethod String?
+  transactionId String?      @unique
+
+  // Download tracking
+  downloadCount Int          @default(0)
+  lastDownloadAt DateTime?
+
+  // Timestamps
+  purchasedAt DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   DigitalProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@index([purchasedAt])
 }
