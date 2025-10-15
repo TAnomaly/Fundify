@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { campaignApi } from "@/lib/api";
-import { Campaign, CampaignCategory } from "@/lib/types";
+import { Campaign } from "@/lib/types";
 import { CampaignCard } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -46,12 +46,15 @@ export default function CampaignsPage() {
 
       const response = await campaignApi.getAll(filters);
       if (response.success && response.data) {
+        const data = response.data as any;
+        const campaignData = Array.isArray(response.data) ? response.data : (data.campaigns || []);
         if (page === 1) {
-          setCampaigns(response.data.campaigns);
+          setCampaigns(campaignData);
         } else {
-          setCampaigns((prev) => [...prev, ...response.data.campaigns]);
+          setCampaigns((prev) => [...prev, ...campaignData]);
         }
-        setHasMore(response.data.pagination.page < response.data.pagination.pages);
+        const pagination = data.pagination;
+        setHasMore(pagination ? pagination.page < pagination.pages : false);
       }
     } catch (error) {
       console.error("Failed to load campaigns:", error);
@@ -73,11 +76,12 @@ export default function CampaignsPage() {
       const response = await campaignApi.getAll({
         search: searchQuery,
         page: 1,
-        limit: 12,
-      });
+      } as any);
 
       if (response.success && response.data) {
-        setCampaigns(response.data.campaigns);
+        const data = response.data as any;
+        const campaignData = Array.isArray(response.data) ? response.data : (data.campaigns || []);
+        setCampaigns(campaignData);
         setHasMore(false);
       }
     } catch (error) {
@@ -104,15 +108,18 @@ export default function CampaignsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-soft">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-cyan-50 dark:from-[#1E1E1E] dark:via-[#272822] dark:to-[#2D2A2E]">
       {/* Header */}
-      <div className="bg-gradient-primary py-20 text-white relative overflow-hidden">
+      <div className="relative py-20 text-white overflow-hidden">
+        {/* Monokai gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#F92672] via-[#AE81FF] to-[#66D9EF]"></div>
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">
             Explore Campaigns
           </h1>
-          <p className="text-lg md:text-xl text-white/90 max-w-2xl">
+          <p className="text-lg md:text-xl text-white/95 max-w-2xl">
             Discover amazing projects from creators around the world and help bring them to life
           </p>
         </div>
@@ -141,12 +148,12 @@ export default function CampaignsPage() {
               placeholder="Search campaigns..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-              className="w-full pl-12 pr-28 py-4 rounded-2xl border-0 bg-glass-card shadow-soft focus:outline-none focus:ring-2 focus:ring-primary/50 focus:shadow-soft-hover transition-all"
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className="w-full pl-12 pr-28 py-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-[#F92672]/50 focus:border-[#F92672] transition-all"
             />
             <button
               onClick={handleSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-gradient-primary text-white rounded-xl hover:shadow-glow transition-all font-semibold"
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-gradient-to-r from-[#F92672] to-[#FD971F] text-white rounded-xl hover:shadow-lg hover:scale-105 transition-all font-semibold"
             >
               Search
             </button>
@@ -158,10 +165,10 @@ export default function CampaignsPage() {
               <button
                 key={category}
                 onClick={() => handleCategoryChange(category)}
-                className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-soft ${
+                className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
                   selectedCategory === category
-                    ? "bg-gradient-primary text-white shadow-glow scale-105"
-                    : "bg-glass-card text-foreground hover:shadow-soft-hover hover:scale-105"
+                    ? "bg-gradient-to-r from-[#F92672] to-[#AE81FF] text-white shadow-lg scale-105"
+                    : "bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 text-foreground hover:shadow-lg hover:scale-105 hover:border-[#F92672]"
                 }`}
               >
                 {category === "All" ? category : category.charAt(0) + category.slice(1).toLowerCase()}
@@ -208,8 +215,8 @@ export default function CampaignsPage() {
                   key={campaign.id}
                   title={campaign.title}
                   description={campaign.description}
-                  imageUrl={campaign.coverImage || campaign.imageUrl}
-                  goal={campaign.goal || campaign.goalAmount}
+                  imageUrl={campaign.imageUrl}
+                  goal={campaign.goal}
                   currentAmount={campaign.currentAmount}
                   category={campaign.category}
                   daysRemaining={campaign.endDate ? Math.max(Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)), 0) : 0}
