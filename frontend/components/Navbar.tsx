@@ -76,10 +76,17 @@ export function Navbar() {
 
             <div className="hidden md:flex items-center gap-6">
               <a
+                href="/explore"
+                className="text-sm font-semibold text-foreground/70 hover:text-foreground transition-colors relative group"
+              >
+                🔥 Discover
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary group-hover:w-full transition-all"></span>
+              </a>
+              <a
                 href="/campaigns"
                 className="text-sm font-semibold text-foreground/70 hover:text-foreground transition-colors relative group"
               >
-                Explore
+                Campaigns
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary group-hover:w-full transition-all"></span>
               </a>
               <a
