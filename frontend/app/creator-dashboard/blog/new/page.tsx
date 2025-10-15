@@ -6,7 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import RichTextEditor from "@/components/RichTextEditor";
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { 
+  ssr: false, 
+  loading: () => <p>Loading editor...</p> 
+});
 import axios from "axios";
 import toast from "react-hot-toast";
 import { ArrowLeft, Save, Eye } from "lucide-react";
