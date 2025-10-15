@@ -447,6 +447,23 @@ export default function CreatorDashboard() {
             </div>
           </div>
         </button>
+
+        <button
+          onClick={() => router.push("/creator-dashboard/products")}
+          className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:scale-105 transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#66D9EF] to-[#A6E22E] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M9 1v6l3-3 3 3V1" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Digital Products</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Create and sell digital products</p>
+            </div>
+          </div>
+        </button>
       </div>
 
       {/* Recent Supporters */}
