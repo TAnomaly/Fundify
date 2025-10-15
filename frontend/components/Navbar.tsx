@@ -111,6 +111,13 @@ export function Navbar() {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary group-hover:w-full transition-all"></span>
               </a>
               <a
+                href="/explore/shop"
+                className="text-sm font-semibold text-foreground/70 hover:text-foreground transition-colors relative group"
+              >
+                🛒 Shop
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary group-hover:w-full transition-all"></span>
+              </a>
+              <a
                 href="/campaigns?category=trending"
                 className="text-sm font-semibold text-foreground/70 hover:text-foreground transition-colors relative group"
               >
@@ -202,6 +209,16 @@ export function Navbar() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                         Subscriptions
+                      </a>
+                      <a
+                        href="/purchases"
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-gradient-soft transition-all"
+                        onClick={() => setShowDropdown(false)}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M9 1v6l3-3 3 3V1" />
+                        </svg>
+                        My Purchases
                       </a>
                       <div className="my-1 border-t border-slate-200/50 dark:border-slate-700/50"></div>
                       <a
