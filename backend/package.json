@@ -12,8 +12,7 @@
     "db:deploy": "npx prisma migrate deploy",
     "db:reset": "npx prisma migrate reset",
     "db:studio": "npx prisma studio",
-    "db:seed": "ts-node prisma/seed.ts",
-    "db:push": "npx prisma db push"
+    "db:seed": "ts-node prisma/seed.ts"
   },
   "keywords": [
     "crowdfunding",
