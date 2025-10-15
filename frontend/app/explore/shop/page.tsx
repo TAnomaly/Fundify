@@ -16,15 +16,15 @@ export default function ShopPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [products, setProducts] = useState<DigitalProduct[]>([]);
     const [query, setQuery] = useState("");
-    const [type, setType] = useState<string>("");
-    const [featured, setFeatured] = useState<string>("");
+    const [type, setType] = useState<string>("all");
+    const [featured, setFeatured] = useState<string>("all");
 
     const loadProducts = async () => {
         try {
             setIsLoading(true);
             const { data, success } = await digitalProductsApi.list({
                 search: query || undefined,
-                type: type || undefined,
+                type: type === "all" ? undefined : type,
                 featured: featured === "true" ? true : featured === "false" ? false : undefined,
             });
             if (success) setProducts(data);
@@ -73,7 +73,7 @@ export default function ShopPage() {
                             <SelectValue placeholder="All types" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All types</SelectItem>
+                            <SelectItem value="all">All types</SelectItem>
                             <SelectItem value="EBOOK">Ebook</SelectItem>
                             <SelectItem value="TEMPLATE">Template</SelectItem>
                             <SelectItem value="SOFTWARE">Software</SelectItem>
@@ -86,7 +86,7 @@ export default function ShopPage() {
                             <SelectValue placeholder="Featured" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All</SelectItem>
+                            <SelectItem value="all">All</SelectItem>
                             <SelectItem value="true">Featured</SelectItem>
                             <SelectItem value="false">Non-featured</SelectItem>
                         </SelectContent>
