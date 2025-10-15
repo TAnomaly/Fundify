@@ -6,245 +6,377 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import { campaignApi } from "@/lib/api";
 import { Campaign } from "@/lib/types";
-
-const features = [
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
-    title: "Quick Setup",
-    description: "Launch your campaign in minutes with our intuitive platform.",
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-      </svg>
-    ),
-    title: "Secure Payments",
-    description: "Bank-level security for all transactions and personal data.",
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-    title: "Global Reach",
-    description: "Connect with backers from around the world instantly.",
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-    title: "Real-time Analytics",
-    description: "Track your campaign performance with detailed insights.",
-  },
-];
-
-const stats = [
-  { label: "Projects Funded", value: "12,345" },
-  { label: "Total Raised", value: "$24.5M" },
-  { label: "Active Backers", value: "89,234" },
-  { label: "Success Rate", value: "87%" },
-];
+import { motion } from "framer-motion";
+import {
+  Sparkles, Rocket, Shield, TrendingUp, Users, Heart,
+  Zap, Globe, DollarSign, Star, ArrowRight, Play,
+  CheckCircle2, MessageCircle, Award
+} from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   const [isVisible, setIsVisible] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     setIsVisible(true);
-    // Load trending campaigns
     loadTrendingCampaigns();
+
+    // Mouse tracking for interactive effects
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   const loadTrendingCampaigns = async () => {
     try {
-      const response = await campaignApi.getAll({ limit: 3, sortBy: 'popular' as any });
+      const response = await campaignApi.getAll({});
       if (response.success && response.data) {
-        setCampaigns(response.data.campaigns || []);
+        const campaignData = Array.isArray(response.data) ? response.data : response.data.campaigns || [];
+        setCampaigns(campaignData.slice(0, 6));
       }
     } catch (error) {
       console.error("Failed to load campaigns:", error);
-      // Silently fail - not critical for homepage
     } finally {
       setIsLoading(false);
     }
   };
 
+  const features = [
+    {
+      icon: <Rocket className="w-7 h-7" />,
+      title: "Launch in Minutes",
+      description: "Create your campaign with our intuitive builder. No technical skills needed.",
+      gradient: "from-purple-500 to-pink-500"
+    },
+    {
+      icon: <Shield className="w-7 h-7" />,
+      title: "Bank-Level Security",
+      description: "Your funds are protected with enterprise-grade encryption and compliance.",
+      gradient: "from-blue-500 to-cyan-500"
+    },
+    {
+      icon: <Globe className="w-7 h-7" />,
+      title: "Global Reach",
+      description: "Connect with supporters from 190+ countries. Accept payments anywhere.",
+      gradient: "from-green-500 to-emerald-500"
+    },
+    {
+      icon: <TrendingUp className="w-7 h-7" />,
+      title: "Real-Time Analytics",
+      description: "Track performance, engagement, and revenue with beautiful dashboards.",
+      gradient: "from-orange-500 to-red-500"
+    },
+  ];
+
+  const stats = [
+    { icon: <Users className="w-6 h-6" />, label: "Active Creators", value: "12,345+", gradient: "from-purple-500 to-pink-500" },
+    { icon: <DollarSign className="w-6 h-6" />, label: "Total Raised", value: "$24.5M", gradient: "from-blue-500 to-cyan-500" },
+    { icon: <Heart className="w-6 h-6" />, label: "Supporters", value: "89,234", gradient: "from-red-500 to-pink-500" },
+    { icon: <Award className="w-6 h-6" />, label: "Success Rate", value: "87%", gradient: "from-yellow-500 to-orange-500" },
+  ];
+
+  const testimonials = [
+    {
+      name: "Sarah Johnson",
+      role: "Tech Entrepreneur",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
+      quote: "Fundify helped me raise $50K in just 2 weeks. The platform is incredible!"
+    },
+    {
+      name: "Marcus Chen",
+      role: "Game Developer",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
+      quote: "Best crowdfunding platform I've used. The analytics dashboard is a game-changer."
+    },
+    {
+      name: "Emily Rodriguez",
+      role: "Artist",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
+      quote: "I built a community of 1000+ patrons. Fundify made it so easy!"
+    }
+  ];
+
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900" />
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(124, 58, 237, 0.15), transparent 50%)`
+          }}
+        />
+        {/* Floating orbs */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
+        <div className="absolute top-40 right-10 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
+        <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000" />
+      </div>
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-soft">
-        <div className="absolute inset-0 bg-gradient-primary opacity-5 animate-gradient-x" />
+      <section className="relative pt-20 pb-32 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto max-w-7xl">
+          <div className="text-center mb-16">
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-200 dark:border-purple-800 rounded-full mb-6"
+            >
+              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-sm font-semibold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                Join 89,234+ Creators Worldwide
+              </span>
+            </motion.div>
 
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-36">
-          <div className={`max-w-4xl mx-auto text-center transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
-            <div className="inline-block mb-6 px-4 py-2 bg-glass rounded-full">
-              <span className="text-sm font-semibold text-gradient">🌟 Join 89,234+ Backers Worldwide</span>
-            </div>
-
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="text-gradient">Make a Difference,</span>
+            {/* Main Heading */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
+            >
+              <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
+                Fund Your Dreams
+              </span>
               <br />
-              <span className="text-foreground">One Campaign at a Time</span>
-            </h1>
+              <span className="text-gray-900 dark:text-white">
+                Build Your Community
+              </span>
+            </motion.h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-              Empower dreams, support innovation, and create positive change. Join the community that's turning ideas into reality through the power of collective giving.
-            </p>
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed"
+            >
+              The modern platform for creators, entrepreneurs, and innovators.
+              Launch campaigns, build memberships, and connect with supporters who believe in you.
+            </motion.p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button size="xl" variant="gradient" className="shadow-soft hover:shadow-soft-hover" asChild>
-                <a href="/campaigns/create">Start Your Campaign</a>
-              </Button>
-              <Button size="xl" variant="outline" className="border-2" asChild>
-                <a href="/campaigns">Explore Projects</a>
-              </Button>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center group">
-                  <div className="text-3xl md:text-4xl font-bold text-gradient mb-2 group-hover:scale-110 transition-transform">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm font-medium text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
-            </div>
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            >
+              <Link href="/campaigns/create">
+                <Button size="lg" className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-6 text-lg rounded-full shadow-lg hover:shadow-xl transition-all">
+                  <span className="relative z-10 flex items-center gap-2">
+                    Start Your Campaign
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-pink-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Button>
+              </Link>
+              <Link href="/campaigns">
+                <Button size="lg" variant="outline" className="px-8 py-6 text-lg rounded-full border-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <Play className="w-5 h-5 mr-2" />
+                  Explore Campaigns
+                </Button>
+              </Link>
+            </motion.div>
           </div>
-        </div>
 
-        {/* Decorative elements */}
-        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
-        <div className="absolute top-40 right-10 w-96 h-96 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: "2s" }} />
-        <div className="absolute bottom-20 left-1/2 w-96 h-96 bg-emerald-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: "4s" }} />
+          {/* Stats Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-20"
+          >
+            {stats.map((stat, index) => (
+              <div
+                key={index}
+                className="relative group bg-white/50 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:scale-105 transition-all duration-300"
+              >
+                <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${stat.gradient} mb-4`}>
+                  <div className="text-white">
+                    {stat.icon}
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-white dark:bg-slate-900">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
+        <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Why Choose <span className="text-gradient">Fundify</span>
+            <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Everything You Need
+              </span>
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to successfully fund your project and bring your vision to reality.
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Powerful tools designed to help you succeed, from launch to scale
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <div
+              <motion.div
                 key={index}
-                className="bg-glass-card rounded-2xl p-6 shadow-soft hover:shadow-soft-hover transition-all duration-300 hover:-translate-y-2 group"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
               >
-                <div className="w-14 h-14 rounded-2xl bg-gradient-primary text-white flex items-center justify-center mb-4 shadow-soft group-hover:shadow-glow transition-all">
-                  {feature.icon}
+                <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${feature.gradient} mb-6 group-hover:scale-110 transition-transform`}>
+                  <div className="text-white">
+                    {feature.icon}
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-              </div>
+                <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                  {feature.description}
+                </p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Trending Campaigns Section */}
-      <section className="py-24 bg-gradient-soft">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-12">
+      {/* Trending Campaigns */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto max-w-7xl">
+          <div className="flex justify-between items-center mb-12">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Trending <span className="text-gradient">Campaigns</span>
+              <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+                <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                  Trending Campaigns
+                </span>
               </h2>
-              <p className="text-lg text-muted-foreground">
-                Discover the most popular projects backed by our community
+              <p className="text-xl text-gray-600 dark:text-gray-400">
+                Discover amazing projects from creators worldwide
               </p>
             </div>
-            <Button variant="outline" asChild className="hidden md:inline-flex border-2">
-              <a href="/campaigns">View All</a>
-            </Button>
+            <Link href="/campaigns">
+              <Button variant="outline" className="hidden sm:flex items-center gap-2">
+                View All
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {isLoading ? (
-              // Loading skeletons
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="bg-glass-card rounded-2xl overflow-hidden shadow-soft">
-                  <Skeleton className="h-48 w-full" />
-                  <div className="p-6 space-y-3">
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-5/6" />
-                    <Skeleton className="h-2 w-full mt-4" />
-                    <div className="flex justify-between">
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-4 w-16" />
+          {isLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-96 rounded-2xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {campaigns.map((campaign, index) => (
+                <motion.div
+                  key={campaign.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  <CampaignCard campaign={campaign} />
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="container mx-auto max-w-7xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Loved by Creators
+              </span>
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Join thousands of successful creators who chose Fundify
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all"
+              >
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <p className="text-gray-700 dark:text-gray-300 mb-6 leading-relaxed italic">
+                  "{testimonial.quote}"
+                </p>
+                <div className="flex items-center gap-4">
+                  <img
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    className="w-12 h-12 rounded-full"
+                  />
+                  <div>
+                    <div className="font-bold text-gray-900 dark:text-white">
+                      {testimonial.name}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {testimonial.role}
                     </div>
                   </div>
                 </div>
-              ))
-            ) : campaigns.length > 0 ? (
-              campaigns.map((campaign: any) => (
-                <CampaignCard
-                  key={campaign.id}
-                  title={campaign.title}
-                  description={campaign.description}
-                  imageUrl={campaign.coverImage || campaign.imageUrl}
-                  goal={campaign.goalAmount || campaign.goal}
-                  currentAmount={campaign.currentAmount}
-                  category={campaign.category}
-                  daysRemaining={campaign.endDate ? Math.max(Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)), 0) : 0}
-                  backers={campaign._count?.donations || campaign.backers || 0}
-                  slug={campaign.slug}
-                />
-              ))
-            ) : (
-              <div className="col-span-3 text-center py-12">
-                <p className="text-muted-foreground">No campaigns available yet. Be the first to create one!</p>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-8 text-center md:hidden">
-            <Button variant="outline" asChild className="border-2">
-              <a href="/campaigns">View All Campaigns</a>
-            </Button>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 bg-gradient-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="max-w-3xl mx-auto text-center text-white">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Ready to Make an Impact?
-            </h2>
-            <p className="text-lg md:text-xl mb-10 text-white/90 leading-relaxed">
-              Join thousands of changemakers who are turning their ideas into reality. Start your campaign today and bring your vision to life with the support of a global community.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="xl" className="bg-white text-blue-600 hover:bg-white/90 shadow-soft-hover font-semibold" asChild>
-                <a href="/campaigns/create">Start Your Campaign</a>
-              </Button>
-              <Button size="xl" variant="outline" className="border-2 border-white text-white hover:bg-white/10 backdrop-blur-sm" asChild>
-                <a href="/campaigns">Explore Projects</a>
-              </Button>
+      {/* Final CTA */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto max-w-4xl">
+          <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl p-12 text-center overflow-hidden">
+            <div className="absolute inset-0 bg-black/10" />
+            <div className="relative z-10">
+              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+                Ready to Start Your Journey?
+              </h2>
+              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+                Join thousands of creators who are already funding their dreams on Fundify
+              </p>
+              <Link href="/register">
+                <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 px-8 py-6 text-lg rounded-full shadow-lg">
+                  <Zap className="w-5 h-5 mr-2" />
+                  Get Started Free
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-30" />
       </section>
     </div>
   );
