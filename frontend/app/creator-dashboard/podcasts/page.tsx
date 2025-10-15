@@ -725,6 +725,115 @@ export default function PodcastsPage() {
         </div>
       )}
 
+      {/* Edit Podcast Modal */}
+      {showEditPodcast && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">Edit Podcast</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Title *</label>
+                <input
+                  type="text"
+                  value={podcastForm.title}
+                  onChange={(e) =>
+                    setPodcastForm({ ...podcastForm, title: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="My Awesome Podcast"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Author *
+                </label>
+                <input
+                  type="text"
+                  value={podcastForm.author}
+                  onChange={(e) =>
+                    setPodcastForm({ ...podcastForm, author: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="Your Name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={podcastForm.description}
+                  onChange={(e) =>
+                    setPodcastForm({
+                      ...podcastForm,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg h-24"
+                  placeholder="What's your podcast about?"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Category
+                </label>
+                <select
+                  value={podcastForm.category}
+                  onChange={(e) =>
+                    setPodcastForm({ ...podcastForm, category: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                >
+                  <option value="Technology">Technology</option>
+                  <option value="Business">Business</option>
+                  <option value="Education">Education</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="News">News</option>
+                  <option value="Comedy">Comedy</option>
+                  <option value="Music">Music</option>
+                  <option value="Sports">Sports</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="editPodcastPublic"
+                  checked={podcastForm.isPublic}
+                  onChange={(e) =>
+                    setPodcastForm({ ...podcastForm, isPublic: e.target.checked })
+                  }
+                  className="w-4 h-4"
+                />
+                <label htmlFor="editPodcastPublic" className="text-sm">
+                  Public (anyone can listen)
+                </label>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button onClick={updatePodcast} className="flex-1">
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Update Podcast
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditPodcast(false);
+                    setEditingPodcast(null);
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Create Episode Modal */}
       {showCreateEpisode && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -861,6 +970,131 @@ export default function PodcastsPage() {
                 <Button
                   variant="outline"
                   onClick={() => setShowCreateEpisode(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Episode Modal */}
+      {showEditEpisode && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">Edit Episode</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Title *</label>
+                <input
+                  type="text"
+                  value={episodeForm.title}
+                  onChange={(e) =>
+                    setEpisodeForm({ ...episodeForm, title: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="Episode title"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Audio URL *
+                </label>
+                <input
+                  type="text"
+                  value={episodeForm.audioUrl}
+                  onChange={(e) =>
+                    setEpisodeForm({ ...episodeForm, audioUrl: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="https://example.com/episode.mp3"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Duration (seconds) *
+                </label>
+                <input
+                  type="number"
+                  value={episodeForm.duration}
+                  onChange={(e) =>
+                    setEpisodeForm({
+                      ...episodeForm,
+                      duration: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="1800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Episode Number
+                </label>
+                <input
+                  type="number"
+                  value={episodeForm.episodeNumber}
+                  onChange={(e) =>
+                    setEpisodeForm({
+                      ...episodeForm,
+                      episodeNumber: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={episodeForm.description}
+                  onChange={(e) =>
+                    setEpisodeForm({
+                      ...episodeForm,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg h-24"
+                  placeholder="Episode description"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Show Notes
+                </label>
+                <textarea
+                  value={episodeForm.showNotes}
+                  onChange={(e) =>
+                    setEpisodeForm({
+                      ...episodeForm,
+                      showNotes: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg h-32"
+                  placeholder="Additional notes, links, timestamps..."
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button onClick={updateEpisode} className="flex-1">
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Update Episode
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditEpisode(false);
+                    setEditingEpisode(null);
+                  }}
                   className="flex-1"
                 >
                   Cancel
