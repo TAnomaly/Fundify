@@ -44,9 +44,14 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
       ]
     });
 
+    const safeProducts = products.map(p => ({
+      ...p,
+      fileSize: p.fileSize?.toString() || null
+    }));
+
     res.json({
       success: true,
-      data: products
+      data: safeProducts
     });
   } catch (error) {
     next(error);
