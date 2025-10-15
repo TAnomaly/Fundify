@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import { ArrowLeft, Mic, Music, Rss, Upload } from "lucide-react";
 import AudioPlayer from "@/components/podcast/AudioPlayer";
+import { getCurrentUser } from "@/lib/auth";
 
 export default function PodcastsPage() {
   const router = useRouter();
@@ -49,9 +50,14 @@ export default function PodcastsPage() {
   const loadPodcasts = async () => {
     setIsLoading(true);
     try {
-      const userId = localStorage.getItem("userId");
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        router.push("/login");
+        return;
+      }
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/creator/${userId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/creator/${currentUser.id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -65,8 +71,11 @@ export default function PodcastsPage() {
         if (data.data && data.data.length > 0 && !selectedPodcast) {
           setSelectedPodcast(data.data[0].id);
         }
+      } else {
+        toast.error(data.message || "Failed to load podcasts");
       }
     } catch (error) {
+      console.error("Error loading podcasts:", error);
       toast.error("Failed to load podcasts");
     } finally {
       setIsLoading(false);
