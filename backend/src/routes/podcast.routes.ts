@@ -9,6 +9,8 @@ import {
   trackListen,
   deleteEpisode,
   updateEpisode,
+  updatePodcast,
+  deletePodcast,
 } from '../controllers/podcastController';
 import { generateRSSFeed } from '../controllers/rssController';
 import { authenticate } from '../middleware/auth';
@@ -19,6 +21,8 @@ const router = Router();
 router.post('/podcasts', authenticate as any, createPodcast as any);
 router.get('/podcasts/creator/:creatorId', getCreatorPodcasts as any);
 router.get('/podcasts/:id', getPodcast as any);
+router.put('/podcasts/:id', authenticate as any, updatePodcast as any);
+router.delete('/podcasts/:id', authenticate as any, deletePodcast as any);
 
 // Episode routes
 router.post('/podcasts/:podcastId/episodes', authenticate as any, createEpisode as any);

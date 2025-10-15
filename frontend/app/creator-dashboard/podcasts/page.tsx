@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
-import { ArrowLeft, Mic, Music, Rss, Upload } from "lucide-react";
+import { ArrowLeft, Mic, Music, Rss, Upload, Edit2, Trash2 } from "lucide-react";
 import AudioPlayer from "@/components/podcast/AudioPlayer";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -18,6 +18,10 @@ export default function PodcastsPage() {
   const [selectedPodcast, setSelectedPodcast] = useState<string | null>(null);
   const [showCreatePodcast, setShowCreatePodcast] = useState(false);
   const [showCreateEpisode, setShowCreateEpisode] = useState(false);
+  const [showEditPodcast, setShowEditPodcast] = useState(false);
+  const [showEditEpisode, setShowEditEpisode] = useState(false);
+  const [editingPodcast, setEditingPodcast] = useState<any>(null);
+  const [editingEpisode, setEditingEpisode] = useState<any>(null);
   const [podcastForm, setPodcastForm] = useState({
     title: "",
     description: "",
@@ -244,6 +248,132 @@ export default function PodcastsPage() {
     }
   };
 
+  const deletePodcast = async (podcastId: string) => {
+    if (!confirm("Are you sure you want to delete this podcast? This will delete all episodes too.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/${podcastId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Podcast deleted!");
+        setSelectedPodcast(null);
+        loadPodcasts();
+      } else {
+        toast.error(data.message || "Failed to delete podcast");
+      }
+    } catch (error) {
+      toast.error("Failed to delete podcast");
+    }
+  };
+
+  const updatePodcast = async () => {
+    if (!editingPodcast) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/${editingPodcast.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          body: JSON.stringify(podcastForm),
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Podcast updated!");
+        setShowEditPodcast(false);
+        setEditingPodcast(null);
+        loadPodcasts();
+      } else {
+        toast.error(data.message || "Failed to update podcast");
+      }
+    } catch (error) {
+      toast.error("Failed to update podcast");
+    }
+  };
+
+  const deleteEpisode = async (episodeId: string) => {
+    if (!confirm("Are you sure you want to delete this episode?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/episodes/${episodeId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Episode deleted!");
+        if (selectedPodcast) {
+          loadEpisodes(selectedPodcast);
+        }
+      } else {
+        toast.error(data.message || "Failed to delete episode");
+      }
+    } catch (error) {
+      toast.error("Failed to delete episode");
+    }
+  };
+
+  const updateEpisode = async () => {
+    if (!editingEpisode) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/episodes/${editingEpisode.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          body: JSON.stringify({
+            ...episodeForm,
+            episodeNumber: episodeForm.episodeNumber
+              ? parseInt(episodeForm.episodeNumber)
+              : null,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Episode updated!");
+        setShowEditEpisode(false);
+        setEditingEpisode(null);
+        if (selectedPodcast) {
+          loadEpisodes(selectedPodcast);
+        }
+      } else {
+        toast.error(data.message || "Failed to update episode");
+      }
+    } catch (error) {
+      toast.error("Failed to update episode");
+    }
+  };
+
   const trackProgress = async (episodeId: string, progress: number, completed: boolean) => {
     try {
       await fetch(
@@ -360,6 +490,35 @@ export default function PodcastsPage() {
                         <Rss className="w-3 h-3 mr-1" />
                         RSS
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingPodcast(podcast);
+                          setPodcastForm({
+                            title: podcast.title,
+                            description: podcast.description || "",
+                            author: podcast.author,
+                            category: podcast.category,
+                            isPublic: podcast.isPublic,
+                          });
+                          setShowEditPodcast(true);
+                        }}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deletePodcast(podcast.id);
+                        }}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -404,6 +563,35 @@ export default function PodcastsPage() {
                         <span>•</span>
                         <span>{episode.listenCount} listens</span>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingEpisode(episode);
+                          setEpisodeForm({
+                            title: episode.title,
+                            description: episode.description || "",
+                            audioUrl: episode.audioUrl,
+                            duration: episode.duration,
+                            episodeNumber: episode.episodeNumber?.toString() || "",
+                            showNotes: episode.showNotes || "",
+                            fileSize: episode.fileSize,
+                          });
+                          setShowEditEpisode(true);
+                        }}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => deleteEpisode(episode.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
 

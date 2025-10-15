@@ -534,3 +534,103 @@ export const updateEpisode = async (
     next(error);
   }
 };
+
+// Update a podcast
+export const updatePodcast = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const { id } = req.params;
+    const podcast = await prisma.podcast.findUnique({
+      where: { id },
+    });
+
+    if (!podcast) {
+      res.status(404).json({ success: false, message: 'Podcast not found' });
+      return;
+    }
+
+    if (podcast.creatorId !== userId) {
+      res.status(403).json({ success: false, message: 'Forbidden' });
+      return;
+    }
+
+    const updated = await prisma.podcast.update({
+      where: { id },
+      data: req.body,
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        _count: {
+          select: {
+            episodes: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Podcast updated',
+      data: updated,
+    });
+  } catch (error) {
+    console.error('Update podcast error:', error);
+    next(error);
+  }
+};
+
+// Delete a podcast
+export const deletePodcast = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const { id } = req.params;
+    const podcast = await prisma.podcast.findUnique({
+      where: { id },
+    });
+
+    if (!podcast) {
+      res.status(404).json({ success: false, message: 'Podcast not found' });
+      return;
+    }
+
+    if (podcast.creatorId !== userId) {
+      res.status(403).json({ success: false, message: 'Forbidden' });
+      return;
+    }
+
+    await prisma.podcast.delete({
+      where: { id },
+    });
+
+    res.json({
+      success: true,
+      message: 'Podcast deleted',
+    });
+  } catch (error) {
+    console.error('Delete podcast error:', error);
+    next(error);
+  }
+};
