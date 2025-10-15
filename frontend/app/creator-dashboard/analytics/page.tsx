@@ -35,7 +35,8 @@ interface AnalyticsData {
   tierDistribution: Array<{ name: string; value: number; revenue: number }>;
 }
 
-const COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
+// Monokai color palette for charts
+const COLORS = ["#F92672", "#A6E22E", "#E6DB74", "#66D9EF", "#AE81FF", "#FD971F"];
 
 export default function AnalyticsPage() {
   const router = useRouter();
@@ -77,7 +78,7 @@ export default function AnalyticsPage() {
           return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
         }).reverse();
 
-        const revenueByMonth = last6Months.map((month, index) => ({
+        const revenueByMonth = last6Months.map((month) => ({
           month,
           revenue: stats.monthlyRevenue * (0.7 + Math.random() * 0.6), // Simulated data
         }));
@@ -147,35 +148,38 @@ export default function AnalyticsPage() {
       <div className="mb-8">
         <button
           onClick={() => router.back()}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-2 mb-4"
+          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-2 mb-4 transition-all hover:gap-3"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back to Dashboard
         </button>
-        <h1 className="text-4xl font-bold mb-2 text-gradient">Analytics</h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Track your performance and growth
+        <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] bg-clip-text text-transparent">
+          Analytics Dashboard
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">
+          Track your performance and growth with real-time insights
         </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Revenue */}
-        <Card className="bg-glass-card shadow-soft">
+        <Card className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#A6E22E]/5 to-[#E6DB74]/5 -z-10" />
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 Total Revenue
               </CardTitle>
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <div className="w-10 h-10 bg-gradient-to-br from-[#A6E22E] to-[#E6DB74] rounded-full flex items-center justify-center shadow-md">
+                <DollarSign className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gradient">
+            <div className="text-4xl font-bold bg-gradient-to-r from-[#A6E22E] to-[#E6DB74] bg-clip-text text-transparent">
               ${analytics.totalRevenue.toFixed(2)}
             </div>
             <div className="flex items-center gap-1 text-sm mt-2">
@@ -196,19 +200,20 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Monthly Revenue */}
-        <Card className="bg-glass-card shadow-soft">
+        <Card className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#66D9EF]/5 to-[#AE81FF]/5 -z-10" />
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 Monthly Revenue
               </CardTitle>
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="w-10 h-10 bg-gradient-to-br from-[#66D9EF] to-[#AE81FF] rounded-full flex items-center justify-center shadow-md">
+                <CreditCard className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gradient">
+            <div className="text-4xl font-bold bg-gradient-to-r from-[#66D9EF] to-[#AE81FF] bg-clip-text text-transparent">
               ${analytics.monthlyRevenue.toFixed(2)}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
@@ -218,19 +223,20 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Total Subscribers */}
-        <Card className="bg-glass-card shadow-soft">
+        <Card className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#F92672]/5 to-[#FD971F]/5 -z-10" />
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 Total Subscribers
               </CardTitle>
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
-                <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <div className="w-10 h-10 bg-gradient-to-br from-[#F92672] to-[#FD971F] rounded-full flex items-center justify-center shadow-md">
+                <Users className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gradient">
+            <div className="text-4xl font-bold bg-gradient-to-r from-[#F92672] to-[#FD971F] bg-clip-text text-transparent">
               {analytics.totalSubscribers}
             </div>
             <div className="flex items-center gap-1 text-sm mt-2">
@@ -251,19 +257,20 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Active Subscribers */}
-        <Card className="bg-glass-card shadow-soft">
+        <Card className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#AE81FF]/5 to-[#F92672]/5 -z-10" />
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 Active Subscribers
               </CardTitle>
-              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <div className="w-10 h-10 bg-gradient-to-br from-[#AE81FF] to-[#F92672] rounded-full flex items-center justify-center shadow-md">
+                <Calendar className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gradient">
+            <div className="text-4xl font-bold bg-gradient-to-r from-[#AE81FF] to-[#F92672] bg-clip-text text-transparent">
               {analytics.activeSubscribers}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
@@ -276,30 +283,42 @@ export default function AnalyticsPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Revenue Chart */}
-        <Card className="bg-glass-card shadow-soft">
+        <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
           <CardHeader>
-            <CardTitle>Revenue Trend (Last 6 Months)</CardTitle>
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-[#A6E22E] to-[#E6DB74] bg-clip-text text-transparent">
+              Revenue Trend (Last 6 Months)
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={analytics.revenueByMonth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="month" stroke="#6b7280" />
-                <YAxis stroke="#6b7280" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#444" opacity={0.1} />
+                <XAxis
+                  dataKey="month"
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
+                    border: "2px solid #A6E22E",
+                    borderRadius: "12px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
                   }}
                 />
                 <Legend />
                 <Line
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#8b5cf6"
-                  strokeWidth={2}
+                  stroke="#A6E22E"
+                  strokeWidth={3}
                   name="Revenue ($)"
+                  dot={{ fill: "#A6E22E", r: 5 }}
+                  activeDot={{ r: 7, fill: "#E6DB74" }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -307,30 +326,46 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Subscriber Growth Chart */}
-        <Card className="bg-glass-card shadow-soft">
+        <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
           <CardHeader>
-            <CardTitle>Subscriber Growth (Last 6 Months)</CardTitle>
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-[#F92672] to-[#FD971F] bg-clip-text text-transparent">
+              Subscriber Growth (Last 6 Months)
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={analytics.subscribersByMonth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="month" stroke="#6b7280" />
-                <YAxis stroke="#6b7280" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#444" opacity={0.1} />
+                <XAxis
+                  dataKey="month"
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
+                    border: "2px solid #F92672",
+                    borderRadius: "12px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
                   }}
                 />
                 <Legend />
                 <Bar
                   dataKey="subscribers"
-                  fill="#3b82f6"
+                  fill="url(#colorSubscribers)"
                   name="Subscribers"
                   radius={[8, 8, 0, 0]}
                 />
+                <defs>
+                  <linearGradient id="colorSubscribers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F92672" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#FD971F" stopOpacity={0.9}/>
+                  </linearGradient>
+                </defs>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -339,9 +374,11 @@ export default function AnalyticsPage() {
 
       {/* Tier Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-glass-card shadow-soft">
+        <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
           <CardHeader>
-            <CardTitle>Subscribers by Tier</CardTitle>
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-[#66D9EF] to-[#AE81FF] bg-clip-text text-transparent">
+              Subscribers by Tier
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {analytics.tierDistribution.length > 0 ? (
@@ -359,7 +396,7 @@ export default function AnalyticsPage() {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {analytics.tierDistribution.map((entry, index) => (
+                    {analytics.tierDistribution.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -378,9 +415,11 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Tier Revenue Breakdown */}
-        <Card className="bg-glass-card shadow-soft">
+        <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
           <CardHeader>
-            <CardTitle>Revenue by Tier</CardTitle>
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-[#FD971F] to-[#E6DB74] bg-clip-text text-transparent">
+              Revenue by Tier
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
