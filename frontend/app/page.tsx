@@ -279,28 +279,24 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {campaigns.map((campaign, index) => (
-                <motion.div
-                  key={campaign.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                >
-                  <CampaignCard
-                    title={campaign.title}
-                    description={campaign.description}
-                    imageUrl={campaign.imageUrl}
-                    currentAmount={campaign.currentAmount}
-                    goal={campaign.goal}
-                    slug={campaign.slug}
-                    category={campaign.category}
-                    daysRemaining={Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
-                    backers={campaign.backers}
-                  />
-                </motion.div>
-              ))}
+            <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg">
+              <Marquee pauseOnHover className="[--duration:120s]">
+                {campaigns.map((campaign) => (
+                  <div key={campaign.id} className="w-full max-w-sm mx-4">
+                    <CampaignCard
+                      title={campaign.title}
+                      description={campaign.description}
+                      imageUrl={campaign.imageUrl}
+                      currentAmount={campaign.currentAmount}
+                      goal={campaign.goal}
+                      slug={campaign.slug}
+                      category={campaign.category}
+                      daysRemaining={Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
+                      backers={campaign.backers}
+                    />
+                  </div>
+                ))}
+              </Marquee>
             </div>
           )}
         </div>
