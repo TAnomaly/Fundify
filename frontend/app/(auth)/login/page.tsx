@@ -11,6 +11,7 @@ import { saveToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SpotlightInput } from "@/components/ui/spotlight-input";
 import toast from "react-hot-toast";
 
 const loginSchema = z.object({
@@ -77,7 +78,7 @@ export default function LoginPage() {
                 <label htmlFor="email" className="block text-sm font-medium mb-2">
                   Email Address
                 </label>
-                <Input
+                <SpotlightInput
                   id="email"
                   type="email"
                   placeholder="you@example.com"
@@ -93,7 +94,7 @@ export default function LoginPage() {
                 <label htmlFor="password" className="block text-sm font-medium mb-2">
                   Password
                 </label>
-                <Input
+                <SpotlightInput
                   id="password"
                   type="password"
                   placeholder="Enter your password"

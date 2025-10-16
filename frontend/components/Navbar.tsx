@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated, getCurrentUser, removeToken } from "@/lib/auth";
 import { Moon, Sun } from "lucide-react";
+import { MovingBorderButton } from "@/components/ui/moving-border";
 
 export function Navbar() {
   const router = useRouter();
@@ -143,11 +144,15 @@ export function Navbar() {
 
             {isLoggedIn ? (
               <>
-                <a href="/campaigns/create" className="hidden sm:block">
-                  <button className="px-4 py-2 text-sm font-semibold text-gradient hover:opacity-80 transition-opacity">
-                    Start Project
-                  </button>
-                </a>
+                                <MovingBorderButton
+                  as="a"
+                  href="/campaigns/create"
+                  containerClassName="rounded-xl"
+                  borderClassName="bg-[radial-gradient(var(--monokai-red)_40%,transparent_60%)]"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white dark:text-white bg-slate-900/80"
+                >
+                  Start Project
+                </MovingBorderButton>
                 <div className="relative">
                   <button
                     onClick={() => setShowDropdown(!showDropdown)}
@@ -258,11 +263,15 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <a href="/campaigns/create" className="hidden sm:block">
-                  <button className="px-4 py-2 text-sm font-semibold text-gradient hover:opacity-80 transition-opacity">
-                    Start Project
-                  </button>
-                </a>
+                <MovingBorderButton
+                  as="a"
+                  href="/campaigns/create"
+                  containerClassName="rounded-xl"
+                  borderClassName="bg-[radial-gradient(var(--monokai-red)_40%,transparent_60%)]"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white dark:text-white bg-slate-900/80"
+                >
+                  Start Project
+                </MovingBorderButton>
                 <a href="/login">
                   <button className="px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-primary text-white shadow-soft hover:shadow-glow transition-all">
                     Sign In

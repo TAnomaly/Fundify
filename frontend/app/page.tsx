@@ -11,6 +11,7 @@ import {
   Sparkles, Rocket, Shield, TrendingUp, Users, Heart,
   Zap, Globe, DollarSign, Star, ArrowRight, Play, Award
 } from "lucide-react";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import Link from "next/link";
 
 export default function Home() {
@@ -133,26 +134,16 @@ export default function Home() {
             </motion.div>
 
             {/* Main Heading */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+            <TextGenerateEffect
+              words="Fund Your Dreams. Build Your Community."
               className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
-            >
-              <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
-                Fund Your Dreams
-              </span>
-              <br />
-              <span className="text-gray-900 dark:text-white">
-                Build Your Community
-              </span>
-            </motion.h1>
+            />
 
             {/* Subtitle */}
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              transition={{ duration: 0.5, delay: 1.5 }} // Increased delay to wait for the text generate effect
               className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed"
             >
               The modern platform for creators, entrepreneurs, and innovators.
