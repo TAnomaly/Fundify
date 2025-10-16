@@ -79,7 +79,7 @@ export const getEvents = async (
 
         if (type) where.type = type;
         if (hostId) where.hostId = hostId;
-        
+
         // Filter by time
         if (upcoming === 'true') {
             where.startTime = { gte: new Date() };

@@ -32,7 +32,7 @@ import messageRoutes from './routes/message.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import scheduledPostRoutes from './routes/scheduledPost.routes';
 import welcomeMessageRoutes from './routes/welcomeMessage.routes';
-import podcastRoutes from './routes/podcast.routes';
+import podcastRoutes from './routes/podcastRoutes';
 import digitalProductRoutes from './routes/digitalProduct.routes';
 
 // Types
@@ -87,7 +87,15 @@ app.use(morgan('dev'));
 // Stripe webhook needs raw body - must be before express.json()
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
 
-app.use(express.json());
+app.use(express.json({
+  reviver: (key, value) => {
+    // Handle BigInt serialization
+    if (typeof value === 'string' && /^\d+n$/.test(value)) {
+      return parseInt(value.slice(0, -1));
+    }
+    return value;
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 app.use('/api/', limiter);

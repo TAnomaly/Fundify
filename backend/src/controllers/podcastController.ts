@@ -1,636 +1,344 @@
-import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Response, NextFunction } from 'express';
+import prisma from '../utils/prisma';
+import { AuthRequest } from '../types';
+import { safeCacheGet, safeCacheSet } from '../utils/redis';
+import { publishJson } from '../utils/rabbitmq';
 
-const prisma = new PrismaClient();
-
-interface AuthRequest extends Request {
-  user?: {
-    id?: string;
-    userId?: string;
-  };
-}
-
-// Create a podcast
+// Create podcast
 export const createPodcast = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Unauthorized' });
-      return;
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        if (!userId) {
+            res.status(401).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
+
+        const { title, description, category, language } = req.body;
+        
+        const podcast = await prisma.podcast.create({
+            data: {
+                title,
+                description,
+                category,
+                language,
+                creatorId: userId,
+                coverImage: req.file?.filename || null,
+            },
+            include: {
+                creator: {
+                    select: {
+                        id: true,
+                        name: true,
+                        username: true,
+                        avatar: true,
+                    },
+                },
+                episodes: {
+                    orderBy: { episodeNumber: 'asc' },
+                },
+            },
+        });
+
+        // Invalidate podcasts cache
+        await safeCacheSet(`podcasts:creator:${userId}`, null as any, 1);
+
+        // Publish notification
+        await publishJson('jobs.podcasts', { 
+            type: 'podcast-created', 
+            podcastId: podcast.id, 
+            creatorId: userId, 
+            createdAt: Date.now() 
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Podcast created successfully',
+            data: { podcast },
+        });
+    } catch (error) {
+        next(error);
     }
-
-    const { title, description, coverImage, author, email, category, language, isExplicit, isPublic, minimumTierId } =
-      req.body;
-
-    if (!title || !author) {
-      res.status(400).json({
-        success: false,
-        message: 'Title and author are required',
-      });
-      return;
-    }
-
-    const podcast = await prisma.podcast.create({
-      data: {
-        title,
-        description,
-        coverImage,
-        author,
-        email,
-        category: category || 'Technology',
-        language: language || 'en',
-        isExplicit: isExplicit || false,
-        isPublic: isPublic !== undefined ? isPublic : true,
-        minimumTierId,
-        creatorId: userId,
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
-        },
-      },
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Podcast created successfully',
-      data: podcast,
-    });
-  } catch (error) {
-    console.error('Create podcast error:', error);
-    next(error);
-  }
 };
 
-// Get all podcasts for a creator
-export const getCreatorPodcasts = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
+// Get my podcasts
+export const getMyPodcasts = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const { creatorId } = req.params;
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        if (!userId) {
+            res.status(401).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
 
-    const podcasts = await prisma.podcast.findMany({
-      where: { creatorId },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
-        },
-        episodes: {
-          take: 3,
-          orderBy: [
-            { season: 'desc' },
-            { episodeNumber: 'desc' },
-            { publishedAt: 'desc' },
-          ],
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            duration: true,
-            episodeNumber: true,
-            season: true,
-            listenCount: true,
-            publishedAt: true,
-          },
-        },
-        _count: {
-          select: {
-            episodes: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        const cacheKey = `podcasts:creator:${userId}`;
+        const cached = await safeCacheGet<any[]>(cacheKey);
+        if (cached) {
+            res.json({ success: true, data: { podcasts: cached } });
+            return;
+        }
 
-    res.json({
-      success: true,
-      data: podcasts,
-    });
-  } catch (error) {
-    console.error('Get creator podcasts error:', error);
-    next(error);
-  }
+        const podcasts = await prisma.podcast.findMany({
+            where: { creatorId: userId },
+            include: {
+                creator: {
+                    select: {
+                        id: true,
+                        name: true,
+                        username: true,
+                        avatar: true,
+                    },
+                },
+                episodes: {
+                    orderBy: { episodeNumber: 'asc' },
+                    select: {
+                        id: true,
+                        title: true,
+                        episodeNumber: true,
+                        duration: true,
+                        audioUrl: true,
+                        publishedAt: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        episodes: true,
+                    },
+                },
+            },
+            orderBy: { updatedAt: 'desc' },
+        });
+
+        // Calculate total duration for each podcast
+        const podcastsWithDuration = podcasts.map(podcast => {
+            const totalDuration = podcast.episodes.reduce((total, episode) => {
+                return total + (episode.duration || 0);
+            }, 0);
+            
+            return {
+                ...podcast,
+                episodeCount: podcast._count.episodes,
+                totalDuration: formatDuration(totalDuration),
+            };
+        });
+
+        await safeCacheSet(cacheKey, podcastsWithDuration, 300); // 5 minutes cache
+
+        res.json({
+            success: true,
+            data: { podcasts: podcastsWithDuration },
+        });
+    } catch (error) {
+        next(error);
+    }
 };
 
-// Get single podcast
-export const getPodcast = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
+// Get podcasts by creator
+export const getPodcastsByCreator = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const { id } = req.params;
+    try {
+        const { creatorId } = req.query;
+        if (!creatorId) {
+            res.status(400).json({ success: false, message: 'Creator ID required' });
+            return;
+        }
 
-    const podcast = await prisma.podcast.findUnique({
-      where: { id },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
-        },
-        episodes: {
-          where: { published: true },
-          orderBy: { publishedAt: 'desc' },
-          take: 10,
-        },
-      },
-    });
+        const cacheKey = `podcasts:creator:${creatorId}`;
+        const cached = await safeCacheGet<any[]>(cacheKey);
+        if (cached) {
+            res.json({ success: true, data: { podcasts: cached } });
+            return;
+        }
 
-    if (!podcast) {
-      res.status(404).json({ success: false, message: 'Podcast not found' });
-      return;
+        const podcasts = await prisma.podcast.findMany({
+            where: { 
+                creatorId: creatorId as string,
+                status: 'PUBLISHED'
+            },
+            include: {
+                creator: {
+                    select: {
+                        id: true,
+                        name: true,
+                        username: true,
+                        avatar: true,
+                    },
+                },
+                episodes: {
+                    where: { status: 'PUBLISHED' },
+                    orderBy: { episodeNumber: 'asc' },
+                    select: {
+                        id: true,
+                        title: true,
+                        episodeNumber: true,
+                        duration: true,
+                        audioUrl: true,
+                        publishedAt: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        episodes: true,
+                    },
+                },
+            },
+            orderBy: { updatedAt: 'desc' },
+        });
+
+        // Calculate total duration for each podcast
+        const podcastsWithDuration = podcasts.map(podcast => {
+            const totalDuration = podcast.episodes.reduce((total, episode) => {
+                return total + (episode.duration || 0);
+            }, 0);
+            
+            return {
+                ...podcast,
+                episodeCount: podcast._count.episodes,
+                totalDuration: formatDuration(totalDuration),
+            };
+        });
+
+        await safeCacheSet(cacheKey, podcastsWithDuration, 300);
+
+        res.json({
+            success: true,
+            data: { podcasts: podcastsWithDuration },
+        });
+    } catch (error) {
+        next(error);
     }
-
-    res.json({
-      success: true,
-      data: podcast,
-    });
-  } catch (error) {
-    console.error('Get podcast error:', error);
-    next(error);
-  }
 };
 
 // Create episode
 export const createEpisode = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Unauthorized' });
-      return;
+    try {
+        const userId = req.user?.id || req.user?.userId;
+        if (!userId) {
+            res.status(401).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
+
+        const { podcastId } = req.params;
+        const { title, description, duration } = req.body;
+
+        // Check if user owns the podcast
+        const podcast = await prisma.podcast.findFirst({
+            where: { id: podcastId, creatorId: userId },
+        });
+
+        if (!podcast) {
+            res.status(404).json({ success: false, message: 'Podcast not found' });
+            return;
+        }
+
+        // Get next episode number
+        const lastEpisode = await prisma.podcastEpisode.findFirst({
+            where: { podcastId },
+            orderBy: { episodeNumber: 'desc' },
+        });
+
+        const episodeNumber = (lastEpisode?.episodeNumber || 0) + 1;
+
+        const episode = await prisma.podcastEpisode.create({
+            data: {
+                title,
+                description,
+                episodeNumber,
+                duration: parseInt(duration),
+                audioUrl: req.file?.filename || null,
+                podcastId,
+            },
+        });
+
+        // Invalidate podcast cache
+        await safeCacheSet(`podcasts:creator:${userId}`, null as any, 1);
+
+        res.status(201).json({
+            success: true,
+            message: 'Episode created successfully',
+            data: { episode },
+        });
+    } catch (error) {
+        next(error);
     }
-
-    const { podcastId } = req.params;
-    const {
-      title,
-      description,
-      audioUrl,
-      duration,
-      fileSize,
-      episodeNumber,
-      season,
-      coverImage,
-      showNotes,
-      timestamps,
-      isPublic,
-      minimumTierId,
-      published,
-    } = req.body;
-
-    if (!title || !audioUrl || !duration) {
-      res.status(400).json({
-        success: false,
-        message: 'Title, audioUrl, and duration are required',
-      });
-      return;
-    }
-
-    // Verify podcast ownership
-    const podcast = await prisma.podcast.findUnique({
-      where: { id: podcastId },
-    });
-
-    if (!podcast || podcast.creatorId !== userId) {
-      res.status(403).json({ success: false, message: 'Forbidden' });
-      return;
-    }
-
-    const episode = await prisma.podcastEpisode.create({
-      data: {
-        title,
-        description,
-        audioUrl,
-        duration: parseInt(duration),
-        fileSize: BigInt(fileSize || 0),
-        episodeNumber: episodeNumber ? parseInt(episodeNumber) : null,
-        season: season ? parseInt(season) : null,
-        coverImage,
-        showNotes,
-        timestamps,
-        isPublic: isPublic !== undefined ? isPublic : true,
-        minimumTierId,
-        published: published !== undefined ? published : true,
-        publishedAt: published !== false ? new Date() : null,
-        podcastId,
-        creatorId: userId,
-      },
-      include: {
-        podcast: true,
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
-        },
-      },
-    });
-
-    // Update podcast episode count
-    await prisma.podcast.update({
-      where: { id: podcastId },
-      data: {
-        totalEpisodes: {
-          increment: 1,
-        },
-      },
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Episode created successfully',
-      data: episode,
-    });
-  } catch (error) {
-    console.error('Create episode error:', error);
-    next(error);
-  }
 };
 
-// Get episodes for a podcast
-export const getPodcastEpisodes = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
+// Get podcast with episodes
+export const getPodcast = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
 ): Promise<void> => {
-  try {
-    const { podcastId } = req.params;
-    const { published } = req.query;
+    try {
+        const { id } = req.params;
 
-    const where: any = { podcastId };
-    if (published !== undefined) {
-      where.published = published === 'true';
+        const podcast = await prisma.podcast.findUnique({
+            where: { id },
+            include: {
+                creator: {
+                    select: {
+                        id: true,
+                        name: true,
+                        username: true,
+                        avatar: true,
+                    },
+                },
+                episodes: {
+                    where: { status: 'PUBLISHED' },
+                    orderBy: { episodeNumber: 'asc' },
+                },
+                _count: {
+                    select: {
+                        episodes: true,
+                    },
+                },
+            },
+        });
+
+        if (!podcast) {
+            res.status(404).json({ success: false, message: 'Podcast not found' });
+            return;
+        }
+
+        const totalDuration = podcast.episodes.reduce((total, episode) => {
+            return total + (episode.duration || 0);
+        }, 0);
+
+        const podcastWithDuration = {
+            ...podcast,
+            episodeCount: podcast._count.episodes,
+            totalDuration: formatDuration(totalDuration),
+        };
+
+        res.json({
+            success: true,
+            data: { podcast: podcastWithDuration },
+        });
+    } catch (error) {
+        next(error);
     }
-
-    const episodes = await prisma.podcastEpisode.findMany({
-      where,
-      include: {
-        podcast: {
-          select: {
-            id: true,
-            title: true,
-            coverImage: true,
-          },
-        },
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
-        },
-      },
-      orderBy: [
-        { season: 'desc' },
-        { episodeNumber: 'desc' },
-        { publishedAt: 'desc' },
-      ],
-    });
-
-    res.json({
-      success: true,
-      data: episodes,
-    });
-  } catch (error) {
-    console.error('Get podcast episodes error:', error);
-    next(error);
-  }
 };
 
-// Get single episode
-export const getEpisode = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const { id } = req.params;
-
-    const episode = await prisma.podcastEpisode.findUnique({
-      where: { id },
-      include: {
-        podcast: true,
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
-        },
-      },
-    });
-
-    if (!episode) {
-      res.status(404).json({ success: false, message: 'Episode not found' });
-      return;
+// Helper function to format duration
+function formatDuration(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
     }
-
-    res.json({
-      success: true,
-      data: episode,
-    });
-  } catch (error) {
-    console.error('Get episode error:', error);
-    next(error);
-  }
-};
-
-// Track episode listen
-export const trackListen = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Unauthorized' });
-      return;
-    }
-
-    const { episodeId } = req.params;
-    const { progress, completed } = req.body;
-
-    const episode = await prisma.podcastEpisode.findUnique({
-      where: { id: episodeId },
-    });
-
-    if (!episode) {
-      res.status(404).json({ success: false, message: 'Episode not found' });
-      return;
-    }
-
-    // Upsert listen record
-    const listen = await prisma.episodeListen.upsert({
-      where: {
-        userId_episodeId: {
-          userId,
-          episodeId,
-        },
-      },
-      create: {
-        userId,
-        episodeId,
-        progress: progress || 0,
-        completed: completed || false,
-      },
-      update: {
-        progress: progress || 0,
-        completed: completed || false,
-        listenedAt: new Date(),
-      },
-    });
-
-    // Increment listen count if first time or just completed
-    if (completed && !listen.completed) {
-      await prisma.podcastEpisode.update({
-        where: { id: episodeId },
-        data: {
-          listenCount: {
-            increment: 1,
-          },
-        },
-      });
-
-      await prisma.podcast.update({
-        where: { id: episode.podcastId },
-        data: {
-          totalListens: {
-            increment: 1,
-          },
-        },
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Listen tracked',
-      data: listen,
-    });
-  } catch (error) {
-    console.error('Track listen error:', error);
-    next(error);
-  }
-};
-
-// Delete episode
-export const deleteEpisode = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    const { id } = req.params;
-
-    const episode = await prisma.podcastEpisode.findUnique({
-      where: { id },
-      include: { podcast: true },
-    });
-
-    if (!episode) {
-      res.status(404).json({ success: false, message: 'Episode not found' });
-      return;
-    }
-
-    if (episode.creatorId !== userId) {
-      res.status(403).json({ success: false, message: 'Forbidden' });
-      return;
-    }
-
-    await prisma.podcastEpisode.delete({
-      where: { id },
-    });
-
-    // Update podcast episode count
-    await prisma.podcast.update({
-      where: { id: episode.podcastId },
-      data: {
-        totalEpisodes: {
-          decrement: 1,
-        },
-      },
-    });
-
-    res.json({
-      success: true,
-      message: 'Episode deleted',
-    });
-  } catch (error) {
-    console.error('Delete episode error:', error);
-    next(error);
-  }
-};
-
-// Update episode
-export const updateEpisode = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    const { id } = req.params;
-
-    const episode = await prisma.podcastEpisode.findUnique({
-      where: { id },
-    });
-
-    if (!episode) {
-      res.status(404).json({ success: false, message: 'Episode not found' });
-      return;
-    }
-
-    if (episode.creatorId !== userId) {
-      res.status(403).json({ success: false, message: 'Forbidden' });
-      return;
-    }
-
-    const updated = await prisma.podcastEpisode.update({
-      where: { id },
-      data: req.body,
-      include: {
-        podcast: true,
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
-        },
-      },
-    });
-
-    res.json({
-      success: true,
-      message: 'Episode updated',
-      data: updated,
-    });
-  } catch (error) {
-    console.error('Update episode error:', error);
-    next(error);
-  }
-};
-
-// Update a podcast
-export const updatePodcast = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Unauthorized' });
-      return;
-    }
-
-    const { id } = req.params;
-    const podcast = await prisma.podcast.findUnique({
-      where: { id },
-    });
-
-    if (!podcast) {
-      res.status(404).json({ success: false, message: 'Podcast not found' });
-      return;
-    }
-
-    if (podcast.creatorId !== userId) {
-      res.status(403).json({ success: false, message: 'Forbidden' });
-      return;
-    }
-
-    const updated = await prisma.podcast.update({
-      where: { id },
-      data: req.body,
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          },
-        },
-        _count: {
-          select: {
-            episodes: true,
-          },
-        },
-      },
-    });
-
-    res.json({
-      success: true,
-      message: 'Podcast updated',
-      data: updated,
-    });
-  } catch (error) {
-    console.error('Update podcast error:', error);
-    next(error);
-  }
-};
-
-// Delete a podcast
-export const deletePodcast = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const userId = req.user?.id || req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: 'Unauthorized' });
-      return;
-    }
-
-    const { id } = req.params;
-    const podcast = await prisma.podcast.findUnique({
-      where: { id },
-    });
-
-    if (!podcast) {
-      res.status(404).json({ success: false, message: 'Podcast not found' });
-      return;
-    }
-
-    if (podcast.creatorId !== userId) {
-      res.status(403).json({ success: false, message: 'Forbidden' });
-      return;
-    }
-
-    await prisma.podcast.delete({
-      where: { id },
-    });
-
-    res.json({
-      success: true,
-      message: 'Podcast deleted',
-    });
-  } catch (error) {
-    console.error('Delete podcast error:', error);
-    next(error);
-  }
-};
+    return `${minutes}m`;
+}

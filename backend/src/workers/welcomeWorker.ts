@@ -41,7 +41,7 @@ export async function startWelcomeWorker() {
     // Prefetch 5 jobs at a time
     ch.prefetch(5);
 
-  ch.consume('jobs.welcome', async (msg: ConsumeMessage | null) => {
+    ch.consume('jobs.welcome', async (msg: ConsumeMessage | null) => {
         if (!msg) return;
         try {
             const job: WelcomeJob = JSON.parse(msg.content.toString());

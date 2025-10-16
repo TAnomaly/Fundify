@@ -24,12 +24,12 @@ export async function safeCacheGet<T = unknown>(key: string): Promise<T | null> 
     if (!client) return null;
     try {
         const raw = await client.get(key);
-    if (raw) {
-      console.log(`[Redis] HIT ${key}`);
-      return JSON.parse(raw) as T;
-    }
-    console.log(`[Redis] MISS ${key}`);
-    return null;
+        if (raw) {
+            console.log(`[Redis] HIT ${key}`);
+            return JSON.parse(raw) as T;
+        }
+        console.log(`[Redis] MISS ${key}`);
+        return null;
     } catch (_) {
         return null;
     }
@@ -43,8 +43,8 @@ export async function safeCacheSet(
     const client = getRedis();
     if (!client) return;
     try {
-    await client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
-    console.log(`[Redis] SET ${key} ttl=${ttlSeconds}s`);
+        await client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+        console.log(`[Redis] SET ${key} ttl=${ttlSeconds}s`);
     } catch (_) {
         // ignore cache set failures
     }

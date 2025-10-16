@@ -112,6 +112,7 @@ model User {
   posts           CreatorPost[]
   postLikes       PostLike[]
   postComments    PostComment[]
+  podcasts        Podcast[]
 
   // Blog relations
   articles        Article[]        @relation("AuthorArticles")
@@ -1277,4 +1278,64 @@ model Purchase {
   @@index([productId])
   @@index([status])
   @@index([purchasedAt])
+}
+
+enum PodcastStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EpisodeStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Podcast {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  category    String        @default("Technology")
+  language    String        @default("English")
+  coverImage  String?
+  status      PodcastStatus @default(DRAFT)
+  
+  // Timestamps
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  // Relations
+  creatorId   String
+  creator     User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  episodes    PodcastEpisode[]
+  
+  @@index([creatorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PodcastEpisode {
+  id            String        @id @default(uuid())
+  title         String
+  description   String?
+  episodeNumber Int
+  duration      Int?          // Duration in seconds
+  audioUrl      String?
+  status        EpisodeStatus @default(DRAFT)
+  
+  // Timestamps
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Relations
+  podcastId     String
+  podcast       Podcast       @relation(fields: [podcastId], references: [id], onDelete: Cascade)
+  
+  @@index([podcastId])
+  @@index([episodeNumber])
+  @@index([status])
+  @@index([publishedAt])
 }
