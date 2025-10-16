@@ -12,11 +12,11 @@ export async function getRabbitChannel(): Promise<any | null> {
             console.warn('RABBITMQ_URL not set; RabbitMQ disabled.');
             return null;
         }
-    const conn = await connect(url);
+        const conn = await connect(url);
         connection = conn;
         const ch = await conn.createChannel();
         channel = ch;
-    console.log('✅ RabbitMQ channel created');
+        console.log('✅ RabbitMQ channel created');
         return ch;
     } catch (err) {
         console.error('RabbitMQ connection error:', (err as Error).message);
@@ -32,13 +32,15 @@ export async function ensureQueue(queueName: string): Promise<any | null> {
 }
 
 export async function publishJson(queueName: string, payload: unknown): Promise<boolean> {
-    const ch = await ensureQueue(queueName);
+  const ch = await ensureQueue(queueName);
     if (!ch) return false;
     try {
-        return ch.sendToQueue(queueName, Buffer.from(JSON.stringify(payload)), {
+    const ok = ch.sendToQueue(queueName, Buffer.from(JSON.stringify(payload)), {
             persistent: true,
             contentType: 'application/json',
         });
+    if (ok) console.log(`[RabbitMQ] PUBLISH queue=${queueName}`);
+    return ok;
     } catch (err) {
         console.error('RabbitMQ publish error:', (err as Error).message);
         return false;

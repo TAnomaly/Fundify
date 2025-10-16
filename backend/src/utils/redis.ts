@@ -4,8 +4,8 @@ let redis: Redis | null = null;
 
 export function getRedis(): Redis | null {
     if (redis) return redis;
-  // Prefer public/proxy URL if provided (e.g., Railway proxy or Upstash)
-  const url = process.env.REDIS_PUBLIC_URL || process.env.REDIS_URL;
+    // Prefer public/proxy URL if provided (e.g., Railway proxy or Upstash)
+    const url = process.env.REDIS_PUBLIC_URL || process.env.REDIS_URL;
     if (!url) return null;
     redis = new Redis(url, {
         maxRetriesPerRequest: 2,
@@ -24,7 +24,12 @@ export async function safeCacheGet<T = unknown>(key: string): Promise<T | null> 
     if (!client) return null;
     try {
         const raw = await client.get(key);
-        return raw ? (JSON.parse(raw) as T) : null;
+    if (raw) {
+      console.log(`[Redis] HIT ${key}`);
+      return JSON.parse(raw) as T;
+    }
+    console.log(`[Redis] MISS ${key}`);
+    return null;
     } catch (_) {
         return null;
     }
@@ -38,7 +43,8 @@ export async function safeCacheSet(
     const client = getRedis();
     if (!client) return;
     try {
-        await client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+    await client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+    console.log(`[Redis] SET ${key} ttl=${ttlSeconds}s`);
     } catch (_) {
         // ignore cache set failures
     }
