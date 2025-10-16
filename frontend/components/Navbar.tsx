@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated, getCurrentUser, removeToken } from "@/lib/auth";
-import { Moon, Sun, Menu, X, Heart, MessageSquare, Sparkles, LayoutDashboard, FolderKanban, Users, CreditCard, ShoppingBag, Settings, LogOut } from "lucide-react";
+import { Moon, Sun, Menu, X, Heart, MessageSquare, Sparkles, LayoutDashboard, FolderKanban, Users, CreditCard, ShoppingBag, Settings, LogOut, User } from "lucide-react";
 import { MovingBorderButton } from "@/components/ui/moving-border";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
@@ -160,6 +160,9 @@ export function Navbar() {
                         <ShoppingBag className="w-4 h-4" /> My Purchases
                       </a>
                       <div className="my-1 border-t border-slate-200/50 dark:border-slate-700/50" />
+                      <a href="/creator-dashboard/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft bg-blue-50 dark:bg-blue-950/20" onClick={() => setShowDropdown(false)}>
+                        <User className="w-4 h-4" /> My Profile
+                      </a>
                       <a href="/creator-dashboard/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <Settings className="w-4 h-4" /> Settings
                       </a>

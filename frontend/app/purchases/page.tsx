@@ -84,7 +84,7 @@ export default function PurchasesPage() {
                             : "/placeholder.png";
 
                         return (
-                            <Card key={purchase.id} className="overflow-hidden">
+                            <Card key={purchase.id} className="overflow-hidden dark:bg-gray-800/50 dark:border-gray-700/30">
                                 <div className="h-48 overflow-hidden">
                                     <img
                                         src={imageSrc}
@@ -93,19 +93,19 @@ export default function PurchasesPage() {
                                     />
                                 </div>
                                 <CardHeader>
-                                    <CardTitle className="line-clamp-2">{product.title}</CardTitle>
-                                    <p className="text-sm text-muted-foreground">
+                                    <CardTitle className="line-clamp-2 text-gray-900 dark:text-gray-100">{product.title}</CardTitle>
+                                    <p className="text-sm text-muted-foreground dark:text-gray-400">
                                         by {product.creator?.name || "Unknown"}
                                     </p>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-2">
-                                        <p className="text-lg font-semibold">${purchase.amount.toFixed(2)}</p>
-                                        <p className="text-sm text-muted-foreground">
+                                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">${purchase.amount.toFixed(2)}</p>
+                                        <p className="text-sm text-muted-foreground dark:text-gray-400">
                                             Purchased: {new Date(purchase.purchasedAt).toLocaleDateString()}
                                         </p>
                                         {purchase.downloadCount && (
-                                            <p className="text-sm text-muted-foreground">
+                                            <p className="text-sm text-muted-foreground dark:text-gray-400">
                                                 Downloaded {purchase.downloadCount} times
                                             </p>
                                         )}

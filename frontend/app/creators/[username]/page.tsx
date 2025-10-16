@@ -325,18 +325,18 @@ const PostCard = ({ post }: { post: CreatorPost }) => {
   }
 
   return (
-    <Card className="bg-card/50 border-border/30 overflow-hidden">
+    <Card className="bg-card/50 border-border/30 overflow-hidden dark:bg-gray-800/50 dark:border-gray-700/30">
       <CardHeader>
         <div className="flex items-center gap-3">
             <img src={getFullMediaUrl(post.author.avatar) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.name}`} alt={post.author.name} className="w-10 h-10 rounded-full bg-muted"/>
             <div>
-                <p className="font-semibold text-foreground">{post.author.name}</p>
-                <p className="text-xs text-muted-foreground">{new Date(post.publishedAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                <p className="font-semibold text-foreground dark:text-gray-100">{post.author.name}</p>
+                <p className="text-xs text-muted-foreground dark:text-gray-400">{new Date(post.publishedAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}</p>
             </div>
         </div>
       </CardHeader>
       <CardContent>
-        <h2 className="text-2xl font-bold leading-snug mb-4">{post.title}</h2>
+        <h2 className="text-2xl font-bold leading-snug mb-4 text-gray-900 dark:text-gray-100">{post.title}</h2>
         
         {/* Content: Text, Images, Video */}
         <div className="space-y-4">
@@ -354,18 +354,18 @@ const PostCard = ({ post }: { post: CreatorPost }) => {
         </div>
 
         {/* Engagement Bar */}
-        <div className="flex items-center justify-between pt-6 mt-6 border-t border-border/20">
+        <div className="flex items-center justify-between pt-6 mt-6 border-t border-border/20 dark:border-gray-700/20">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" onClick={() => setLiked(!liked)} className={`flex items-center gap-1.5 ${liked ? 'text-red-500' : 'text-muted-foreground'}`}>
+                <Button variant="ghost" size="sm" onClick={() => setLiked(!liked)} className={`flex items-center gap-1.5 ${liked ? 'text-red-500' : 'text-muted-foreground dark:text-gray-400'}`}>
                     <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`}/> {post.likeCount + (liked ? 1 : 0)}
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 text-muted-foreground">
+                <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 text-muted-foreground dark:text-gray-400">
                     <MessageCircle className="w-4 h-4"/> {post.commentCount}
                 </Button>
             </div>
             <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="text-muted-foreground"><Bookmark className="w-4 h-4"/></Button>
-                <Button variant="ghost" size="icon" className="text-muted-foreground"><Share2 className="w-4 h-4"/></Button>
+                <Button variant="ghost" size="icon" className="text-muted-foreground dark:text-gray-400"><Bookmark className="w-4 h-4"/></Button>
+                <Button variant="ghost" size="icon" className="text-muted-foreground dark:text-gray-400"><Share2 className="w-4 h-4"/></Button>
             </div>
         </div>
 
