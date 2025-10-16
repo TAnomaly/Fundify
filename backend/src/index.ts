@@ -226,29 +226,30 @@ app.listen(PORT, () => {
 
   // Test Redis and RabbitMQ connections on startup
   import('./utils/redis').then(({ getRedis }) => {
-    getRedis().then(redis => {
-      if (redis) {
-        console.log('✅ Redis connected');
-        redis.ping().then(() => {
-          console.log('✅ Redis ready');
-        }).catch(() => {
-          console.log('⚠️  Redis ping failed');
-        });
-      } else {
-        console.log('⚠️  Redis not configured');
-      }
-    });
+    const redis = getRedis();
+    if (redis) {
+      console.log('✅ Redis connected');
+      redis.ping().then(() => {
+        console.log('✅ Redis ready');
+      }).catch(() => {
+        console.log('⚠️  Redis ping failed');
+      });
+    } else {
+      console.log('⚠️  Redis not configured');
+    }
   }).catch(() => {
     console.log('⚠️  Redis module not found');
   });
 
   import('./utils/rabbitmq').then(({ getRabbitChannel }) => {
-    getRabbitChannel().then(channel => {
+    getRabbitChannel().then((channel: any) => {
       if (channel) {
         console.log('✅ CLOUD_AMQP channel created');
       } else {
         console.log('⚠️  CLOUD_AMQP not configured');
       }
+    }).catch(() => {
+      console.log('⚠️  CLOUD_AMQP connection failed');
     });
   }).catch(() => {
     console.log('⚠️  RabbitMQ module not found');
