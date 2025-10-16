@@ -54,6 +54,7 @@ export default function EventsPage() {
       setIsLoading(true);
       const params = new URLSearchParams();
       if (filter === "upcoming") params.append("upcoming", "true");
+      if (filter === "past") params.append("past", "true");
 
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/events?${params.toString()}`
@@ -209,35 +210,35 @@ export default function EventsPage() {
                       className="w-full h-full object-cover"
                     />
                   )}
-                  <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-white/90 backdrop-blur-sm flex items-center gap-1 text-sm font-semibold">
+                  <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm flex items-center gap-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {getEventTypeIcon(event.type)}
                     {event.type}
                   </div>
                 </div>
 
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors">
+                  <h3 className="text-xl font-bold mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors text-gray-900 dark:text-gray-100">
                     {event.title}
                   </h3>
 
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2 text-gray-600 dark:text-gray-300">
                     {event.description}
                   </p>
 
                   {/* Date & Time */}
                   <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                       <CalendarIcon className="w-4 h-4 text-purple-600" />
                       <span>{formatDate(event.startTime)}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                       <Clock className="w-4 h-4 text-blue-600" />
                       <span>
                         {formatTime(event.startTime)} - {formatTime(event.endTime)}
                       </span>
                     </div>
                     {event.location && (
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                         <MapPin className="w-4 h-4 text-green-600" />
                         <span className="line-clamp-1">{event.location}</span>
                       </div>
@@ -258,10 +259,10 @@ export default function EventsPage() {
                           {event.host.name.charAt(0)}
                         </div>
                       )}
-                      <span className="text-sm font-medium">{event.host.name}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{event.host.name}</span>
                     </div>
 
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground text-gray-600 dark:text-gray-400">
                       <Users className="w-4 h-4" />
                       <span>{event._count.rsvps} going</span>
                     </div>
@@ -270,7 +271,7 @@ export default function EventsPage() {
                   {/* Price */}
                   {event.price > 0 && (
                     <div className="mt-4 text-center">
-                      <span className="text-2xl font-bold text-green-600">
+                      <span className="text-2xl font-bold text-green-600 dark:text-green-400">
                         ${event.price}
                       </span>
                     </div>

@@ -36,7 +36,7 @@ export const createEvent = async (
 
         // Invalidate events cache for this host
         await safeCacheSet(`events:list:v1:${userId}`, null as any, 1);
-        
+
         // Invalidate general events cache
         const redis = await import('../utils/redis');
         const redisClient = await redis.getRedis();
@@ -69,7 +69,7 @@ export const getEvents = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const { page = '1', limit = '20', type, status, hostId, upcoming } = req.query;
+        const { page = '1', limit = '20', type, status, hostId, upcoming, past } = req.query;
         const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
         const take = parseInt(limit as string);
 
@@ -79,11 +79,15 @@ export const getEvents = async (
 
         if (type) where.type = type;
         if (hostId) where.hostId = hostId;
+        
+        // Filter by time
         if (upcoming === 'true') {
             where.startTime = { gte: new Date() };
+        } else if (past === 'true') {
+            where.endTime = { lt: new Date() };
         }
 
-        const cacheKey = `events:query:v1:${JSON.stringify({ page, limit, type, status, hostId, upcoming })}`;
+        const cacheKey = `events:query:v1:${JSON.stringify({ page, limit, type, status, hostId, upcoming, past })}`;
         const cached = await safeCacheGet<{ events: any[]; pagination: any }>(cacheKey);
         if (cached) {
             res.json({ success: true, data: cached });
