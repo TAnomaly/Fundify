@@ -12,18 +12,18 @@ import {
 const router = Router();
 
 // Create podcast
-router.post('/', authenticate, upload.single('coverImage'), createPodcast);
+router.post('/', authenticate, upload.single('coverImage'), createPodcast as any);
 
 // Get my podcasts
-router.get('/my', authenticate, getMyPodcasts);
+router.get('/my', authenticate, getMyPodcasts as any);
 
 // Get podcasts by creator
-router.get('/', getPodcastsByCreator);
+router.get('/', getPodcastsByCreator as any);
 
 // Get specific podcast
-router.get('/:id', getPodcast);
+router.get('/:id', getPodcast as any);
 
 // Create episode
-router.post('/:podcastId/episodes', authenticate, upload.single('audio'), createEpisode);
+router.post('/:podcastId/episodes', authenticate, upload.single('audio'), createEpisode as any);
 
 export default router;
