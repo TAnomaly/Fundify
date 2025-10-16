@@ -16,7 +16,7 @@ export async function getRabbitChannel(): Promise<any | null> {
         connection = conn;
         const ch = await conn.createChannel();
         channel = ch;
-        console.log('✅ RabbitMQ channel created (CloudAMQP)');
+        console.log('✅ CLOUD_AMQP channel created');
         return ch;
     } catch (err) {
         console.error('RabbitMQ connection error:', (err as Error).message);
@@ -39,7 +39,7 @@ export async function publishJson(queueName: string, payload: unknown): Promise<
             persistent: true,
             contentType: 'application/json',
         });
-        if (ok) console.log(`[RabbitMQ] PUBLISH queue=${queueName}`);
+        if (ok) console.log(`[CLOUD_AMQP] PUBLISH queue=${queueName}`);
         return ok;
     } catch (err) {
         console.error('RabbitMQ publish error:', (err as Error).message);
