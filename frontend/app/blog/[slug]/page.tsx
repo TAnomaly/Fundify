@@ -91,9 +91,10 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
             const token = localStorage.getItem("authToken");
             const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/articles/${article.id}/comments`, { content: newComment }, { headers: { Authorization: `Bearer ${token}` } });
             if(response.data.success) {
-                setComments([response.data.data, ...comments]);
-                setNewComment("");
                 toast.success("Comment added!");
+                setNewComment("");
+                // Re-fetch all data to ensure UI is in sync
+                await loadArticleAndComments();
             }
         } catch (error) {
             toast.error("Failed to add comment.");
