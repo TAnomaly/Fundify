@@ -154,10 +154,6 @@ model User {
   // Analytics relations
   analytics AnalyticsCache[] @relation("CreatorAnalytics")
 
-  // Podcast relations
-  podcasts        Podcast[]        @relation("CreatorPodcasts")
-  podcastEpisodes PodcastEpisode[] @relation("CreatorEpisodes")
-  episodeListens  EpisodeListen[]  @relation("UserEpisodeListens")
 
   // Digital Products relations
   digitalProducts DigitalProduct[] @relation("CreatorDigitalProducts")
@@ -357,8 +353,6 @@ model MembershipTier {
   subscriptions    Subscription[]
   scheduledPosts   ScheduledPost[]
   welcomeMessages  WelcomeMessage[]
-  podcasts         Podcast[]
-  podcastEpisodes  PodcastEpisode[]
 
   @@index([campaignId])
   @@index([isActive])
@@ -1087,107 +1081,6 @@ model AnalyticsCache {
   @@index([date])
 }
 
-// Podcast System
-model Podcast {
-  id          String   @id @default(uuid())
-  title       String   @db.Text
-  description String?  @db.Text
-  coverImage  String?  @db.Text
-
-  // Podcast metadata
-  author      String   @db.Text
-  email       String?
-  category    String   @default("Technology")
-  language    String   @default("en")
-  isExplicit  Boolean  @default(false)
-
-  // Settings
-  isPublic       Boolean @default(true)
-  minimumTierId  String?
-  minimumTier    MembershipTier? @relation(fields: [minimumTierId], references: [id], onDelete: SetNull)
-
-  // Stats
-  totalEpisodes  Int @default(0)
-  totalListens   Int @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  creatorId String
-  creator   User   @relation("CreatorPodcasts", fields: [creatorId], references: [id], onDelete: Cascade)
-
-  episodes PodcastEpisode[]
-
-  @@index([creatorId])
-  @@index([isPublic])
-}
-
-model PodcastEpisode {
-  id       String @id @default(uuid())
-  title    String @db.Text
-  description String? @db.Text
-
-  // Audio file
-  audioUrl    String @db.Text
-  duration    Int // Duration in seconds
-  fileSize    BigInt
-  mimeType    String @default("audio/mpeg")
-
-  // Episode metadata
-  episodeNumber Int?
-  season        Int?
-  coverImage    String? @db.Text
-
-  // Show notes
-  showNotes     String? @db.Text
-  timestamps    Json? // Array of {time: number, label: string}
-
-  // Access control
-  isPublic       Boolean @default(true)
-  minimumTierId  String?
-  minimumTier    MembershipTier? @relation(fields: [minimumTierId], references: [id], onDelete: SetNull)
-
-  // Stats
-  listenCount Int @default(0)
-  likeCount   Int @default(0)
-
-  // Publishing
-  published    Boolean   @default(true)
-  publishedAt  DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  podcastId String
-  podcast   Podcast @relation(fields: [podcastId], references: [id], onDelete: Cascade)
-
-  creatorId String
-  creator   User   @relation("CreatorEpisodes", fields: [creatorId], references: [id], onDelete: Cascade)
-
-  listens EpisodeListen[]
-
-  @@index([podcastId])
-  @@index([creatorId])
-  @@index([published])
-  @@index([publishedAt])
-}
-
-model EpisodeListen {
-  id         String   @id @default(uuid())
-  progress   Int      @default(0) // Progress in seconds
-  completed  Boolean  @default(false)
-  listenedAt DateTime @default(now())
-
-  userId    String
-  user      User   @relation("UserEpisodeListens", fields: [userId], references: [id], onDelete: Cascade)
-
-  episodeId String
-  episode   PodcastEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, episodeId])
-  @@index([userId])
-  @@index([episodeId])
-}
 
 enum ProductType {
   EBOOK       // Digital books, PDFs
