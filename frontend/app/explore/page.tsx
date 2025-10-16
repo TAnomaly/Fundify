@@ -46,8 +46,8 @@ export default function ExplorePage() {
       setFilteredCampaigns(campaigns);
     } else {
       const lowercasedTerm = searchTerm.toLowerCase();
-      const filtered = campaigns.filter(c => 
-        c.title.toLowerCase().includes(lowercasedTerm) || 
+      const filtered = campaigns.filter(c =>
+        c.title.toLowerCase().includes(lowercasedTerm) ||
         c.description.toLowerCase().includes(lowercasedTerm) ||
         c.category.toLowerCase().includes(lowercasedTerm)
       );
@@ -97,7 +97,7 @@ export default function ExplorePage() {
   };
 
   const renderSkeletons = () => (
-    <motion.div 
+    <motion.div
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
       variants={containerVariants}
       initial="hidden"
@@ -117,7 +117,7 @@ export default function ExplorePage() {
         className="-top-40 left-0 md:left-60 md:-top-20"
         fill="white"
       />
-      
+
       {/* Hero Section */}
       <BlurFade delay={0.25} inView>
         <section className="text-center pt-20 pb-16 px-4 sm:px-6 lg:px-8">
@@ -140,14 +140,14 @@ export default function ExplorePage() {
                 onClick={() => setSelectedTab('creators')}
                 className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-colors ${selectedTab === 'creators' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
               >
-                <Users className="w-4 h-4 mr-2 inline"/>
+                <Users className="w-4 h-4 mr-2 inline" />
                 Creators
               </button>
               <button
                 onClick={() => setSelectedTab('campaigns')}
                 className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-colors ${selectedTab === 'campaigns' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
               >
-                <Flame className="w-4 h-4 mr-2 inline"/>
+                <Flame className="w-4 h-4 mr-2 inline" />
                 Campaigns
               </button>
             </div>
@@ -156,7 +156,7 @@ export default function ExplorePage() {
             {selectedTab === 'campaigns' && (
               <div className="relative w-full max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
+                <Input
                   placeholder="Search campaigns..."
                   className="pl-10 w-full bg-muted border-border"
                   value={searchTerm}
@@ -170,7 +170,7 @@ export default function ExplorePage() {
         <BlurFade delay={0.75} inView>
           {isLoading ? renderSkeletons() : (
             selectedTab === 'creators' ? (
-              <motion.div 
+              <motion.div
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
                 variants={containerVariants}
                 initial="hidden"
@@ -183,7 +183,7 @@ export default function ExplorePage() {
                 ))}
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
                 variants={containerVariants}
                 initial="hidden"
@@ -217,7 +217,7 @@ export default function ExplorePage() {
 function CreatorCard({ creator }: { creator: Creator }) {
   const router = useRouter();
   return (
-    <div 
+    <div
       className="group relative bg-card/50 dark:bg-card/80 backdrop-blur-sm border border-border/30 rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden h-full flex flex-col"
       onClick={() => router.push(`/creators/${creator.username || creator.id}`)}
     >
@@ -238,7 +238,7 @@ function CreatorCard({ creator }: { creator: Creator }) {
             creator.name?.charAt(0).toUpperCase()
           )}
         </div>
-        
+
         <h3 className="text-xl font-bold mb-1 truncate">{creator.name}</h3>
         <p className="text-sm text-muted-foreground mb-3">
           @{creator.username || `user${creator.id.slice(0, 6)}`}
