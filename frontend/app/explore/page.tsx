@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Spotlight } from "@/components/ui/spotlight";
+import { Input } from "@/components/ui/input";
 import {
   TrendingUp,
   Flame,
