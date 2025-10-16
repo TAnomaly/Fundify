@@ -120,6 +120,8 @@ const CampaignCard = React.forwardRef<HTMLDivElement, CampaignCardProps>(
             <img
               src={imageUrl}
               alt={title}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
             />
             <div className="absolute top-4 left-4">

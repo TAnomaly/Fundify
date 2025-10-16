@@ -225,6 +225,8 @@ function CreatorCard({ creator }: { creator: Creator }) {
         <img
           src={creator.bannerImage || `https://source.unsplash.com/random/400x200?abstract&${creator.id}`}
           alt={`${creator.name}'s banner`}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-black/20"></div>
@@ -233,7 +235,7 @@ function CreatorCard({ creator }: { creator: Creator }) {
       <div className="relative px-6 -mt-12 flex-1 flex flex-col pb-6">
         <div className="w-24 h-24 rounded-full border-4 border-background bg-muted flex items-center justify-center text-foreground font-bold text-3xl shadow-lg overflow-hidden mb-4">
           {creator.avatar ? (
-            <img src={creator.avatar} alt={creator.name} className="w-full h-full object-cover" />
+            <img src={creator.avatar} alt={creator.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
           ) : (
             creator.name?.charAt(0).toUpperCase()
           )}

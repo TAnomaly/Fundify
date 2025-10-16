@@ -197,6 +197,8 @@ export default function BlogPage() {
                     <img
                       src={article.coverImage}
                       alt={article.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
@@ -253,6 +255,8 @@ export default function BlogPage() {
                         <img
                           src={article.author.avatar}
                           alt={article.author.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-8 h-8 rounded-full"
                         />
                       ) : (
