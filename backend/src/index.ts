@@ -56,8 +56,24 @@ const limiter = rateLimit({
 // Middleware
 app.use(helmet());
 app.use(compression({ level: 6 }));
+const allowedOriginsStatic = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://funify.vercel.app',
+  'https://fundify.vercel.app',
+  process.env.CORS_ORIGIN,
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const isWhitelisted =
+      allowedOriginsStatic.includes(origin) ||
+      /\.vercel\.app$/.test(origin) ||
+      /\.railway\.app$/.test(origin);
+    return callback(null, isWhitelisted);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control'],

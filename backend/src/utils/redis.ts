@@ -10,6 +10,8 @@ export function getRedis(): Redis | null {
         maxRetriesPerRequest: 2,
         enableReadyCheck: true,
     });
+  redis.on('connect', () => console.log('✅ Redis connected'));
+  redis.on('ready', () => console.log('✅ Redis ready'));
     redis.on('error', (err) => {
         console.error('Redis error:', err.message);
     });

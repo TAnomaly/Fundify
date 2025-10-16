@@ -12,10 +12,11 @@ export async function getRabbitChannel(): Promise<any | null> {
             console.warn('RABBITMQ_URL not set; RabbitMQ disabled.');
             return null;
         }
-        const conn = await connect(url);
+    const conn = await connect(url);
         connection = conn;
-    const ch = await conn.createChannel();
+        const ch = await conn.createChannel();
         channel = ch;
+    console.log('✅ RabbitMQ channel created');
         return ch;
     } catch (err) {
         console.error('RabbitMQ connection error:', (err as Error).message);
