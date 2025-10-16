@@ -168,7 +168,11 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                                     {userRSVP?.status === 'GOING' ? (
                                         <div className="text-center space-y-2">
                                             <p className="font-semibold text-green-500 flex items-center justify-center gap-2"><CheckCircle className="w-5 h-5" /> You are going!</p>
-                                            {event.isPremium && <Button onClick={() => router.push(`/events/${event.id}/ticket`)} className="w-full"><Ticket className="w-4 h-4 mr-2" />View Ticket</Button>}
+                                            {(event.price === 0 || userRSVP?.isPaid) && (
+                                                <Button onClick={() => router.push(`/events/${event.id}/ticket`)} className="w-full">
+                                                    <Ticket className="w-4 h-4 mr-2" />View Ticket
+                                                </Button>
+                                            )}
                                             <Button onClick={() => handleRSVP("NOT_GOING")} variant="link" className="text-xs text-muted-foreground">Cancel RSVP</Button>
                                         </div>
                                     ) : (
