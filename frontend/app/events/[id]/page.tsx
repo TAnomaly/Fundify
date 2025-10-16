@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import SocialShare from "@/components/SocialShare";
 import EventPaymentModal from "@/components/EventPaymentModal";
-import { Calendar, Clock, MapPin, Video, Users, Ticket, ArrowLeft, Share2, CheckCircle, HelpCircle, XCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, Video, Users, Ticket, ArrowLeft, Share2, CheckCircle, HelpCircle, XCircle, Heart } from "lucide-react";
 
 // Interfaces
 interface Event { id: string; title: string; description: string; type: "VIRTUAL" | "IN_PERSON" | "HYBRID"; status: string; startTime: string; endTime: string; location?: string; virtualLink?: string; coverImage?: string; maxAttendees?: number; price: number; isPremium: boolean; agenda?: any; tags: string[]; host: { id: string; name: string; avatar?: string; username?: string; }; _count: { rsvps: number; }; userRSVPStatus?: "GOING" | "MAYBE" | "NOT_GOING"; userRSVPIsPaid?: boolean; }
@@ -89,8 +89,8 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
         <div className="bg-background min-h-screen">
             {event.coverImage && (
                 <motion.div className="h-[50vh] min-h-[350px] w-full overflow-hidden relative" style={{ y: heroImageY }}>
-                    <Image src={getFullMediaUrl(event.coverImage)!} alt={event.title} fill className="object-cover" style={{ scale: heroImageScale }}/>
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"/>
+                    <Image src={getFullMediaUrl(event.coverImage)!} alt={event.title} fill className="object-cover" style={{ scale: heroImageScale }} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
                 </motion.div>
             )}
 
@@ -100,24 +100,24 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                     <div className="lg:col-span-2 space-y-8">
                         <BlurFade delay={0.25} inView>
                             <h1 className="text-5xl font-bold tracking-tight text-foreground">{event.title}</h1>
-                            <div className="mt-4 prose prose-lg dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: event.description }}/>
+                            <div className="mt-4 prose prose-lg dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: event.description }} />
                         </BlurFade>
 
                         {event.agenda && (
                             <BlurFade delay={0.5} inView>
                                 <div className="p-6 bg-muted/50 rounded-2xl border border-border/30">
                                     <h2 className="text-2xl font-bold mb-4">Agenda</h2>
-                                    <div className="prose dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: event.agenda }}/>
+                                    <div className="prose dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: event.agenda }} />
                                 </div>
                             </BlurFade>
                         )}
-                        
+
                         <BlurFade delay={0.75} inView>
                             <div className="p-6 bg-muted/50 rounded-2xl border border-border/30">
                                 <h2 className="text-2xl font-bold mb-4">Location</h2>
                                 <p className="text-muted-foreground mb-4">{event.location || "Virtual Event"}</p>
                                 <div className="aspect-video bg-card rounded-lg overflow-hidden">
-                                    <Image src="/map-placeholder.png" alt="Map" width={800} height={450} className="object-cover"/>
+                                    <Image src="/map-placeholder.png" alt="Map" width={800} height={450} className="object-cover" />
                                 </div>
                             </div>
                         </BlurFade>
@@ -128,18 +128,18 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                         <BlurFade delay={0.5} inView>
                             <div className="p-6 bg-card/80 backdrop-blur-sm rounded-2xl border border-border/30 space-y-4">
                                 <div className="flex items-center gap-3">
-                                    <Calendar className="w-5 h-5 text-primary"/>
+                                    <Calendar className="w-5 h-5 text-primary" />
                                     <div>
                                         <p className="font-semibold">{formatDate(event.startTime)}</p>
                                         <p className="text-sm text-muted-foreground">{formatTime(event.startTime)} - {formatTime(event.endTime)}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <MapPin className="w-5 h-5 text-primary"/>
+                                    <MapPin className="w-5 h-5 text-primary" />
                                     <p className="font-semibold">{event.type === 'VIRTUAL' ? 'Online' : event.location}</p>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <Users className="w-5 h-5 text-primary"/>
+                                    <Users className="w-5 h-5 text-primary" />
                                     <p className="font-semibold">{event._count.rsvps} going {event.maxAttendees ? `/ ${event.maxAttendees}` : ''}</p>
                                 </div>
                             </div>
@@ -148,15 +148,15 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                         <BlurFade delay={0.65} inView>
                             <div className="p-6 bg-card/80 backdrop-blur-sm rounded-2xl border border-border/30 space-y-4">
                                 <Link href={`/creators/${event.host.username}`} className="flex items-center gap-3 group">
-                                    <Image src={getFullMediaUrl(event.host.avatar)!} alt={event.host.name} width={40} height={40} className="rounded-full bg-muted"/>
+                                    <Image src={getFullMediaUrl(event.host.avatar)!} alt={event.host.name} width={40} height={40} className="rounded-full bg-muted" />
                                     <div>
                                         <p className="text-sm text-muted-foreground">Hosted by</p>
                                         <p className="font-semibold text-foreground group-hover:text-primary transition-colors">{event.host.name}</p>
                                     </div>
                                 </Link>
                                 <div className="flex items-center gap-2">
-                                    <SocialShare url={window.location.href} title={event.title} trigger={<Button variant="outline" className="w-full"><Share2 className="w-4 h-4 mr-2"/>Share</Button>}/>
-                                    <Button variant="outline" className="w-full"><Heart className="w-4 h-4 mr-2"/>Follow</Button>
+                                    <SocialShare url={window.location.href} title={event.title} trigger={<Button variant="outline" className="w-full"><Share2 className="w-4 h-4 mr-2" />Share</Button>} />
+                                    <Button variant="outline" className="w-full"><Heart className="w-4 h-4 mr-2" />Follow</Button>
                                 </div>
                             </div>
                         </BlurFade>
@@ -167,14 +167,14 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                                     <p className="text-2xl font-bold text-center">{event.price > 0 ? `$${event.price}` : 'Free'}</p>
                                     {userRSVP?.status === 'GOING' ? (
                                         <div className="text-center space-y-2">
-                                            <p className="font-semibold text-green-500 flex items-center justify-center gap-2"><CheckCircle className="w-5 h-5"/> You are going!</p>
-                                            {event.isPremium && <Button onClick={() => router.push(`/events/${event.id}/ticket`)} className="w-full"><Ticket className="w-4 h-4 mr-2"/>View Ticket</Button>}
+                                            <p className="font-semibold text-green-500 flex items-center justify-center gap-2"><CheckCircle className="w-5 h-5" /> You are going!</p>
+                                            {event.isPremium && <Button onClick={() => router.push(`/events/${event.id}/ticket`)} className="w-full"><Ticket className="w-4 h-4 mr-2" />View Ticket</Button>}
                                             <Button onClick={() => handleRSVP("NOT_GOING")} variant="link" className="text-xs text-muted-foreground">Cancel RSVP</Button>
                                         </div>
                                     ) : (
                                         <div className="space-y-2">
                                             <Button onClick={() => handleRSVP("GOING")} variant="gradient" size="lg" className="w-full">
-                                                <Ticket className="w-5 h-5 mr-2"/> {event.price > 0 ? 'Get Tickets' : 'RSVP Now'}
+                                                <Ticket className="w-5 h-5 mr-2" /> {event.price > 0 ? 'Get Tickets' : 'RSVP Now'}
                                             </Button>
                                             <Button onClick={() => handleRSVP("MAYBE")} variant="outline" className="w-full">Maybe</Button>
                                         </div>
@@ -193,17 +193,17 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
 
 const EventSkeleton = () => (
     <div className="min-h-screen bg-background">
-        <Skeleton className="h-[50vh] w-full"/>
+        <Skeleton className="h-[50vh] w-full" />
         <div className="container mx-auto px-4 pb-12 -mt-24 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start">
                 <div className="lg:col-span-2 space-y-8">
-                    <Skeleton className="h-16 w-3/4"/>
-                    <div className="space-y-2"><Skeleton className="h-4 w-full"/><Skeleton className="h-4 w-5/6"/></div>
-                    <Skeleton className="h-64 w-full"/>
+                    <Skeleton className="h-16 w-3/4" />
+                    <div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /></div>
+                    <Skeleton className="h-64 w-full" />
                 </div>
                 <div className="lg:sticky top-24 space-y-6">
-                    <Skeleton className="h-48 w-full"/>
-                    <Skeleton className="h-24 w-full"/>
+                    <Skeleton className="h-48 w-full" />
+                    <Skeleton className="h-24 w-full" />
                 </div>
             </div>
         </div>
