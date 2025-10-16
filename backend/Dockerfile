@@ -25,4 +25,4 @@ EXPOSE 4000
 RUN npm run build
 
 # Start command with migration
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm start"]
+CMD ["npm", "run", "start:with-migration"]
