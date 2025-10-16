@@ -36,19 +36,22 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     const heroImageScale = useTransform(scrollY, [0, 400], [1, 1.1]);
 
     useEffect(() => {
-        loadArticleAndComments();
+        loadArticleAndComments(true);
     }, [params.slug]);
 
-    const loadArticleAndComments = async () => {
+    const loadArticleAndComments = async (isInitialLoad = false) => {
         try {
-            setIsLoading(true);
+            if (isInitialLoad) {
+                setIsLoading(true);
+            }
             const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+            const cacheBuster = `_=${new Date().getTime()}`;
 
             const [articleResponse, commentsResponse] = await Promise.all([
-                axios.get(`${apiUrl}/articles/${params.slug}`, { headers }),
-                axios.get(`${apiUrl}/articles/${params.slug}/comments`)
+                axios.get(`${apiUrl}/articles/${params.slug}?${cacheBuster}`, { headers }),
+                axios.get(`${apiUrl}/articles/${params.slug}/comments?${cacheBuster}`)
             ]);
 
             if (articleResponse.data.success) {
@@ -61,10 +64,14 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                 setComments(commentsResponse.data.data);
             }
         } catch (error: any) {
-            toast.error("Failed to load article.");
-            router.push("/blog");
+            if (isInitialLoad) {
+                toast.error("Failed to load article.");
+                router.push("/blog");
+            }
         } finally {
-            setIsLoading(false);
+            if (isInitialLoad) {
+                setIsLoading(false);
+            }
         }
     };
 
