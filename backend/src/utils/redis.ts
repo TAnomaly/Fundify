@@ -4,14 +4,15 @@ let redis: Redis | null = null;
 
 export function getRedis(): Redis | null {
     if (redis) return redis;
-    const url = process.env.REDIS_URL;
+  // Prefer public/proxy URL if provided (e.g., Railway proxy or Upstash)
+  const url = process.env.REDIS_PUBLIC_URL || process.env.REDIS_URL;
     if (!url) return null;
     redis = new Redis(url, {
         maxRetriesPerRequest: 2,
         enableReadyCheck: true,
     });
-  redis.on('connect', () => console.log('✅ Redis connected'));
-  redis.on('ready', () => console.log('✅ Redis ready'));
+    redis.on('connect', () => console.log('✅ Redis connected'));
+    redis.on('ready', () => console.log('✅ Redis ready'));
     redis.on('error', (err) => {
         console.error('Redis error:', err.message);
     });
