@@ -1,17 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
-import { AuthRequest } from '../types';
 import { safeCacheGet, safeCacheSet } from '../utils/redis';
 import { publishJson } from '../utils/rabbitmq';
 
 // Create podcast
 export const createPodcast = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id || req.user?.userId;
+    const userId = (req as any).user?.id || (req as any).user?.userId;
     if (!userId) {
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
@@ -99,12 +98,12 @@ export const getPodcastsByCreator = async (
 
 // Get my podcasts
 export const getMyPodcasts = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id || req.user?.userId;
+    const userId = (req as any).user?.id || (req as any).user?.userId;
     if (!userId) {
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
@@ -189,12 +188,12 @@ export const getPodcast = async (
 
 // Create episode
 export const createEpisode = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id || req.user?.userId;
+    const userId = (req as any).user?.id || (req as any).user?.userId;
     if (!userId) {
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;

@@ -14,7 +14,7 @@ const useCloudStorage = isCloudinaryConfigured();
 // Fallback: Local disk storage for development or Railway Volumes
 // On Railway, use /app/uploads (mounted volume)
 // On local dev, use ./uploads
-const uploadsDir = process.env.RAILWAY_ENVIRONMENT 
+const uploadsDir = process.env.RAILWAY_ENVIRONMENT
   ? '/app/uploads'
   : path.join(__dirname, '../../uploads');
 
