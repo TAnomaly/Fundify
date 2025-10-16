@@ -15,7 +15,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, Heart, Calendar, ExternalLink, Lock, CheckCircle2, Globe, Play, Video, Camera, Code, MessageCircle, Share2, Bookmark, Send, Rss, Mic, ShoppingBag, FileText, Award } from "lucide-react";
+import { Users, Heart, Calendar, ExternalLink, Lock, CheckCircle2, Globe, Play, Video, Camera, Code, MessageCircle, Share2, Bookmark, Send, Rss, Mic, ShoppingBag, FileText, Award, Headphones } from "lucide-react";
 import PollsList from "@/components/polls/PollsList";
 import ProductCard from "@/components/products/ProductCard";
 import { digitalProductsApi, type DigitalProduct } from "@/lib/api/digitalProducts";
@@ -39,8 +39,9 @@ export default function CreatorProfilePage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [products, setProducts] = useState<DigitalProduct[]>([]);
+  const [podcasts, setPodcasts] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("posts");
-  
+
   const [dataLoading, setDataLoading] = useState<Record<string, boolean>>({});
 
   const { scrollY } = useScroll();
@@ -51,6 +52,7 @@ export default function CreatorProfilePage() {
     { id: "posts", label: "Posts", icon: Rss },
     { id: "shop", label: "Shop", icon: ShoppingBag },
     { id: "blog", label: "Blog", icon: FileText },
+    { id: "podcast", label: "Podcast", icon: Headphones },
     { id: "events", label: "Events", icon: Calendar },
   ], []);
 
@@ -73,6 +75,10 @@ export default function CreatorProfilePage() {
         case "blog":
           response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/articles?authorId=${profile.user.id}`);
           if (response.data.success) setArticles(response.data.data.articles || []);
+          break;
+        case "podcast":
+          response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/podcasts?creatorId=${profile.user.id}`);
+          if (response.data.success) setPodcasts(response.data.data.podcasts || []);
           break;
         case "events":
           response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events?hostId=${profile.user.id}`);
@@ -137,25 +143,25 @@ export default function CreatorProfilePage() {
       <div className="min-h-screen bg-background">
         <Skeleton className="h-64 w-full" />
         <div className="container mx-auto max-w-6xl px-4 -mt-16">
-            <div className="flex items-end gap-4">
-                <Skeleton className="w-32 h-32 rounded-full border-4 border-background" />
-                <div className="py-4 space-y-2">
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-4 w-64" />
-                </div>
+          <div className="flex items-end gap-4">
+            <Skeleton className="w-32 h-32 rounded-full border-4 border-background" />
+            <div className="py-4 space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-64" />
             </div>
+          </div>
         </div>
         <div className="container mx-auto max-w-6xl px-4 mt-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2 space-y-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-96 w-full" />
-                </div>
-                <div className="space-y-4">
-                    <Skeleton className="h-64 w-full" />
-                    <Skeleton className="h-64 w-full" />
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-96 w-full" />
             </div>
+            <div className="space-y-4">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -191,29 +197,29 @@ export default function CreatorProfilePage() {
               <p className="text-muted-foreground mt-1">@{user.username}</p>
             </div>
             <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon"><Share2 className="w-4 h-4"/></Button>
-                <Button variant="gradient" size="lg" onClick={() => document.getElementById('tiers')?.scrollIntoView({ behavior: 'smooth' })}><Heart className="w-4 h-4 mr-2"/> Support</Button>
+              <Button variant="outline" size="icon"><Share2 className="w-4 h-4" /></Button>
+              <Button variant="gradient" size="lg" onClick={() => document.getElementById('tiers')?.scrollIntoView({ behavior: 'smooth' })}><Heart className="w-4 h-4 mr-2" /> Support</Button>
             </div>
           </div>
-          
+
           <div className="mt-6 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                  <Users className="w-4 h-4"/>
-                  <span className="font-bold text-foreground">{tiers.reduce((sum, tier) => sum + (tier.currentSubscribers || 0), 0)}</span> supporters
-              </div>
-              <div className="flex items-center gap-1.5">
-                  <Heart className="w-4 h-4"/>
-                  <span className="font-bold text-foreground">{profile.campaign?.currentAmount?.toFixed(0) || 0}</span> raised
-              </div>
-              <div className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4"/>
-                  Joined {new Date(user.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-              </div>
-              <div className="flex items-center gap-3">
-                  {user.socialLinks && Object.entries(user.socialLinks).map(([platform, url]) => url && (
-                      <a key={platform} href={url as string} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">{getSocialIcon(platform)}</a>
-                  ))}
-              </div>
+            <div className="flex items-center gap-1.5">
+              <Users className="w-4 h-4" />
+              <span className="font-bold text-foreground">{tiers.reduce((sum, tier) => sum + (tier.currentSubscribers || 0), 0)}</span> supporters
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Heart className="w-4 h-4" />
+              <span className="font-bold text-foreground">{profile.campaign?.currentAmount?.toFixed(0) || 0}</span> raised
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" />
+              Joined {new Date(user.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            </div>
+            <div className="flex items-center gap-3">
+              {user.socialLinks && Object.entries(user.socialLinks).map(([platform, url]) => url && (
+                <a key={platform} href={url as string} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">{getSocialIcon(platform)}</a>
+              ))}
+            </div>
           </div>
         </div>
       </BlurFade>
@@ -228,14 +234,14 @@ export default function CreatorProfilePage() {
                 <TabsList className="border-b-0 p-0 h-auto bg-transparent">
                   {tabs.map(tab => (
                     <TabsTrigger key={tab.id} value={tab.id} className="data-[state=active]:bg-muted data-[state=active]:shadow-none -mb-px border-b-2 border-transparent data-[state=active]:border-primary rounded-none py-3 px-4 font-semibold">
-                      <tab.icon className="w-4 h-4 mr-2"/> {tab.label}
+                      <tab.icon className="w-4 h-4 mr-2" /> {tab.label}
                     </TabsTrigger>
                   ))}
                 </TabsList>
                 <div className="pt-8">
                   {tabs.map(tab => (
                     <TabsContent key={tab.id} value={tab.id}>
-                      {dataLoading[tab.id] ? <Skeleton className="w-full h-96"/> : renderTabContent(tab.id)}
+                      {dataLoading[tab.id] ? <Skeleton className="w-full h-96" /> : renderTabContent(tab.id)}
                     </TabsContent>
                   ))}
                 </div>
@@ -257,7 +263,7 @@ export default function CreatorProfilePage() {
                 </CardContent>
               </Card>
             </BlurFade>
-            
+
             <BlurFade delay={0.9} inView>
               <div id="tiers">
                 <TierSection tiers={tiers} onSubscribe={handleSubscribe} />
@@ -279,7 +285,7 @@ export default function CreatorProfilePage() {
           <motion.div {...motionProps} className="space-y-8">
             {posts.map(post => <motion.div key={post.id} {...itemProps}><PostCard post={post} /></motion.div>)}
           </motion.div>
-        ) : <EmptyState icon={Rss} message="No posts yet." />; 
+        ) : <EmptyState icon={Rss} message="No posts yet." />;
       case "shop":
         return products.length > 0 ? (
           <motion.div {...motionProps} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -292,6 +298,12 @@ export default function CreatorProfilePage() {
             {articles.map(article => <motion.div key={article.id} {...itemProps}><ArticleCard article={article} /></motion.div>)}
           </motion.div>
         ) : <EmptyState icon={FileText} message="No articles yet." />;
+      case "podcast":
+        return podcasts.length > 0 ? (
+          <motion.div {...motionProps} className="space-y-6">
+            {podcasts.map(podcast => <motion.div key={podcast.id} {...itemProps}><PodcastCard podcast={podcast} /></motion.div>)}
+          </motion.div>
+        ) : <EmptyState icon={Headphones} message="No podcasts yet." />;
       case "events":
         return events.length > 0 ? (
           <motion.div {...motionProps} className="space-y-6">
@@ -304,6 +316,31 @@ export default function CreatorProfilePage() {
   }
 }
 
+const PodcastCard = ({ podcast }: { podcast: any }) => (
+  <Card className="bg-card/50 border-border/30 overflow-hidden dark:bg-gray-800/50 dark:border-gray-700/30">
+    <CardContent className="p-6">
+      <div className="flex items-start gap-4">
+        <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+          <Headphones className="w-8 h-8 text-white" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{podcast.title}</h3>
+          <p className="text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">{podcast.description}</p>
+          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+            <span>{podcast.episodeCount || 0} episodes</span>
+            <span>{podcast.totalDuration || '0 min'}</span>
+            <span>{new Date(podcast.updatedAt).toLocaleDateString()}</span>
+          </div>
+        </div>
+        <Button variant="outline" size="sm">
+          <Play className="w-4 h-4 mr-2" />
+          Listen
+        </Button>
+      </div>
+    </CardContent>
+  </Card>
+);
+
 const PostCard = ({ post }: { post: CreatorPost }) => {
   // Dummy state for interactions - in a real app, this would be handled properly
   const [liked, setLiked] = useState(false);
@@ -312,14 +349,14 @@ const PostCard = ({ post }: { post: CreatorPost }) => {
   if (!post.hasAccess) {
     return (
       <div className="relative text-center p-8 sm:p-12 bg-muted/50 rounded-2xl border-2 border-dashed border-border/30 overflow-hidden">
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/10 rounded-full blur-2xl animate-blob animation-delay-2000"></div>
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-secondary/10 rounded-full blur-2xl animate-blob"></div>
-          <Lock className="mx-auto w-10 h-10 text-primary mb-4" />
-          <h3 className="font-bold text-xl text-foreground">Content Locked</h3>
-          <p className="text-muted-foreground mt-2 mb-6 text-sm max-w-sm mx-auto">This post is exclusive to members. Support the creator to unlock this post and many others!</p>
-          <Button onClick={() => document.getElementById('tiers')?.scrollIntoView({ behavior: 'smooth' })}>
-              <Award className="w-4 h-4 mr-2"/> Become a Supporter
-          </Button>
+        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/10 rounded-full blur-2xl animate-blob animation-delay-2000"></div>
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-secondary/10 rounded-full blur-2xl animate-blob"></div>
+        <Lock className="mx-auto w-10 h-10 text-primary mb-4" />
+        <h3 className="font-bold text-xl text-foreground">Content Locked</h3>
+        <p className="text-muted-foreground mt-2 mb-6 text-sm max-w-sm mx-auto">This post is exclusive to members. Support the creator to unlock this post and many others!</p>
+        <Button onClick={() => document.getElementById('tiers')?.scrollIntoView({ behavior: 'smooth' })}>
+          <Award className="w-4 h-4 mr-2" /> Become a Supporter
+        </Button>
       </div>
     )
   }
@@ -328,65 +365,65 @@ const PostCard = ({ post }: { post: CreatorPost }) => {
     <Card className="bg-card/50 border-border/30 overflow-hidden dark:bg-gray-800/50 dark:border-gray-700/30">
       <CardHeader>
         <div className="flex items-center gap-3">
-            <img src={getFullMediaUrl(post.author.avatar) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.name}`} alt={post.author.name} className="w-10 h-10 rounded-full bg-muted"/>
-            <div>
-                <p className="font-semibold text-foreground dark:text-gray-100">{post.author.name}</p>
-                <p className="text-xs text-muted-foreground dark:text-gray-400">{new Date(post.publishedAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-            </div>
+          <img src={getFullMediaUrl(post.author.avatar) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.name}`} alt={post.author.name} className="w-10 h-10 rounded-full bg-muted" />
+          <div>
+            <p className="font-semibold text-foreground dark:text-gray-100">{post.author.name}</p>
+            <p className="text-xs text-muted-foreground dark:text-gray-400">{new Date(post.publishedAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         <h2 className="text-2xl font-bold leading-snug mb-4 text-gray-900 dark:text-gray-100">{post.title}</h2>
-        
+
         {/* Content: Text, Images, Video */}
         <div className="space-y-4">
-            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap line-clamp-6">
-                {post.content}
+          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap line-clamp-6">
+            {post.content}
+          </div>
+          {post.images && post.images.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              {post.images.slice(0, 4).map((img, i) => (
+                <img key={i} src={getFullMediaUrl(img)} className={`rounded-lg object-cover aspect-video ${post.images.length > 2 && i == 0 ? 'col-span-2' : ''}`} alt="Post image" />
+              ))}
             </div>
-            {post.images && post.images.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                    {post.images.slice(0, 4).map((img, i) => (
-                        <img key={i} src={getFullMediaUrl(img)} className={`rounded-lg object-cover aspect-video ${post.images.length > 2 && i == 0 ? 'col-span-2' : ''}`} alt="Post image"/>
-                    ))}
-                </div>
-            )}
-            {post.videoUrl && <video controls src={getFullMediaUrl(post.videoUrl)} className="w-full rounded-lg bg-muted"/>}
+          )}
+          {post.videoUrl && <video controls src={getFullMediaUrl(post.videoUrl)} className="w-full rounded-lg bg-muted" />}
         </div>
 
         {/* Engagement Bar */}
         <div className="flex items-center justify-between pt-6 mt-6 border-t border-border/20 dark:border-gray-700/20">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" onClick={() => setLiked(!liked)} className={`flex items-center gap-1.5 ${liked ? 'text-red-500' : 'text-muted-foreground dark:text-gray-400'}`}>
-                    <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`}/> {post.likeCount + (liked ? 1 : 0)}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 text-muted-foreground dark:text-gray-400">
-                    <MessageCircle className="w-4 h-4"/> {post.commentCount}
-                </Button>
-            </div>
-            <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="text-muted-foreground dark:text-gray-400"><Bookmark className="w-4 h-4"/></Button>
-                <Button variant="ghost" size="icon" className="text-muted-foreground dark:text-gray-400"><Share2 className="w-4 h-4"/></Button>
-            </div>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setLiked(!liked)} className={`flex items-center gap-1.5 ${liked ? 'text-red-500' : 'text-muted-foreground dark:text-gray-400'}`}>
+              <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} /> {post.likeCount + (liked ? 1 : 0)}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 text-muted-foreground dark:text-gray-400">
+              <MessageCircle className="w-4 h-4" /> {post.commentCount}
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="text-muted-foreground dark:text-gray-400"><Bookmark className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="icon" className="text-muted-foreground dark:text-gray-400"><Share2 className="w-4 h-4" /></Button>
+          </div>
         </div>
 
         {/* Comments Section (Toggled) */}
         {showComments && (
-            <div className="pt-6 mt-6 border-t border-border/20 space-y-4">
-                <h4 className="font-semibold">Comments</h4>
-                {/* Add comment input */}
-                <div className="flex items-center gap-2">
-                    <Input placeholder="Write a comment..." className="bg-muted/50"/>
-                    <Button><Send className="w-4 h-4"/></Button>
-                </div>
-                {/* Dummy comment */}
-                <div className="flex items-start gap-2 text-sm">
-                    <div className="w-8 h-8 rounded-full bg-muted"/>
-                    <div>
-                        <p className="font-semibold">A supporter</p>
-                        <p className="text-muted-foreground">Great post!</p>
-                    </div>
-                </div>
+          <div className="pt-6 mt-6 border-t border-border/20 space-y-4">
+            <h4 className="font-semibold">Comments</h4>
+            {/* Add comment input */}
+            <div className="flex items-center gap-2">
+              <Input placeholder="Write a comment..." className="bg-muted/50" />
+              <Button><Send className="w-4 h-4" /></Button>
             </div>
+            {/* Dummy comment */}
+            <div className="flex items-start gap-2 text-sm">
+              <div className="w-8 h-8 rounded-full bg-muted" />
+              <div>
+                <p className="font-semibold">A supporter</p>
+                <p className="text-muted-foreground">Great post!</p>
+              </div>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -423,6 +460,6 @@ const EmptyState = ({ icon: Icon, message }: { icon: React.ElementType, message:
 );
 
 // Dummy icons for social links
-const Youtube = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17z"/><path d="m10 15 5-3-5-3z"/></svg>;
-const Instagram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>;
-const Github = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>;
+const Youtube = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17z" /><path d="m10 15 5-3-5-3z" /></svg>;
+const Instagram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></svg>;
+const Github = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></svg>;
