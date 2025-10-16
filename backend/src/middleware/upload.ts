@@ -131,5 +131,8 @@ export const uploadFields = (fields: { name: string; maxCount: number }[]) => {
   return createUploadInstance('file').fields(fields);
 };
 
+// Default upload instance for general use
+export const upload = createUploadInstance('file');
+
 // Export flag to check if using cloud storage
 export { useCloudStorage };

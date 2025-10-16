@@ -8,6 +8,7 @@ import {
     createEpisode,
     getPodcast,
 } from '../controllers/podcastController';
+import type { Request, Response, NextFunction } from 'express';
 
 const router = Router();
 

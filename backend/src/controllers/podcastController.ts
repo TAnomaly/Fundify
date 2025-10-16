@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { AuthRequest } from '../types';
 import { safeCacheGet, safeCacheSet } from '../utils/redis';
@@ -332,6 +332,80 @@ export const getPodcast = async (
   }
 };
 
+// Get podcasts by creator
+export const getPodcastsByCreator = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { creatorId } = req.query;
+
+    const podcasts = await prisma.podcast.findMany({
+      where: {
+        status: 'PUBLISHED',
+        ...(creatorId && { creatorId: creatorId as string }),
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        _count: {
+          select: {
+            episodes: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      data: { podcasts },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get my podcasts
+export const getMyPodcasts = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const podcasts = await prisma.podcast.findMany({
+      where: { creatorId: userId },
+      include: {
+        _count: {
+          select: {
+            episodes: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      data: { podcasts },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Helper function to format duration
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -342,3 +416,4 @@ function formatDuration(seconds: number): string {
   }
   return `${minutes}m`;
 }
+

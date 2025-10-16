@@ -66,29 +66,28 @@ export const generateRSSFeed = async (
 
     <atom:link href="${baseUrl}/api/podcast/${podcast.id}/rss" rel="self" type="application/rss+xml" />
 ${podcast.episodes
-  .map(
-    (episode) => `
+        .map(
+          (episode) => `
     <item>
       <title>${escapeXml(episode.title)}</title>
       <link>${baseUrl}/episode/${episode.id}</link>
       <pubDate>${new Date(episode.publishedAt || episode.createdAt).toUTCString()}</pubDate>
       <description>${escapeXml(episode.description || '')}</description>
-      <enclosure url="${escapeXml(episode.audioUrl)}"
-                 length="${episode.fileSize}"
-                 type="${episode.mimeType}" />
+      <enclosure url="${escapeXml(episode.audioUrl || '')}"
+                 length="0"
+                 type="audio/mpeg" />
       <guid isPermaLink="false">${episode.id}</guid>
 
       <itunes:title>${escapeXml(episode.title)}</itunes:title>
-      <itunes:author>${escapeXml(podcast.author)}</itunes:author>
+      <itunes:author>${escapeXml(podcast.creator.name)}</itunes:author>
       <itunes:summary>${escapeXml(episode.description || '')}</itunes:summary>
-      <itunes:image href="${escapeXml(episode.coverImage || podcast.coverImage || '')}" />
-      <itunes:duration>${formatDuration(episode.duration)}</itunes:duration>
+      <itunes:image href="${escapeXml(podcast.coverImage || '')}" />
+      <itunes:duration>${formatDuration(episode.duration || 0)}</itunes:duration>
       ${episode.episodeNumber ? `<itunes:episode>${episode.episodeNumber}</itunes:episode>` : ''}
-      ${episode.season ? `<itunes:season>${episode.season}</itunes:season>` : ''}
-      <itunes:explicit>${podcast.isExplicit ? 'yes' : 'no'}</itunes:explicit>
+      <itunes:explicit>no</itunes:explicit>
     </item>`
-  )
-  .join('\n')}
+        )
+        .join('\n')}
   </channel>
 </rss>`;
 
