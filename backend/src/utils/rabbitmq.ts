@@ -7,9 +7,9 @@ let channel: any = null;
 export async function getRabbitChannel(): Promise<any | null> {
     try {
         if (channel) return channel;
-        const url = process.env.RABBITMQ_URL;
+        const url = process.env.CLOUD_AMQP || process.env.RABBITMQ_URL;
         if (!url) {
-            console.warn('RABBITMQ_URL not set; RabbitMQ disabled.');
+            console.warn('CLOUD_AMQP/RABBITMQ_URL not set; RabbitMQ disabled.');
             return null;
         }
         const conn = await connect(url);
@@ -32,15 +32,15 @@ export async function ensureQueue(queueName: string): Promise<any | null> {
 }
 
 export async function publishJson(queueName: string, payload: unknown): Promise<boolean> {
-  const ch = await ensureQueue(queueName);
+    const ch = await ensureQueue(queueName);
     if (!ch) return false;
     try {
-    const ok = ch.sendToQueue(queueName, Buffer.from(JSON.stringify(payload)), {
+        const ok = ch.sendToQueue(queueName, Buffer.from(JSON.stringify(payload)), {
             persistent: true,
             contentType: 'application/json',
         });
-    if (ok) console.log(`[RabbitMQ] PUBLISH queue=${queueName}`);
-    return ok;
+        if (ok) console.log(`[RabbitMQ] PUBLISH queue=${queueName}`);
+        return ok;
     } catch (err) {
         console.error('RabbitMQ publish error:', (err as Error).message);
         return false;
