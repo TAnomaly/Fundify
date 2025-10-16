@@ -45,23 +45,13 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                 setIsLoading(true);
             }
             const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
             const cacheBuster = `_=${new Date().getTime()}`;
 
-            // Headers to prevent caching at any level (browser, CDN, etc.)
-            const requestHeaders: any = {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                'Expires': '0',
-            };
-
-            if (token) {
-                requestHeaders['Authorization'] = `Bearer ${token}`;
-            }
-
             const [articleResponse, commentsResponse] = await Promise.all([
-                axios.get(`${apiUrl}/articles/${params.slug}?${cacheBuster}`, { headers: requestHeaders }),
-                axios.get(`${apiUrl}/articles/${params.slug}/comments?${cacheBuster}`, { headers: requestHeaders })
+                axios.get(`${apiUrl}/articles/${params.slug}?${cacheBuster}`, { headers }),
+                axios.get(`${apiUrl}/articles/${params.slug}/comments?${cacheBuster}`, { headers })
             ]);
 
             if (articleResponse.data.success) {
