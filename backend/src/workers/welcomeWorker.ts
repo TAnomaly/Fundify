@@ -1,4 +1,5 @@
 import { ensureQueue, getRabbitChannel } from '../utils/rabbitmq';
+import type { ConsumeMessage } from 'amqplib';
 import prisma from '../utils/prisma';
 
 type WelcomeJob = {
@@ -40,7 +41,7 @@ export async function startWelcomeWorker() {
     // Prefetch 5 jobs at a time
     ch.prefetch(5);
 
-    ch.consume('jobs.welcome', async (msg) => {
+  ch.consume('jobs.welcome', async (msg: ConsumeMessage | null) => {
         if (!msg) return;
         try {
             const job: WelcomeJob = JSON.parse(msg.content.toString());
