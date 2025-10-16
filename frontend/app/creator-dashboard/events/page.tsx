@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import toast from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isAuthenticated, getCurrentUser } from "@/lib/auth";
 
 interface Event {
   id: string;
@@ -36,10 +38,18 @@ export default function EventsManagement() {
   const loadEvents = async () => {
     setIsLoading(true);
     try {
-      // TODO: Implement API call to fetch creator's events
-      // const response = await eventApi.getMyEvents();
-      // setEvents(response.data);
-      setEvents([]);
+      const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
+      if (!token) {
+        setEvents([]);
+      } else {
+        const me = getCurrentUser();
+        const api = process.env.NEXT_PUBLIC_API_URL;
+        const res = await axios.get(`${api}/events?hostId=${me?.userId || me?.id}&status=PUBLISHED`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = Array.isArray(res.data?.data?.events) ? res.data.data.events : [];
+        setEvents(data);
+      }
     } catch (error: any) {
       toast.error("Failed to load events");
     } finally {

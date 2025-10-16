@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated, getCurrentUser, removeToken } from "@/lib/auth";
-import { Moon, Sun, Menu, X, Heart, MessageSquare, Sparkles } from "lucide-react";
+import { Moon, Sun, Menu, X, Heart, MessageSquare, Sparkles, LayoutDashboard, FolderKanban, Users, CreditCard, ShoppingBag, Settings, LogOut } from "lucide-react";
 import { MovingBorderButton } from "@/components/ui/moving-border";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
@@ -144,16 +144,32 @@ export function Navbar() {
                   </button>
                   {showDropdown && (
                     <div className="absolute right-0 mt-3 w-56 bg-glass-card rounded-2xl shadow-soft-hover border-0 py-2 backdrop-blur-xl">
-                      <a href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>Dashboard</a>
-                      <a href="/dashboard#my-campaigns" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>My Projects</a>
-                      <a href="/creator-dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>Creator Hub</a>
-                      <a href="/subscriptions" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>Subscriptions</a>
-                      <a href="/purchases" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>My Purchases</a>
+                      <a href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                        <LayoutDashboard className="w-4 h-4" /> Dashboard
+                      </a>
+                      <a href="/dashboard#my-campaigns" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                        <FolderKanban className="w-4 h-4" /> My Projects
+                      </a>
+                      <a href="/creator-dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                        <Users className="w-4 h-4" /> Creator Hub
+                      </a>
+                      <a href="/subscriptions" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                        <CreditCard className="w-4 h-4" /> Subscriptions
+                      </a>
+                      <a href="/purchases" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                        <ShoppingBag className="w-4 h-4" /> My Purchases
+                      </a>
                       <div className="my-1 border-t border-slate-200/50 dark:border-slate-700/50" />
-                      <a href="/creator-dashboard/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>Settings</a>
-                      <a href="/dashboard#my-donations" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>Contributions</a>
+                      <a href="/creator-dashboard/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                        <Settings className="w-4 h-4" /> Settings
+                      </a>
+                      <a href="/dashboard#my-donations" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                        <Heart className="w-4 h-4" /> Contributions
+                      </a>
                       <hr className="my-2 border-slate-200 dark:border-slate-700" />
-                      <button onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20">Logout</button>
+                      <button onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20">
+                        <LogOut className="w-4 h-4" /> Logout
+                      </button>
                     </div>
                   )}
                 </div>

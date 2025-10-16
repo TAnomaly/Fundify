@@ -2,6 +2,8 @@ import { Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { AuthRequest } from '../types';
 import { stripe, getOrCreateStripeCustomer, formatAmountForStripe } from '../config/stripe';
+import { safeCacheGet, safeCacheSet } from '../utils/redis';
+import { publishJson } from '../utils/rabbitmq';
 
 // Create event
 export const createEvent = async (
@@ -31,6 +33,12 @@ export const createEvent = async (
                 },
             },
         });
+
+        // Invalidate events cache for this host
+        await safeCacheSet(`events:list:v1:${userId}`, null as any, 1);
+
+        // Publish a notification job (optional)
+        await publishJson('jobs.events', { type: 'event-created', eventId: event.id, hostId: userId, createdAt: Date.now() });
 
         res.status(201).json({
             success: true,
@@ -63,6 +71,13 @@ export const getEvents = async (
             where.startTime = { gte: new Date() };
         }
 
+        const cacheKey = `events:query:v1:${JSON.stringify({ page, limit, type, status, hostId, upcoming })}`;
+        const cached = await safeCacheGet<{ events: any[]; pagination: any }>(cacheKey);
+        if (cached) {
+            res.json({ success: true, data: cached });
+            return;
+        }
+
         const [events, total] = await Promise.all([
             prisma.event.findMany({
                 where,
@@ -89,18 +104,19 @@ export const getEvents = async (
             prisma.event.count({ where }),
         ]);
 
-        res.json({
-            success: true,
-            data: {
-                events,
-                pagination: {
-                    page: parseInt(page as string),
-                    limit: parseInt(limit as string),
-                    total,
-                    pages: Math.ceil(total / take),
-                },
+        const payload = {
+            events,
+            pagination: {
+                page: parseInt(page as string),
+                limit: parseInt(limit as string),
+                total,
+                pages: Math.ceil(total / take),
             },
-        });
+        };
+
+        await safeCacheSet(cacheKey, payload, 60);
+
+        res.json({ success: true, data: payload });
     } catch (error) {
         next(error);
     }
