@@ -84,6 +84,8 @@ const config: Config = {
         "gradient": "gradient 8s linear infinite",
         "float": "float 6s ease-in-out infinite",
         "spotlight": "spotlight 2s ease .75s 1 forwards",
+        "marquee-horizontal": "marquee-horizontal var(--duration) linear infinite",
+        "marquee-vertical": "marquee-vertical var(--duration) linear infinite",
       },
       keyframes: {
         fadeIn: {
@@ -123,6 +125,14 @@ const config: Config = {
             opacity: "1",
             transform: "translate(-50%,-40%) scale(1)",
           },
+        },
+        "marquee-horizontal": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(calc(-100% - var(--gap)))" },
+        },
+        "marquee-vertical": {
+          from: { transform: "translateY(0)" },
+          to: { transform: "translateY(calc(-100% - var(--gap)))" },
         },
       },
     },
