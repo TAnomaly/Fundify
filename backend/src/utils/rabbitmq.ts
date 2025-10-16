@@ -16,7 +16,7 @@ export async function getRabbitChannel(): Promise<any | null> {
         connection = conn;
         const ch = await conn.createChannel();
         channel = ch;
-        console.log('✅ RabbitMQ channel created');
+        console.log('✅ RabbitMQ channel created (CloudAMQP)');
         return ch;
     } catch (err) {
         console.error('RabbitMQ connection error:', (err as Error).message);
