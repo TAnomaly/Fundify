@@ -64,6 +64,7 @@ const allowedOriginsStatic = [
   'http://localhost:3001',
   'https://funify.vercel.app',
   'https://fundify.vercel.app',
+  'https://perfect-happiness-production.up.railway.app',
   process.env.CORS_ORIGIN,
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
