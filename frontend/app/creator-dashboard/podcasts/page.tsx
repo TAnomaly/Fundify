@@ -61,7 +61,7 @@ export default function PodcastsPage() {
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/creator/${currentUser.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/podcasts?creatorId=${currentUser.id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
