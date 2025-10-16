@@ -46,6 +46,9 @@ const PORT = process.env.PORT || 5000;
 // Configure Passport
 configurePassport();
 
+// Behind Railway/Vercel proxies, trust X-Forwarded-* headers for proper rate-limit IPs
+app.set('trust proxy', true);
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
