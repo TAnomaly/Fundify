@@ -36,6 +36,18 @@ export const createEvent = async (
 
         // Invalidate events cache for this host
         await safeCacheSet(`events:list:v1:${userId}`, null as any, 1);
+        
+        // Invalidate general events cache
+        const redis = await import('../utils/redis');
+        const redisClient = await redis.getRedis();
+        if (redisClient) {
+            // Delete all events cache keys
+            const keys = await redisClient.keys('events:*');
+            if (keys.length > 0) {
+                await redisClient.del(...keys);
+                console.log(`[Redis] DELETED ${keys.length} events cache keys`);
+            }
+        }
 
         // Publish a notification job (optional)
         await publishJson('jobs.events', { type: 'event-created', eventId: event.id, hostId: userId, createdAt: Date.now() });
@@ -461,7 +473,7 @@ export const checkInAttendee = async (
 
         // Find the RSVP by ticket code
         const rsvp = await prisma.eventRSVP.findUnique({
-            where: {ticketCode},
+            where: { ticketCode },
             include: {
                 event: {
                     select: {
