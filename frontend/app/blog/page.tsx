@@ -125,14 +125,14 @@ export default function BlogPage() {
               <BookOpen className="w-5 h-5" />
               <span className="text-sm font-semibold">Creator Blog</span>
             </div>
-            
+
             <h1 className="text-5xl font-bold mb-4">
               Stories from Our <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-pink-200">
                 Creative Community
               </span>
             </h1>
-            
+
             <p className="text-xl text-white/90 mb-6">
               Discover insights, tutorials, and stories from talented creators
             </p>

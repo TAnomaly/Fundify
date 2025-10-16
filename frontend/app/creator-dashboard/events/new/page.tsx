@@ -28,14 +28,14 @@ export default function NewEventPage() {
             setIsSubmitting(true);
             const token = localStorage.getItem("authToken");
             const api = process.env.NEXT_PUBLIC_API_URL;
-            
+
             // Convert datetime-local to ISO-8601 format
             const eventData = {
                 ...form,
                 startTime: new Date(form.startTime).toISOString(),
                 endTime: new Date(form.endTime).toISOString(),
             };
-            
+
             const res = await axios.post(`${api}/events`, eventData, { headers: { Authorization: `Bearer ${token}` } });
             if (res.data?.success) {
                 toast.success("Event created");

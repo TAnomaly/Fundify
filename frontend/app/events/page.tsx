@@ -162,8 +162,8 @@ export default function EventsPage() {
               key={tab.key}
               onClick={() => setFilter(tab.key as any)}
               className={`px-6 py-2 rounded-full font-semibold transition-all ${filter === tab.key
-                  ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
+                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
+                : "bg-white text-gray-700 hover:bg-gray-100"
                 }`}
             >
               {tab.label}
