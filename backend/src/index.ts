@@ -186,7 +186,7 @@ app.use('/api', messageRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/scheduled-posts', scheduledPostRoutes);
 app.use('/api/welcome-messages', welcomeMessageRoutes);
-app.use('/api', podcastRoutes);
+app.use('/api/podcasts', podcastRoutes);
 app.use('/api', digitalProductRoutes);
 
 // 404 handler
