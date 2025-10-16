@@ -18,14 +18,11 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Run database migration
-RUN npx prisma db push --accept-data-loss
-
 # Expose port
 EXPOSE 4000
 
 # Build TypeScript
 RUN npm run build
 
-# Start command
-CMD ["npm", "start"]
+# Start command with migration
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm start"]
