@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -12,134 +11,22 @@ import { isAuthenticated } from "@/lib/auth";
 import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
 import toast from "react-hot-toast";
 import axios from "axios";
-import {
-  Users,
-  Heart,
-  Calendar,
-  ExternalLink,
-  Lock,
-  CheckCircle2,
-  Globe,
-  Play,
-  Video,
-  Camera,
-  Code,
-  MessageCircle,
-  Share2,
-  Bookmark,
-  Send,
-} from "lucide-react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { BlurFade } from "@/components/ui/blur-fade";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Users, Heart, Calendar, ExternalLink, Lock, CheckCircle2, Globe, Play, Video, Camera, Code, MessageCircle, Share2, Bookmark, Send, Rss, Mic, ShoppingBag, FileText, Award } from "lucide-react";
 import PollsList from "@/components/polls/PollsList";
 import ProductCard from "@/components/products/ProductCard";
 import { digitalProductsApi, type DigitalProduct } from "@/lib/api/digitalProducts";
 
-interface CreatorProfile {
-  user: {
-    id: string;
-    name: string;
-    username?: string;
-    avatar?: string;
-    bannerImage?: string;
-    creatorBio?: string;
-    socialLinks?: {
-      twitter?: string;
-      youtube?: string;
-      instagram?: string;
-      github?: string;
-      website?: string;
-    };
-    createdAt: string;
-  };
-  campaign: {
-    id: string;
-    slug: string;
-    title: string;
-    description: string;
-    story: string;
-    coverImage: string;
-    currentAmount: number;
-  };
-  tiers: Array<{
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    interval: "MONTHLY" | "YEARLY";
-    perks: string[];
-    hasExclusiveContent: boolean;
-    hasEarlyAccess: boolean;
-    hasPrioritySupport: boolean;
-    currentSubscribers: number;
-    maxSubscribers?: number;
-  }>;
-}
+// Interfaces would be here
+interface CreatorProfile { user: { id: string; name: string; username?: string; avatar?: string; bannerImage?: string; creatorBio?: string; socialLinks?: any; createdAt: string; }; campaign: any; tiers: any[]; }
+interface CreatorPost { id: string; title: string; content: string; excerpt?: string; images: string[]; videoUrl?: string; isPublic: boolean; hasAccess: boolean; publishedAt: string; likeCount: number; commentCount: number; author: { id: string; name: string; avatar?: string; }; }
+interface Comment { id: string; content: string; createdAt: string; user: { name: string; avatar?: string; }; }
+interface Article { id: string; slug: string; title: string; excerpt?: string; coverImage?: string; status: string; publishedAt?: string; viewCount: number; readTime?: number; author: any; _count?: any; }
+interface Event { id: string; title: string; description: string; coverImage?: string; type: string; status: string; startTime: string; endTime: string; location?: string; virtualLink?: string; price?: number; _count?: any; }
 
-interface CreatorPost {
-  id: string;
-  title: string;
-  content: string;
-  excerpt?: string;
-  images: string[];
-  videoUrl?: string;
-  isPublic: boolean;
-  hasAccess: boolean;
-  publishedAt: string;
-  likeCount: number;
-  commentCount: number;
-  author: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-}
-
-interface Comment {
-  id: string;
-  content: string;
-  createdAt: string;
-  user: {
-    name: string;
-    avatar?: string;
-  };
-}
-
-interface Article {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt?: string;
-  coverImage?: string;
-  status: string;
-  publishedAt?: string;
-  viewCount: number;
-  readTime?: number;
-  author: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-  _count?: {
-    likes: number;
-    comments: number;
-  };
-}
-
-interface Event {
-  id: string;
-  title: string;
-  description: string;
-  coverImage?: string;
-  type: "VIRTUAL" | "IN_PERSON" | "HYBRID";
-  status: string;
-  startTime: string;
-  endTime: string;
-  location?: string;
-  virtualLink?: string;
-  price?: number;
-  _count?: {
-    rsvps: number;
-  };
-}
 
 export default function CreatorProfilePage() {
   const params = useParams();
@@ -149,178 +36,82 @@ export default function CreatorProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [posts, setPosts] = useState<CreatorPost[]>([]);
-  const [postsLoading, setPostsLoading] = useState(false);
-  const [hasSubscription, setHasSubscription] = useState(false);
-  const [activeTab, setActiveTab] = useState("about");
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
-  const [showComments, setShowComments] = useState<string | null>(null);
-  const [newComment, setNewComment] = useState("");
-  const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [articles, setArticles] = useState<Article[]>([]);
-  const [articlesLoading, setArticlesLoading] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
-  const [eventsLoading, setEventsLoading] = useState(false);
-  const [podcasts, setPodcasts] = useState<any[]>([]);
-  const [podcastsLoading, setPodcastsLoading] = useState(false);
   const [products, setProducts] = useState<DigitalProduct[]>([]);
-  const [productsLoading, setProductsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("posts");
+  
+  const [dataLoading, setDataLoading] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    loadCreatorProfile();
+  const { scrollY } = useScroll();
+  const bannerScale = useTransform(scrollY, [0, 300], [1, 1.2]);
+  const bannerOpacity = useTransform(scrollY, [0, 300], [1, 0.5]);
 
-    // Listen for profile updates (when user updates their profile)
-    const handleStorageChange = () => {
-      console.log("📡 Profile data changed, reloading creator profile...");
-      loadCreatorProfile();
-    };
-    window.addEventListener("storage", handleStorageChange);
+  const tabs = useMemo(() => [
+    { id: "posts", label: "Posts", icon: Rss },
+    { id: "shop", label: "Shop", icon: ShoppingBag },
+    { id: "blog", label: "Blog", icon: FileText },
+    { id: "events", label: "Events", icon: Calendar },
+  ], []);
 
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [username]);
+  const loadTabData = async (tab: string) => {
+    if (!profile || dataLoading[tab]) return;
 
-  useEffect(() => {
-    if (activeTab === "posts" && profile && posts.length === 0) {
-      loadCreatorPosts();
-    }
-    if (activeTab === "blog" && profile && articles.length === 0) {
-      loadCreatorArticles();
-    }
-    if (activeTab === "events" && profile && events.length === 0) {
-      loadCreatorEvents();
-    }
-    if (activeTab === "podcasts" && profile && podcasts.length === 0) {
-      loadCreatorPodcasts();
-    }
-    if (activeTab === "shop" && profile && products.length === 0) {
-      (async () => {
-        try {
-          setProductsLoading(true);
+    setDataLoading(prev => ({ ...prev, [tab]: true }));
+    try {
+      let response;
+      switch (tab) {
+        case "posts":
+          const token = localStorage.getItem("authToken");
+          response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/posts/creator/${profile.user.id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+          if (response.data.success) setPosts(response.data.data.posts || []);
+          break;
+        case "shop":
           const { success, data } = await digitalProductsApi.list({ creatorId: profile.user.id });
           if (success) setProducts(data);
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setProductsLoading(false);
-        }
-      })();
+          break;
+        case "blog":
+          response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/articles?authorId=${profile.user.id}`);
+          if (response.data.success) setArticles(response.data.data.articles || []);
+          break;
+        case "events":
+          response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events?hostId=${profile.user.id}`);
+          if (response.data.success) setEvents(response.data.data.events || []);
+          break;
+      }
+    } catch (error) {
+      console.error(`Error loading ${tab}:`, error);
+      toast.error(`Failed to load ${tab}.`);
+    } finally {
+      setDataLoading(prev => ({ ...prev, [tab]: false }));
     }
-  }, [activeTab, profile]);
+  };
 
   useEffect(() => {
-    // Load user's liked posts
-    if (isAuthenticated()) {
-      loadUserLikes();
-    }
-  }, []);
-
-  const loadCreatorProfile = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/creator/${username}`
-      );
-
-      if (response.data.success) {
-        setProfile(response.data.data);
+    const loadCreatorProfile = async () => {
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/creator/${username}`);
+        if (response.data.success) {
+          setProfile(response.data.data);
+        } else {
+          throw new Error(response.data.message || "Creator not found");
+        }
+      } catch (error: any) {
+        toast.error(error.message || "Creator not found");
+        router.push("/explore");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      console.error("Error loading creator profile:", error);
-      toast.error(error.response?.data?.message || "Creator not found");
-      router.push("/campaigns");
-    } finally {
-      setIsLoading(false);
+    };
+    loadCreatorProfile();
+  }, [username, router]);
+
+  useEffect(() => {
+    if (profile) {
+      loadTabData(activeTab);
     }
-  };
-
-  const loadCreatorPosts = async () => {
-    if (!profile) return;
-
-    try {
-      setPostsLoading(true);
-      const token = localStorage.getItem("authToken");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/posts/creator/${profile.user.id}`,
-        { headers }
-      );
-
-      if (response.data.success) {
-        const posts = response.data.data.posts || [];
-        console.log('📰 Loaded posts:', posts.length);
-        posts.forEach((post: any, i: number) => {
-          console.log(`Post ${i + 1}: ${post.title}`);
-          console.log('  - Images:', post.images);
-          console.log('  - Video:', post.videoUrl);
-        });
-        setPosts(posts);
-        setHasSubscription(response.data.data.hasSubscription || false);
-      }
-    } catch (error) {
-      console.error("Error loading posts:", error);
-    } finally {
-      setPostsLoading(false);
-    }
-  };
-
-  const loadCreatorArticles = async () => {
-    if (!profile) return;
-
-    try {
-      setArticlesLoading(true);
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/articles?authorId=${profile.user.id}`
-      );
-
-      if (response.data.success) {
-        setArticles(response.data.data.articles || []);
-      }
-    } catch (error) {
-      console.error("Error loading articles:", error);
-    } finally {
-      setArticlesLoading(false);
-    }
-  };
-
-  const loadCreatorEvents = async () => {
-    if (!profile) return;
-
-    try {
-      setEventsLoading(true);
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/events?hostId=${profile.user.id}`
-      );
-
-      if (response.data.success) {
-        setEvents(response.data.data.events || []);
-      }
-    } catch (error) {
-      console.error("Error loading events:", error);
-    } finally {
-      setEventsLoading(false);
-    }
-  };
-
-  const loadCreatorPodcasts = async () => {
-    if (!profile) return;
-
-    try {
-      setPodcastsLoading(true);
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/creator/${profile.user.id}`
-      );
-
-      if (response.data.success) {
-        setPodcasts(response.data.data || []);
-      }
-    } catch (error) {
-      console.error("Error loading podcasts:", error);
-    } finally {
-      setPodcastsLoading(false);
-    }
-  };
+  }, [profile, activeTab]);
 
   const handleSubscribe = async (tierId: string) => {
     if (!isAuthenticated()) {
@@ -328,9 +119,7 @@ export default function CreatorProfilePage() {
       router.push(`/login?redirect=/creators/${username}`);
       return;
     }
-
     if (!profile) return;
-
     try {
       await redirectToCheckout(tierId, profile.user.id);
     } catch (error: any) {
@@ -338,1102 +127,302 @@ export default function CreatorProfilePage() {
     }
   };
 
-  const loadUserLikes = async () => {
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/posts/likes`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (response.data.success) {
-        setLikedPosts(new Set(response.data.data));
-      }
-    } catch (error) {
-      console.error("Error loading likes:", error);
-    }
-  };
-
-  const handleLike = async (postId: string) => {
-    if (!isAuthenticated()) {
-      toast.error("Please login to like posts");
-      return;
-    }
-
-    // Get current state BEFORE any updates
-    const isCurrentlyLiked = likedPosts.has(postId);
-    const originalPosts = [...posts];
-    const originalLikedPosts = new Set(likedPosts);
-
-    try {
-      // Optimistic update
-      const newLikedPosts = new Set(likedPosts);
-
-      if (isCurrentlyLiked) {
-        newLikedPosts.delete(postId);
-      } else {
-        newLikedPosts.add(postId);
-      }
-      setLikedPosts(newLikedPosts);
-
-      // Update like count in posts (use || 0 to prevent negative)
-      setPosts(posts.map(post =>
-        post.id === postId
-          ? { ...post, likeCount: Math.max(0, (post.likeCount || 0) + (isCurrentlyLiked ? -1 : 1)) }
-          : post
-      ));
-
-      // API call
-      const token = localStorage.getItem("authToken");
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/like`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // Update with actual server count
-      if (response.data.success && response.data.data.likeCount !== undefined) {
-        setPosts(posts.map(post =>
-          post.id === postId
-            ? { ...post, likeCount: response.data.data.likeCount }
-            : post
-        ));
-      }
-    } catch (error) {
-      console.error("Like error:", error);
-      // Revert to original state on error
-      setLikedPosts(originalLikedPosts);
-      setPosts(originalPosts);
-      toast.error("Failed to update like. Database tables may not exist yet.");
-    }
-  };
-
-  const handleShare = async (post: CreatorPost) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: post.title,
-          text: post.excerpt || post.content.substring(0, 100),
-          url: window.location.href,
-        });
-      } catch (error) {
-        // User cancelled share
-      }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied to clipboard!");
-    }
-  };
-
-  const loadComments = async (postId: string) => {
-    try {
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/comments`
-      );
-      if (response.data.success) {
-        setComments({
-          ...comments,
-          [postId]: response.data.data,
-        });
-      }
-    } catch (error) {
-      console.error("Error loading comments:", error);
-    }
-  };
-
-  const handleAddComment = async (postId: string) => {
-    if (!isAuthenticated()) {
-      toast.error("Please login to comment");
-      return;
-    }
-
-    if (!newComment.trim()) {
-      toast.error("Please enter a comment");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/comments`,
-        { content: newComment },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        // Add new comment to state
-        setComments({
-          ...comments,
-          [postId]: [response.data.data, ...(comments[postId] || [])],
-        });
-
-        // Update comment count
-        setPosts(posts.map(post =>
-          post.id === postId
-            ? { ...post, commentCount: post.commentCount + 1 }
-            : post
-        ));
-
-        setNewComment("");
-        toast.success("Comment added!");
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to add comment");
-    }
-  };
-
   const getSocialIcon = (platform: string) => {
-    switch (platform) {
-      case "twitter":
-        return <Play className="w-5 h-5" />;
-      case "youtube":
-        return <Video className="w-5 h-5" />;
-      case "instagram":
-        return <Camera className="w-5 h-5" />;
-      case "github":
-        return <Code className="w-5 h-5" />;
-      case "website":
-        return <Globe className="w-5 h-5" />;
-      default:
-        return <ExternalLink className="w-5 h-5" />;
-    }
+    const icons: { [key: string]: JSX.Element } = { twitter: <Rss className="w-4 h-4" />, youtube: <Youtube className="w-4 h-4" />, instagram: <Instagram className="w-4 h-4" />, github: <Github className="w-4 h-4" />, website: <Globe className="w-4 h-4" /> };
+    return icons[platform] || <ExternalLink className="w-4 h-4" />;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  if (isLoading) {
+  if (isLoading || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 py-8">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <Skeleton className="h-64 w-full mb-8 rounded-xl" />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <Skeleton className="h-96 w-full rounded-xl" />
+      <div className="min-h-screen bg-background">
+        <Skeleton className="h-64 w-full" />
+        <div className="container mx-auto max-w-6xl px-4 -mt-16">
+            <div className="flex items-end gap-4">
+                <Skeleton className="w-32 h-32 rounded-full border-4 border-background" />
+                <div className="py-4 space-y-2">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                </div>
             </div>
-            <div>
-              <Skeleton className="h-64 w-full rounded-xl" />
+        </div>
+        <div className="container mx-auto max-w-6xl px-4 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-96 w-full" />
+                </div>
+                <div className="space-y-4">
+                    <Skeleton className="h-64 w-full" />
+                    <Skeleton className="h-64 w-full" />
+                </div>
             </div>
-          </div>
         </div>
       </div>
     );
   }
 
-  if (!profile) {
-    return null;
-  }
+  const { user, tiers } = profile;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 py-8">
-      <div className="container mx-auto px-4 max-w-6xl">
-        {/* Hero Section */}
-        <Card className="shadow-2xl mb-8 overflow-hidden">
-          {/* Cover Image */}
-          <div
-            className="h-48 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 relative"
-            style={{
-              backgroundImage: `url(${profile.user.bannerImage || profile.campaign.coverImage})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          >
-            <div className="absolute inset-0 bg-black/40"></div>
+    <div className="bg-background min-h-screen">
+      {/* Hero Section */}
+      <BlurFade delay={0.25} inView>
+        <div className="h-80 relative w-full overflow-hidden">
+          <motion.img
+            src={getFullMediaUrl(user.bannerImage) || `https://source.unsplash.com/random/1600x900?abstract&${user.id}`}
+            alt={`${user.name}'s banner`}
+            className="w-full h-full object-cover"
+            style={{ scale: bannerScale, opacity: bannerOpacity }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+        </div>
+
+        <div className="container mx-auto max-w-6xl px-4 -mt-24 relative z-10">
+          <div className="flex flex-col md:flex-row items-start md:items-end gap-4">
+            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}>
+              <img
+                src={getFullMediaUrl(user.avatar) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                alt={user.name}
+                className="w-32 h-32 rounded-full border-4 border-background bg-muted shadow-lg"
+              />
+            </motion.div>
+            <div className="flex-1 py-4">
+              <h1 className="text-4xl font-bold tracking-tight">{user.name}</h1>
+              <p className="text-muted-foreground mt-1">@{user.username}</p>
+            </div>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon"><Share2 className="w-4 h-4"/></Button>
+                <Button variant="gradient" size="lg" onClick={() => document.getElementById('tiers')?.scrollIntoView({ behavior: 'smooth' })}><Heart className="w-4 h-4 mr-2"/> Support</Button>
+            </div>
+          </div>
+          
+          <div className="mt-6 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                  <Users className="w-4 h-4"/>
+                  <span className="font-bold text-foreground">{tiers.reduce((sum, tier) => sum + (tier.currentSubscribers || 0), 0)}</span> supporters
+              </div>
+              <div className="flex items-center gap-1.5">
+                  <Heart className="w-4 h-4"/>
+                  <span className="font-bold text-foreground">{profile.campaign?.currentAmount?.toFixed(0) || 0}</span> raised
+              </div>
+              <div className="flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4"/>
+                  Joined {new Date(user.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              </div>
+              <div className="flex items-center gap-3">
+                  {user.socialLinks && Object.entries(user.socialLinks).map(([platform, url]) => url && (
+                      <a key={platform} href={url as string} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">{getSocialIcon(platform)}</a>
+                  ))}
+              </div>
+          </div>
+        </div>
+      </BlurFade>
+
+      {/* Main Content */}
+      <div className="container mx-auto max-w-6xl px-4 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Left Column (Content) */}
+          <div className="lg:col-span-2">
+            <BlurFade delay={0.5} inView>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="border-b-0 p-0 h-auto bg-transparent">
+                  {tabs.map(tab => (
+                    <TabsTrigger key={tab.id} value={tab.id} className="data-[state=active]:bg-muted data-[state=active]:shadow-none -mb-px border-b-2 border-transparent data-[state=active]:border-primary rounded-none py-3 px-4 font-semibold">
+                      <tab.icon className="w-4 h-4 mr-2"/> {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <div className="pt-8">
+                  {tabs.map(tab => (
+                    <TabsContent key={tab.id} value={tab.id}>
+                      {dataLoading[tab.id] ? <Skeleton className="w-full h-96"/> : renderTabContent(tab.id)}
+                    </TabsContent>
+                  ))}
+                </div>
+              </Tabs>
+            </BlurFade>
           </div>
 
-          <CardContent className="pt-0 pb-8">
-            {/* Avatar & Name */}
-            <div className="flex flex-col md:flex-row items-start md:items-end gap-6 -mt-16 relative z-10">
-              <div className="relative">
-                {profile.user.avatar ? (
-                  <img
-                    src={profile.user.avatar}
-                    alt={profile.user.name}
-                    className="w-32 h-32 rounded-full border-4 border-white shadow-xl"
-                  />
-                ) : (
-                  <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-5xl font-bold">
-                    {profile.user.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className="absolute bottom-0 right-0 bg-green-500 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center">
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                </div>
-              </div>
-
-              <div className="flex-1">
-                <h1 className="text-4xl font-bold mb-2">{profile.user.name}</h1>
-                <p className="text-muted-foreground mb-4">
-                  Support {profile.user.name} and get exclusive content!
-                </p>
-
-                {/* Stats */}
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="w-4 h-4 text-purple-600" />
-                    <span className="font-semibold">
-                      {profile.tiers.reduce(
-                        (sum, tier) => sum + tier.currentSubscribers,
-                        0
-                      )}
-                    </span>
-                    <span className="text-muted-foreground">subscribers</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Heart className="w-4 h-4 text-pink-600" />
-                    <span className="font-semibold">
-                      ${profile.campaign.currentAmount.toFixed(0)}
-                    </span>
-                    <span className="text-muted-foreground">raised</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="w-4 h-4 text-blue-600" />
-                    <span className="text-muted-foreground">
-                      Joined {formatDate(profile.user.createdAt)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Social Links */}
-                {profile.user.socialLinks && (
-                  <div className="flex gap-3 mt-4">
-                    {Object.entries(profile.user.socialLinks).map(
-                      ([platform, url]) =>
-                        url && (
-                          <a
-                            key={platform}
-                            href={url as string}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 rounded-full bg-gray-100 hover:bg-purple-100 transition-colors"
-                          >
-                            {getSocialIcon(platform)}
-                          </a>
-                        )
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tabs Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-8 max-w-5xl mx-auto">
-            <TabsTrigger value="about">About</TabsTrigger>
-            <TabsTrigger value="tiers">Membership</TabsTrigger>
-            <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="podcasts">Podcasts</TabsTrigger>
-            <TabsTrigger value="polls">Polls</TabsTrigger>
-            <TabsTrigger value="blog">Blog</TabsTrigger>
-            <TabsTrigger value="events">Events</TabsTrigger>
-            <TabsTrigger value="shop">Shop</TabsTrigger>
-          </TabsList>
-
-          {/* About Tab */}
-          <TabsContent value="about">
-            <Card className="shadow-xl">
-              <CardHeader>
-                <CardTitle>About {profile.user.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="prose max-w-none">
-                  <p className="text-lg whitespace-pre-wrap">
-                    {profile.user.creatorBio || profile.campaign.story}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Membership Tiers Tab */}
-          <TabsContent value="tiers">
-            <div className="mb-6 text-center">
-              <h2 className="text-3xl font-bold mb-2">
-                Support <span className="text-gradient">{profile.user.name}</span>
-              </h2>
-              <p className="text-muted-foreground">
-                Choose a membership tier to get exclusive perks and support their work
-              </p>
-            </div>
-
-            {profile.tiers.length === 0 ? (
-              <Card className="shadow-xl">
-                <CardContent className="p-12 text-center">
-                  <p className="text-muted-foreground">
-                    No membership tiers available yet. Check back soon!
+          {/* Right Column (Sidebar) */}
+          <div className="lg:sticky top-24 space-y-8">
+            <BlurFade delay={0.75} inView>
+              <Card className="border-border/30">
+                <CardHeader>
+                  <CardTitle>About {user.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm whitespace-pre-wrap line-clamp-5">
+                    {user.creatorBio || "No biography provided."}
                   </p>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {profile.tiers.map((tier) => (
-                  <Card
-                    key={tier.id}
-                    className="shadow-xl hover:shadow-2xl transition-all border-2 hover:border-purple-500"
-                  >
-                    <CardHeader>
-                      <CardTitle className="text-2xl">{tier.name}</CardTitle>
-                      <CardDescription>{tier.description}</CardDescription>
-                      <div className="pt-4">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-bold">
-                            ${tier.price}
-                          </span>
-                          <span className="text-muted-foreground">
-                            /{tier.interval === "MONTHLY" ? "month" : "year"}
-                          </span>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {/* Perks List */}
-                      <div className="space-y-3 mb-6">
-                        {tier.perks.map((perk, index) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm">{perk}</span>
-                          </div>
-                        ))}
-                        {tier.hasExclusiveContent && (
-                          <div className="flex items-start gap-2">
-                            <Lock className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm">Exclusive content access</span>
-                          </div>
-                        )}
-                        {tier.hasEarlyAccess && (
-                          <div className="flex items-start gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm">Early access to content</span>
-                          </div>
-                        )}
-                        {tier.hasPrioritySupport && (
-                          <div className="flex items-start gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-pink-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm">Priority support</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Subscribe Button */}
-                      <Button
-                        variant="gradient"
-                        className="w-full"
-                        onClick={() => handleSubscribe(tier.id)}
-                        disabled={
-                          tier.maxSubscribers
-                            ? tier.currentSubscribers >= tier.maxSubscribers
-                            : false
-                        }
-                      >
-                        {tier.maxSubscribers &&
-                          tier.currentSubscribers >= tier.maxSubscribers
-                          ? "Tier Full"
-                          : "Subscribe"}
-                      </Button>
-
-                      {/* Subscriber Count */}
-                      <p className="text-xs text-center text-muted-foreground mt-3">
-                        {tier.currentSubscribers}{" "}
-                        {tier.currentSubscribers === 1 ? "subscriber" : "subscribers"}
-                        {tier.maxSubscribers && ` / ${tier.maxSubscribers} max`}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
+            </BlurFade>
+            
+            <BlurFade delay={0.9} inView>
+              <div id="tiers">
+                <TierSection tiers={tiers} onSubscribe={handleSubscribe} />
               </div>
-            )}
-          </TabsContent>
-
-          {/* Posts Tab */}
-          <TabsContent value="posts">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-3xl font-bold">
-                  Posts from <span className="text-gradient">{profile.user.name}</span>
-                </h2>
-                {hasSubscription && (
-                  <Badge variant="default" className="mt-2">
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    Active Subscriber
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {postsLoading ? (
-              <div className="space-y-6">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-64 w-full rounded-xl" />
-                ))}
-              </div>
-            ) : posts.length === 0 ? (
-              <Card className="shadow-xl">
-                <CardContent className="p-12 text-center">
-                  <p className="text-muted-foreground">
-                    No posts yet. Check back later!
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-8">
-                {posts.map((post) => (
-                  <Card
-                    key={post.id}
-                    className={`overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 ${!post.hasAccess
-                      ? "border-2 border-purple-300 bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20"
-                      : "hover:-translate-y-1"
-                      }`}
-                  >
-                    {/* Post Header */}
-                    <CardHeader className="pb-4">
-                      <div className="flex items-start justify-between gap-4">
-                        {/* Author Info */}
-                        <div className="flex items-center gap-3 flex-1">
-                          {post.author.avatar ? (
-                            <img
-                              src={post.author.avatar}
-                              alt={post.author.name}
-                              className="w-12 h-12 rounded-full border-2 border-purple-200"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
-                              {post.author.name.charAt(0)}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <CardTitle className="text-2xl font-bold mb-1 line-clamp-2">
-                              {post.title}
-                            </CardTitle>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <span className="font-medium">{post.author.name}</span>
-                              <span>•</span>
-                              <span>{formatDate(post.publishedAt)}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Badge */}
-                        {!post.isPublic && (
-                          <Badge
-                            variant="secondary"
-                            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 border-purple-200 dark:border-purple-700"
-                          >
-                            <Lock className="w-3.5 h-3.5" />
-                            <span className="font-medium">Members Only</span>
-                          </Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="pt-0">
-                      {post.hasAccess ? (
-                        <div className="space-y-6">
-                          {/* Content */}
-                          <div className="prose prose-lg max-w-none dark:prose-invert">
-                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                              {post.content}
-                            </p>
-                          </div>
-
-                          {/* Video Player */}
-                          {post.videoUrl && (
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                <Video className="w-4 h-4" />
-                                <span>Video</span>
-                              </div>
-                              <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-black">
-                                <video
-                                  controls
-                                  className="w-full aspect-video object-contain"
-                                  preload="metadata"
-                                  controlsList="nodownload"
-                                >
-                                  <source src={getFullMediaUrl(post.videoUrl)} type="video/mp4" />
-                                  <source src={getFullMediaUrl(post.videoUrl)} type="video/webm" />
-                                  <source src={getFullMediaUrl(post.videoUrl)} type="video/ogg" />
-                                  Your browser does not support the video tag.
-                                </video>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Image Gallery - Always show if images exist */}
-                          {post.images.length > 0 && (
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                <Camera className="w-4 h-4" />
-                                <span>{post.images.length} {post.images.length === 1 ? 'Image' : 'Images'}</span>
-                              </div>
-                              <div className={`grid gap-4 ${post.images.length === 1
-                                ? "grid-cols-1"
-                                : post.images.length === 2
-                                  ? "grid-cols-2"
-                                  : "grid-cols-2 md:grid-cols-3"
-                                }`}>
-                                {post.images.map((image, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
-                                  >
-                                    <img
-                                      src={getFullMediaUrl(image)}
-                                      alt={`${post.title} - Image ${idx + 1}`}
-                                      className="w-full h-full object-cover aspect-video group-hover:scale-110 transition-transform duration-500 cursor-pointer"
-                                      loading="lazy"
-                                    />
-                                    {/* Overlay on hover */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                      <div className="absolute bottom-3 right-3 bg-white/90 dark:bg-black/90 rounded-full p-2">
-                                        <ExternalLink className="w-4 h-4" />
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Engagement Bar */}
-                          <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center gap-4">
-                              {/* Like Button */}
-                              <button
-                                onClick={() => handleLike(post.id)}
-                                className={`flex items-center gap-2 transition-all ${likedPosts.has(post.id)
-                                  ? "text-pink-600 dark:text-pink-400"
-                                  : "text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400"
-                                  }`}
-                              >
-                                <Heart
-                                  className={`w-5 h-5 transition-transform hover:scale-110 ${likedPosts.has(post.id) ? "fill-current" : ""
-                                    }`}
-                                />
-                                <span className="text-sm font-medium">
-                                  {post.likeCount || 0}
-                                </span>
-                              </button>
-
-                              {/* Comment Button */}
-                              <button
-                                onClick={() => {
-                                  const newShowComments = showComments === post.id ? null : post.id;
-                                  setShowComments(newShowComments);
-                                  if (newShowComments && !comments[post.id]) {
-                                    loadComments(post.id);
-                                  }
-                                }}
-                                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                              >
-                                <MessageCircle className="w-5 h-5" />
-                                <span className="text-sm font-medium">
-                                  {post.commentCount || 0}
-                                </span>
-                              </button>
-
-                              {/* Share Button */}
-                              <button
-                                onClick={() => handleShare(post)}
-                                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                              >
-                                <Share2 className="w-5 h-5" />
-                                <span className="text-sm font-medium">Share</span>
-                              </button>
-
-                              {/* Bookmark Button */}
-                              <button className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors">
-                                <Bookmark className="w-5 h-5" />
-                              </button>
-                            </div>
-
-                            {/* Post Type Badge */}
-                            <div className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
-                              <Globe className="w-3.5 h-3.5" />
-                              <span>{post.isPublic ? "Public" : "Members Only"}</span>
-                            </div>
-                          </div>
-
-                          {/* Comments Section */}
-                          {showComments === post.id && (
-                            <div className="mt-6 space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700 animate-in slide-in-from-top duration-300">
-                              {/* Existing Comments */}
-                              <div className="space-y-4 max-h-96 overflow-y-auto">
-                                {(comments[post.id] || []).length === 0 ? (
-                                  <p className="text-center text-gray-500 py-8">No comments yet. Be the first to comment!</p>
-                                ) : (
-                                  (comments[post.id] || []).map((comment) => (
-                                    <div key={comment.id} className="flex gap-3">
-                                      {comment.user.avatar ? (
-                                        <img
-                                          src={comment.user.avatar}
-                                          alt={comment.user.name}
-                                          className="w-8 h-8 rounded-full flex-shrink-0"
-                                        />
-                                      ) : (
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                                          {comment.user.name.charAt(0)}
-                                        </div>
-                                      )}
-                                      <div className="flex-1">
-                                        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2">
-                                          <p className="font-semibold text-sm">{comment.user.name}</p>
-                                          <p className="text-sm mt-1">{comment.content}</p>
-                                        </div>
-                                        <p className="text-xs text-gray-500 mt-1 ml-4">
-                                          {new Date(comment.createdAt).toLocaleString()}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-
-                              {/* Add Comment */}
-                              <div className="flex gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                                  Y
-                                </div>
-                                <div className="flex-1 flex gap-2">
-                                  <input
-                                    type="text"
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
-                                    placeholder="Write a comment..."
-                                    className="flex-1 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                  />
-                                  <button
-                                    onClick={() => handleAddComment(post.id)}
-                                    className="p-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg transition-shadow"
-                                  >
-                                    <Send className="w-5 h-5" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="relative overflow-hidden">
-                          {/* Blurred Preview */}
-                          {post.excerpt && (
-                            <div className="relative mb-6">
-                              <p className="text-gray-600 dark:text-gray-400 blur-sm select-none">
-                                {post.excerpt}
-                              </p>
-                              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-gray-900"></div>
-                            </div>
-                          )}
-
-                          {/* Locked Content CTA */}
-                          <div className="text-center py-16 px-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-2xl border-2 border-dashed border-purple-300 dark:border-purple-700">
-                            <div className="relative inline-block mb-6">
-                              <div className="absolute inset-0 bg-purple-500 blur-2xl opacity-30 animate-pulse"></div>
-                              <Lock className="relative w-20 h-20 text-purple-600 dark:text-purple-400 mx-auto" />
-                            </div>
-                            <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                              Exclusive Members Content
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto text-lg">
-                              {post.excerpt || "Unlock this premium content and get access to exclusive posts, updates, and behind-the-scenes material"}
-                            </p>
-                            <Button
-                              variant="gradient"
-                              size="lg"
-                              onClick={() => setActiveTab("tiers")}
-                              className="shadow-lg hover:shadow-xl transition-shadow"
-                            >
-                              <Lock className="w-4 h-4 mr-2" />
-                              Unlock with Membership
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Blog Tab */}
-          <TabsContent value="blog">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold mb-2">
-                Blog by <span className="text-gradient">{profile.user.name}</span>
-              </h2>
-              <p className="text-muted-foreground">
-                Read articles and insights from {profile.user.name}
-              </p>
-            </div>
-
-            {articlesLoading ? (
-              <div className="space-y-6">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-64 w-full rounded-xl" />
-                ))}
-              </div>
-            ) : articles.length === 0 ? (
-              <Card className="shadow-xl">
-                <CardContent className="p-12 text-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full mx-auto flex items-center justify-center mb-6">
-                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">No Articles Yet</h3>
-                  <p className="text-muted-foreground mb-6">
-                    {profile.user.name} hasn't published any blog articles yet. Check back soon for updates!
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {articles.map((article) => (
-                  <Card
-                    key={article.id}
-                    className="overflow-hidden shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer"
-                    onClick={() => router.push(`/blog/${article.slug}`)}
-                  >
-                    {article.coverImage && (
-                      <div className="relative h-48 overflow-hidden">
-                        <img
-                          src={article.coverImage}
-                          alt={article.title}
-                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                        />
-                      </div>
-                    )}
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-3">
-                        {article.author.avatar ? (
-                          <img
-                            src={article.author.avatar}
-                            alt={article.author.name}
-                            className="w-10 h-10 rounded-full border-2 border-purple-200"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                            {article.author.name.charAt(0)}
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{article.author.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {article.publishedAt ? formatDate(article.publishedAt) : "Draft"}
-                          </p>
-                        </div>
-                      </div>
-                      <h3 className="font-bold text-xl mb-2 line-clamp-2">{article.title}</h3>
-                      {article.excerpt && (
-                        <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-                          {article.excerpt}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        {article.readTime && (
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {article.readTime} min read
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          {article.viewCount}
-                        </span>
-                        {article._count && (
-                          <>
-                            <span className="flex items-center gap-1">
-                              <Heart className="w-4 h-4" />
-                              {article._count.likes}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MessageCircle className="w-4 h-4" />
-                              {article._count.comments}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Events Tab */}
-          <TabsContent value="events">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold mb-2">
-                Events by <span className="text-gradient">{profile.user.name}</span>
-              </h2>
-              <p className="text-muted-foreground">
-                Join upcoming events and meetups
-              </p>
-            </div>
-
-            {eventsLoading ? (
-              <div className="space-y-6">
-                {[1, 2].map((i) => (
-                  <Skeleton key={i} className="h-64 w-full rounded-xl" />
-                ))}
-              </div>
-            ) : events.length === 0 ? (
-              <Card className="shadow-xl">
-                <CardContent className="p-12 text-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-rose-500 to-red-500 rounded-full mx-auto flex items-center justify-center mb-6">
-                    <Calendar className="w-10 h-10 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">No Upcoming Events</h3>
-                  <p className="text-muted-foreground mb-6">
-                    {profile.user.name} doesn't have any scheduled events at the moment. Check back later for exciting meetups and sessions!
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {events.map((event) => (
-                  <Card
-                    key={event.id}
-                    className="overflow-hidden shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer"
-                    onClick={() => router.push(`/events/${event.id}`)}
-                  >
-                    {event.coverImage && (
-                      <div className="relative h-48 overflow-hidden">
-                        <img
-                          src={event.coverImage}
-                          alt={event.title}
-                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                        />
-                      </div>
-                    )}
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Badge
-                          variant="secondary"
-                          className={`${event.type === "VIRTUAL"
-                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
-                              : event.type === "IN_PERSON"
-                                ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                                : "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300"
-                            }`}
-                        >
-                          {event.type}
-                        </Badge>
-                        {event.status === "PUBLISHED" && (
-                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                            Published
-                          </Badge>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-xl mb-2 line-clamp-2">{event.title}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                        {event.description}
-                      </p>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            {new Date(event.startTime).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                        {event.location && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Globe className="w-4 h-4" />
-                            <span className="line-clamp-1">{event.location}</span>
-                          </div>
-                        )}
-                        {event._count && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Users className="w-4 h-4" />
-                            <span>{event._count.rsvps} attending</span>
-                          </div>
-                        )}
-                        {event.price !== undefined && event.price > 0 && (
-                          <div className="flex items-center gap-2 text-sm font-semibold text-green-600 dark:text-green-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            <span>${event.price.toFixed(2)}</span>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Podcasts Tab */}
-          <TabsContent value="podcasts">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold mb-2">
-                Podcasts by <span className="text-gradient">{profile.user.name}</span>
-              </h2>
-              <p className="text-muted-foreground">
-                Listen to exclusive podcast content
-              </p>
-            </div>
-
-            {podcastsLoading ? (
-              <div className="space-y-6">
-                {[1, 2].map((i) => (
-                  <Skeleton key={i} className="h-64 w-full rounded-xl" />
-                ))}
-              </div>
-            ) : podcasts.length === 0 ? (
-              <Card className="shadow-xl">
-                <CardContent className="p-12 text-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-pink-500 rounded-full mx-auto flex items-center justify-center mb-6">
-                    <Play className="w-10 h-10 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">No Podcasts Yet</h3>
-                  <p className="text-muted-foreground mb-6">
-                    {profile.user.name} hasn't published any podcast episodes yet. Check back later for audio content!
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {podcasts.map((podcast) => (
-                  <Card key={podcast.id} className="overflow-hidden shadow-xl">
-                    <CardContent className="p-6">
-                      <div className="flex items-start gap-4 mb-6">
-                        {podcast.coverImage && (
-                          <img
-                            src={podcast.coverImage}
-                            alt={podcast.title}
-                            className="w-24 h-24 rounded-lg object-cover"
-                          />
-                        )}
-                        <div className="flex-1">
-                          <h3 className="text-2xl font-bold mb-2">{podcast.title}</h3>
-                          <p className="text-muted-foreground mb-2">
-                            by {podcast.author}
-                          </p>
-                          {podcast.description && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                              {podcast.description}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>{podcast._count?.episodes || 0} episodes</span>
-                            <span>•</span>
-                            <span>{podcast.totalListens} listens</span>
-                            <span>•</span>
-                            <Badge variant="secondary">{podcast.category}</Badge>
-                          </div>
-                        </div>
-                      </div>
-
-                      {podcast.episodes && podcast.episodes.length > 0 && (
-                        <div className="space-y-3">
-                          <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-400">
-                            Latest Episodes
-                          </h4>
-                          {podcast.episodes.slice(0, 3).map((episode: any) => (
-                            <div
-                              key={episode.id}
-                              className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                            >
-                              <div className="flex items-center gap-3">
-                                {episode.episodeNumber && (
-                                  <span className="text-sm font-medium text-gray-500">
-                                    #{episode.episodeNumber}
-                                  </span>
-                                )}
-                                <div className="flex-1">
-                                  <h5 className="font-medium">{episode.title}</h5>
-                                  {episode.description && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
-                                      {episode.description}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-3 text-sm text-gray-500">
-                                  <span>{Math.floor(episode.duration / 60)} min</span>
-                                  <Play className="w-4 h-4" />
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Polls Tab */}
-          <TabsContent value="polls">
-            {profile && (
-              <PollsList
-                creatorId={profile.user.id}
-                isOwner={false}
-                showCreateButton={false}
-              />
-            )}
-          </TabsContent>
-
-          {/* Shop Tab */}
-          <TabsContent value="shop">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold mb-2">
-                Shop by <span className="text-gradient">{profile.user.name}</span>
-              </h2>
-              <p className="text-muted-foreground">
-                Browse and purchase digital products created by {profile.user.name}
-              </p>
-            </div>
-
-            {productsLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, i) => (
-                  <Skeleton key={i} className="h-64 w-full" />
-                ))}
-              </div>
-            ) : products.length === 0 ? (
-              <Card className="shadow-xl">
-                <CardContent className="p-12 text-center">
-                  <p className="text-muted-foreground">No products yet.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {products.map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+            </BlurFade>
+          </div>
+        </div>
       </div>
     </div>
   );
+
+  function renderTabContent(tab: string) {
+    const motionProps = { variants: { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } }, initial: "hidden", animate: "visible" };
+    const itemProps = { variants: { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } } };
+
+    switch (tab) {
+      case "posts":
+        return posts.length > 0 ? (
+          <motion.div {...motionProps} className="space-y-8">
+            {posts.map(post => <motion.div key={post.id} {...itemProps}><PostCard post={post} /></motion.div>)}
+          </motion.div>
+        ) : <EmptyState icon={Rss} message="No posts yet." />; 
+      case "shop":
+        return products.length > 0 ? (
+          <motion.div {...motionProps} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {products.map(p => <motion.div key={p.id} {...itemProps}><ProductCard product={p} /></motion.div>)}
+          </motion.div>
+        ) : <EmptyState icon={ShoppingBag} message="This shop is empty." />;
+      case "blog":
+        return articles.length > 0 ? (
+          <motion.div {...motionProps} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {articles.map(article => <motion.div key={article.id} {...itemProps}><ArticleCard article={article} /></motion.div>)}
+          </motion.div>
+        ) : <EmptyState icon={FileText} message="No articles yet." />;
+      case "events":
+        return events.length > 0 ? (
+          <motion.div {...motionProps} className="space-y-6">
+            {events.map(event => <motion.div key={event.id} {...itemProps}><EventCard event={event} /></motion.div>)}
+          </motion.div>
+        ) : <EmptyState icon={Calendar} message="No events scheduled." />;
+      default:
+        return null;
+    }
+  }
 }
+
+const PostCard = ({ post }: { post: CreatorPost }) => {
+  // Dummy state for interactions - in a real app, this would be handled properly
+  const [liked, setLiked] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+
+  if (!post.hasAccess) {
+    return (
+      <div className="relative text-center p-8 sm:p-12 bg-muted/50 rounded-2xl border-2 border-dashed border-border/30 overflow-hidden">
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/10 rounded-full blur-2xl animate-blob animation-delay-2000"></div>
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-secondary/10 rounded-full blur-2xl animate-blob"></div>
+          <Lock className="mx-auto w-10 h-10 text-primary mb-4" />
+          <h3 className="font-bold text-xl text-foreground">Content Locked</h3>
+          <p className="text-muted-foreground mt-2 mb-6 text-sm max-w-sm mx-auto">This post is exclusive to members. Support the creator to unlock this post and many others!</p>
+          <Button onClick={() => document.getElementById('tiers')?.scrollIntoView({ behavior: 'smooth' })}>
+              <Award className="w-4 h-4 mr-2"/> Become a Supporter
+          </Button>
+      </div>
+    )
+  }
+
+  return (
+    <Card className="bg-card/50 border-border/30 overflow-hidden">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+            <img src={getFullMediaUrl(post.author.avatar) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.name}`} alt={post.author.name} className="w-10 h-10 rounded-full bg-muted"/>
+            <div>
+                <p className="font-semibold text-foreground">{post.author.name}</p>
+                <p className="text-xs text-muted-foreground">{new Date(post.publishedAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+            </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <h2 className="text-2xl font-bold leading-snug mb-4">{post.title}</h2>
+        
+        {/* Content: Text, Images, Video */}
+        <div className="space-y-4">
+            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap line-clamp-6">
+                {post.content}
+            </div>
+            {post.images && post.images.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                    {post.images.slice(0, 4).map((img, i) => (
+                        <img key={i} src={getFullMediaUrl(img)} className={`rounded-lg object-cover aspect-video ${post.images.length > 2 && i == 0 ? 'col-span-2' : ''}`} alt="Post image"/>
+                    ))}
+                </div>
+            )}
+            {post.videoUrl && <video controls src={getFullMediaUrl(post.videoUrl)} className="w-full rounded-lg bg-muted"/>}
+        </div>
+
+        {/* Engagement Bar */}
+        <div className="flex items-center justify-between pt-6 mt-6 border-t border-border/20">
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="sm" onClick={() => setLiked(!liked)} className={`flex items-center gap-1.5 ${liked ? 'text-red-500' : 'text-muted-foreground'}`}>
+                    <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`}/> {post.likeCount + (liked ? 1 : 0)}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 text-muted-foreground">
+                    <MessageCircle className="w-4 h-4"/> {post.commentCount}
+                </Button>
+            </div>
+            <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="text-muted-foreground"><Bookmark className="w-4 h-4"/></Button>
+                <Button variant="ghost" size="icon" className="text-muted-foreground"><Share2 className="w-4 h-4"/></Button>
+            </div>
+        </div>
+
+        {/* Comments Section (Toggled) */}
+        {showComments && (
+            <div className="pt-6 mt-6 border-t border-border/20 space-y-4">
+                <h4 className="font-semibold">Comments</h4>
+                {/* Add comment input */}
+                <div className="flex items-center gap-2">
+                    <Input placeholder="Write a comment..." className="bg-muted/50"/>
+                    <Button><Send className="w-4 h-4"/></Button>
+                </div>
+                {/* Dummy comment */}
+                <div className="flex items-start gap-2 text-sm">
+                    <div className="w-8 h-8 rounded-full bg-muted"/>
+                    <div>
+                        <p className="font-semibold">A supporter</p>
+                        <p className="text-muted-foreground">Great post!</p>
+                    </div>
+                </div>
+            </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+import ArticleCard from "@/components/articles/ArticleCard";
+import EventCard from "@/components/events/EventCard";
+
+const TierSection = ({ tiers, onSubscribe }: { tiers: any[], onSubscribe: (id: string) => void }) => (
+  <Card className="border-border/30">
+    <CardHeader>
+      <CardTitle>Become a Supporter</CardTitle>
+      <CardDescription>Choose a tier to support the creator and get exclusive perks.</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      {tiers.length > 0 ? tiers.map(tier => (
+        <div key={tier.id} className="border border-border/30 rounded-lg p-4 hover:bg-muted/50 transition-colors">
+          <h3 className="font-bold">{tier.name}</h3>
+          <p className="text-2xl font-bold">${tier.price}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{tier.description}</p>
+          <Button variant="outline" className="w-full mt-4" onClick={() => onSubscribe(tier.id)}>Subscribe</Button>
+        </div>
+      )) : <p className="text-sm text-muted-foreground text-center py-4">No membership tiers available.</p>}
+    </CardContent>
+  </Card>
+);
+
+const EmptyState = ({ icon: Icon, message }: { icon: React.ElementType, message: string }) => (
+  <div className="text-center py-16 bg-muted/50 rounded-lg border-2 border-dashed border-border/30">
+    <Icon className="mx-auto w-12 h-12 text-muted-foreground mb-4" />
+    <h3 className="font-semibold text-lg">{message}</h3>
+    <p className="text-sm text-muted-foreground">Check back later for new content!</p>
+  </div>
+);
+
+// Dummy icons for social links
+const Youtube = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17z"/><path d="m10 15 5-3-5-3z"/></svg>;
+const Instagram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>;
+const Github = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>;

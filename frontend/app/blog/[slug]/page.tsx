@@ -1,69 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import axios from "axios";
+import toast from "react-hot-toast";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { isAuthenticated } from "@/lib/auth";
+import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
+import { BlurFade } from "@/components/ui/blur-fade";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isAuthenticated, getCurrentUser } from "@/lib/auth";
-import axios from "axios";
-import toast from "react-hot-toast";
-import {
-    Heart,
-    MessageCircle,
-    Calendar,
-    Clock,
-    Eye,
-    ArrowLeft,
-    User,
-    Tag as TagIcon,
-    Share2,
-} from "lucide-react";
 import SocialShare from "@/components/SocialShare";
+import {
+    Heart, MessageCircle, Calendar, Clock, Eye, ArrowLeft, Send, Share2
+} from "lucide-react";
 
-interface Article {
-    id: string;
-    slug: string;
-    title: string;
-    content: string;
-    excerpt: string;
-    coverImage?: string;
-    publishedAt: string;
-    readTime: number;
-    viewCount: number;
-    hasLiked?: boolean;
-    author: {
-        id: string;
-        name: string;
-        avatar?: string;
-    };
-    categories: Array<{
-        category: {
-            name: string;
-            color?: string;
-        };
-    }>;
-    tags: Array<{
-        tag: {
-            name: string;
-        };
-    }>;
-    _count: {
-        likes: number;
-        comments: number;
-    };
-}
-
-interface Comment {
-    id: string;
-    content: string;
-    createdAt: string;
-    user: {
-        name: string;
-        avatar?: string;
-    };
-}
+// Interfaces
+interface Article { id: string; slug: string; title: string; content: string; excerpt: string; coverImage?: string; publishedAt: string; readTime: number; viewCount: number; hasLiked?: boolean; author: { id: string; name: string; avatar?: string; }; _count: { likes: number; comments: number; }; }
+interface Comment { id: string; content: string; createdAt: string; user: { name: string; avatar?: string; }; }
 
 export default function ArticlePage({ params }: { params: { slug: string } }) {
     const router = useRouter();
@@ -72,384 +28,178 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
-    const [showComments, setShowComments] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showShareMenu, setShowShareMenu] = useState(false);
+
+    const { scrollY } = useScroll();
+    const heroImageY = useTransform(scrollY, [0, 400], [0, -100]);
+    const heroImageScale = useTransform(scrollY, [0, 400], [1, 1.1]);
 
     useEffect(() => {
-        loadArticle();
+        loadArticleAndComments();
     }, [params.slug]);
 
-    const loadArticle = async () => {
+    const loadArticleAndComments = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
-            // Add auth token if user is logged in
+            setIsLoading(true);
             const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-            const response = await axios.get(`${apiUrl}/articles/${params.slug}`, { headers });
+            const [articleResponse, commentsResponse] = await Promise.all([
+                axios.get(`${apiUrl}/articles/${params.slug}`, { headers }),
+                axios.get(`${apiUrl}/articles/${params.slug}/comments`)
+            ]);
 
-            if (response.data.success) {
-                const articleData = response.data.data;
+            if (articleResponse.data.success) {
+                const articleData = articleResponse.data.data;
                 setArticle(articleData);
                 setLikeCount(articleData._count?.likes || 0);
-
-                // Use hasLiked from backend response
                 setIsLiked(articleData.hasLiked || false);
             }
+            if (commentsResponse.data.success) {
+                setComments(commentsResponse.data.data);
+            }
         } catch (error: any) {
-            console.error("Load article error:", error);
-            toast.error("Failed to load article");
+            toast.error("Failed to load article.");
+            router.push("/blog");
         } finally {
             setIsLoading(false);
         }
     };
 
-    const loadComments = async () => {
-        if (!article) return;
-
-        try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-            const response = await axios.get(`${apiUrl}/articles/${article.id}/comments`);
-
-            if (response.data.success) {
-                setComments(response.data.data);
-            }
-        } catch (error) {
-            console.error("Load comments error:", error);
-        }
-    };
-
     const handleLike = async () => {
-        if (!isAuthenticated()) {
-            toast.error("Please login to like articles");
-            router.push("/login");
-            return;
-        }
-
-        if (!article) return;
-
+        if (!isAuthenticated() || !article) return toast.error("Please login to like articles");
         const wasLiked = isLiked;
-        const originalCount = likeCount;
-
-        // Optimistic update
         setIsLiked(!wasLiked);
         setLikeCount(wasLiked ? likeCount - 1 : likeCount + 1);
-
         try {
             const token = localStorage.getItem("authToken");
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
-            const response = await axios.post(
-                `${apiUrl}/articles/${article.id}/like`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            // Update with actual values from server
-            if (response.data.success && response.data.data) {
-                setIsLiked(response.data.data.liked);
-                setLikeCount(response.data.data.likeCount);
-            }
-        } catch (error: any) {
-            // Revert on error
+            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/articles/${article.id}/like`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        } catch (error) {
             setIsLiked(wasLiked);
-            setLikeCount(originalCount);
-
-            // Show specific error message if available
-            const message = error.response?.data?.message || "Failed to update like";
-            toast.error(message);
+            setLikeCount(likeCount);
+            toast.error("Failed to update like.");
         }
     };
 
     const handleComment = async () => {
-        if (!isAuthenticated()) {
-            toast.error("Please login to comment");
-            router.push("/login");
-            return;
-        }
-
-        if (!newComment.trim() || !article) return;
-
+        if (!isAuthenticated() || !article) return toast.error("Please login to comment");
+        if (!newComment.trim()) return;
         setIsSubmitting(true);
-
         try {
             const token = localStorage.getItem("authToken");
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
-            await axios.post(
-                `${apiUrl}/articles/${article.id}/comments`,
-                { content: newComment },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            setNewComment("");
-            toast.success("Comment added!");
-            loadComments();
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/articles/${article.id}/comments`, { content: newComment }, { headers: { Authorization: `Bearer ${token}` } });
+            if(response.data.success) {
+                setComments([response.data.data, ...comments]);
+                setNewComment("");
+                toast.success("Comment added!");
+            }
         } catch (error) {
-            console.error("Comment error:", error);
-            toast.error("Failed to add comment");
+            toast.error("Failed to add comment.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
-    };
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 py-12">
-                <div className="max-w-4xl mx-auto px-4">
-                    <Skeleton className="h-12 w-32 mb-8" />
-                    <Skeleton className="h-96 w-full mb-8" />
-                    <Skeleton className="h-8 w-3/4 mb-4" />
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-2/3" />
-                </div>
-            </div>
-        );
-    }
-
-    if (!article) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 py-12">
-                <div className="max-w-4xl mx-auto px-4 text-center">
-                    <h1 className="text-4xl font-bold mb-4">Article Not Found</h1>
-                    <Button onClick={() => router.push("/blog")}>← Back to Blog</Button>
-                </div>
-            </div>
-        );
-    }
+    if (isLoading) return <ArticleSkeleton />;
+    if (!article) return <div>Article not found</div>;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-            {/* Hero with Cover Image */}
-            {article.coverImage && (
-                <div
-                    className="h-96 bg-cover bg-center relative"
-                    style={{ backgroundImage: `url(${article.coverImage})` }}
-                >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 p-8">
-                        <div className="max-w-4xl mx-auto">
-                            <Button
-                                variant="outline"
-                                onClick={() => router.back()}
-                                className="mb-4 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
-                            >
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Back
-                            </Button>
-                        </div>
+        <div className="bg-background min-h-screen">
+            {/* Floating Action Bar */}
+            <aside className="fixed top-1/2 -translate-y-1/2 left-4 z-30 hidden lg:flex flex-col items-center gap-4 p-2 bg-card/50 backdrop-blur-sm border border-border/30 rounded-full">
+                <Button variant="ghost" size="icon" onClick={handleLike} className={`${isLiked ? 'text-red-500' : 'text-muted-foreground'}`}>
+                    <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`}/>
+                </Button>
+                <span className="text-xs font-bold">{likeCount}</span>
+                <div className="w-full h-[1px] bg-border/50"></div>
+                <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={() => document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}>
+                    <MessageCircle className="w-5 h-5"/>
+                </Button>
+                 <span className="text-xs font-bold">{comments.length}</span>
+                <div className="w-full h-[1px] bg-border/50"></div>
+                <SocialShare url={window.location.href} title={article.title} description={article.excerpt} trigger={<Button variant="ghost" size="icon" className="text-muted-foreground"><Share2 className="w-5 h-5"/></Button>}/>
+            </aside>
+
+            {/* Header */}
+            <header className="relative h-[45vh] min-h-[300px] w-full overflow-hidden">
+                <motion.div style={{ y: heroImageY, scale: heroImageScale }} className="absolute inset-0">
+                    <Image src={getFullMediaUrl(article.coverImage)!} alt={article.title} fill className="object-cover"/>
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"/>
+                </motion.div>
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                    <div className="max-w-4xl mx-auto">
+                        <BlurFade delay={0.25} inView>
+                            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground mb-4">{article.title}</h1>
+                            <div className="flex items-center gap-4">
+                                <Image src={getFullMediaUrl(article.author.avatar)!} alt={article.author.name} width={48} height={48} className="rounded-full bg-muted"/>
+                                <div>
+                                    <p className="font-semibold text-foreground">{article.author.name}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} &middot; {article.readTime} min read
+                                    </p>
+                                </div>
+                            </div>
+                        </BlurFade>
                     </div>
                 </div>
-            )}
+            </header>
 
-            <div className="max-w-4xl mx-auto px-4 py-12">
-                {!article.coverImage && (
-                    <Button variant="outline" onClick={() => router.back()} className="mb-8">
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back
-                    </Button>
-                )}
+            {/* Main Content */}
+            <main className="max-w-4xl mx-auto px-8 py-12">
+                <BlurFade delay={0.5} inView>
+                    <div className="prose prose-lg dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: article.content }} />
+                </BlurFade>
 
-                {/* Article Header */}
-                <article>
-                    <header className="mb-8">
-                        {/* Categories */}
-                        {article.categories.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                {article.categories.map((cat, idx) => (
-                                    <span
-                                        key={idx}
-                                        className="px-3 py-1 rounded-full text-sm font-semibold"
-                                        style={{
-                                            backgroundColor: cat.category.color || "#6366f1",
-                                            color: "white",
-                                        }}
-                                    >
-                                        {cat.category.name}
-                                    </span>
-                                ))}
+                {/* Comments Section */}
+                <BlurFade delay={0.75} inView>
+                    <section id="comments" className="mt-16 pt-8 border-t border-border/30">
+                        <h2 className="text-2xl font-bold mb-6">Comments ({comments.length})</h2>
+                        {isAuthenticated() ? (
+                            <div className="flex items-start gap-3 mb-8">
+                                <div className="w-10 h-10 rounded-full bg-muted"/>
+                                <div className="flex-1 space-y-2">
+                                    <Textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Join the discussion..."/>
+                                    <Button onClick={handleComment} disabled={isSubmitting}>{isSubmitting ? "Posting..." : "Post Comment"}</Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center p-6 bg-muted/50 rounded-lg border border-dashed border-border/30">
+                                <p className="mb-3">Want to join the discussion?</p>
+                                <Button onClick={() => router.push(`/login?redirect=/blog/${article.slug}`)}>Login to Comment</Button>
                             </div>
                         )}
-
-                        {/* Title */}
-                        <h1 className="text-5xl font-bold mb-4 text-gray-900 dark:text-white">
-                            {article.title}
-                        </h1>
-
-                        {/* Meta */}
-                        <div className="flex flex-wrap items-center gap-4 text-gray-600 dark:text-gray-400 mb-6">
-                            <div className="flex items-center gap-2">
-                                {article.author.avatar ? (
-                                    <img
-                                        src={article.author.avatar}
-                                        alt={article.author.name}
-                                        className="w-10 h-10 rounded-full"
-                                    />
-                                ) : (
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
-                                        {article.author.name[0]}
+                        <div className="space-y-6">
+                            {comments.map(comment => (
+                                <div key={comment.id} className="flex items-start gap-3">
+                                    <Image src={getFullMediaUrl(comment.user.avatar)!} alt={comment.user.name} width={40} height={40} className="rounded-full bg-muted"/>
+                                    <div className="flex-1 bg-muted/50 p-4 rounded-lg">
+                                        <p className="font-semibold text-sm">{comment.user.name}</p>
+                                        <p className="text-sm text-muted-foreground">{new Date(comment.createdAt).toLocaleString()}</p>
+                                        <p className="mt-2">{comment.content}</p>
                                     </div>
-                                )}
-                                <span className="font-semibold">{article.author.name}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                <span>{formatDate(article.publishedAt)}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                <span>{article.readTime} min read</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Eye className="w-4 h-4" />
-                                <span>{article.viewCount} views</span>
-                            </div>
-                        </div>
-
-                        {/* Engagement Bar */}
-                        <div className="flex items-center gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleLike}
-                                className={isLiked ? "text-red-500 border-red-500" : ""}
-                            >
-                                <Heart className={`w-4 h-4 mr-2 ${isLiked ? "fill-current" : ""}`} />
-                                {likeCount}
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                    setShowComments(!showComments);
-                                    if (!showComments) loadComments();
-                                }}
-                            >
-                                <MessageCircle className="w-4 h-4 mr-2" />
-                                {article._count.comments}
-                            </Button>
-                            <div className="relative">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setShowShareMenu(!showShareMenu)}
-                                >
-                                    <Share2 className="w-4 h-4 mr-2" />
-                                    Share
-                                </Button>
-                                {showShareMenu && (
-                                    <div className="absolute top-full mt-2 z-50">
-                                        <SocialShare
-                                            url={typeof window !== "undefined" ? window.location.href : ""}
-                                            title={article.title}
-                                            description={article.excerpt}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </header>
-
-                    {/* Article Content */}
-                    <div
-                        className="prose prose-lg dark:prose-invert max-w-none mb-12"
-                        dangerouslySetInnerHTML={{ __html: article.content }}
-                    />
-
-                    {/* Tags */}
-                    {article.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
-                            <TagIcon className="w-5 h-5 text-gray-500" />
-                            {article.tags.map((tag, idx) => (
-                                <span
-                                    key={idx}
-                                    className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-sm text-gray-700 dark:text-gray-300"
-                                >
-                                    #{tag.tag.name}
-                                </span>
+                                </div>
                             ))}
                         </div>
-                    )}
-
-                    {/* Comments Section */}
-                    {showComments && (
-                        <div className="mt-12">
-                            <h3 className="text-2xl font-bold mb-6">Comments ({article._count.comments})</h3>
-
-                            {/* Add Comment */}
-                            {isAuthenticated() ? (
-                                <div className="mb-8">
-                                    <Textarea
-                                        value={newComment}
-                                        onChange={(e) => setNewComment(e.target.value)}
-                                        placeholder="Share your thoughts..."
-                                        className="mb-3"
-                                    />
-                                    <Button onClick={handleComment} disabled={isSubmitting || !newComment.trim()}>
-                                        {isSubmitting ? "Posting..." : "Post Comment"}
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="mb-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
-                                    <p className="mb-3">Please login to comment</p>
-                                    <Button onClick={() => router.push("/login")}>Login</Button>
-                                </div>
-                            )}
-
-                            {/* Comments List */}
-                            <div className="space-y-4">
-                                {comments.length === 0 ? (
-                                    <p className="text-center text-gray-500 py-8">
-                                        No comments yet. Be the first to comment!
-                                    </p>
-                                ) : (
-                                    comments.map((comment) => (
-                                        <Card key={comment.id}>
-                                            <CardContent className="p-4">
-                                                <div className="flex gap-3">
-                                                    {comment.user.avatar ? (
-                                                        <img
-                                                            src={comment.user.avatar}
-                                                            alt={comment.user.name}
-                                                            className="w-10 h-10 rounded-full"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-                                                            {comment.user.name[0]}
-                                                        </div>
-                                                    )}
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="font-semibold">{comment.user.name}</span>
-                                                            <span className="text-sm text-gray-500">
-                                                                {formatDate(comment.createdAt)}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-gray-700 dark:text-gray-300">{comment.content}</p>
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </article>
-            </div>
+                    </section>
+                </BlurFade>
+            </main>
         </div>
     );
 }
 
+const ArticleSkeleton = () => (
+    <div className="min-h-screen bg-background">
+        <Skeleton className="h-[45vh] w-full"/>
+        <div className="max-w-4xl mx-auto px-8 py-12">
+            <div className="space-y-4 mb-8">
+                <Skeleton className="h-6 w-3/4"/>
+                <Skeleton className="h-6 w-1/2"/>
+            </div>
+            <div className="space-y-2">
+                {[...Array(10)].map((_,i) => <Skeleton key={i} className={`h-4 w-full ${i % 3 === 0 ? 'w-5/6' : i % 3 === 1 ? 'w-11/12' : ''}`}/>)}
+            </div>
+        </div>
+    </div>
+);

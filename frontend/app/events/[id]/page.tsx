@@ -1,68 +1,34 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { isAuthenticated } from "@/lib/auth";
+import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import axios from "axios";
 import toast from "react-hot-toast";
-import {
-    Calendar as CalendarIcon,
-    Clock,
-    MapPin,
-    Video,
-    Users,
-    DollarSign,
-    ArrowLeft,
-    Share2,
-    Tag as TagIcon,
-    CheckCircle,
-    XCircle,
-    HelpCircle,
-} from "lucide-react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { isAuthenticated } from "@/lib/auth";
+import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
+import { BlurFade } from "@/components/ui/blur-fade";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import SocialShare from "@/components/SocialShare";
 import EventPaymentModal from "@/components/EventPaymentModal";
+import { Calendar, Clock, MapPin, Video, Users, Ticket, ArrowLeft, Share2, CheckCircle, HelpCircle, XCircle } from "lucide-react";
 
-interface Event {
-    id: string;
-    title: string;
-    description: string;
-    type: "VIRTUAL" | "IN_PERSON" | "HYBRID";
-    status: string;
-    startTime: string;
-    endTime: string;
-    location?: string;
-    virtualLink?: string;
-    coverImage?: string;
-    maxAttendees?: number;
-    price: number;
-    isPremium: boolean;
-    agenda?: string;
-    tags: string[];
-    host: {
-        id: string;
-        name: string;
-        avatar?: string;
-    };
-    _count: {
-        rsvps: number;
-    };
-}
-
-interface RSVP {
-    status: "GOING" | "MAYBE" | "NOT_GOING";
-    isPaid?: boolean;
-}
+// Interfaces
+interface Event { id: string; title: string; description: string; type: "VIRTUAL" | "IN_PERSON" | "HYBRID"; status: string; startTime: string; endTime: string; location?: string; virtualLink?: string; coverImage?: string; maxAttendees?: number; price: number; isPremium: boolean; agenda?: any; tags: string[]; host: { id: string; name: string; avatar?: string; username?: string; }; _count: { rsvps: number; }; userRSVPStatus?: "GOING" | "MAYBE" | "NOT_GOING"; userRSVPIsPaid?: boolean; }
+interface RSVP { status: "GOING" | "MAYBE" | "NOT_GOING"; isPaid?: boolean; }
 
 export default function EventDetailPage({ params }: { params: { id: string } }) {
     const router = useRouter();
     const [event, setEvent] = useState<Event | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [userRSVP, setUserRSVP] = useState<RSVP | null>(null);
-    const [showShareMenu, setShowShareMenu] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+    const { scrollY } = useScroll();
+    const heroImageY = useTransform(scrollY, [0, 400], [0, -100]);
+    const heroImageScale = useTransform(scrollY, [0, 400], [1, 1.1]);
 
     useEffect(() => {
         loadEvent();
@@ -70,413 +36,175 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
 
     const loadEvent = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
-            // Make request with auth token if user is authenticated
             const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            const response = await axios.get(`${apiUrl}/events/${params.id}`, { headers });
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events/${params.id}`, { headers });
 
             if (response.data.success) {
                 const eventData = response.data.data;
                 setEvent(eventData);
-
-                // Set user's RSVP status from the event response
-                if (eventData.userRSVPStatus) {
-                    setUserRSVP({
-                        status: eventData.userRSVPStatus,
-                        isPaid: eventData.userRSVPIsPaid || false
-                    });
-                } else {
-                    setUserRSVP(null);
-                }
+                setUserRSVP(eventData.userRSVPStatus ? { status: eventData.userRSVPStatus, isPaid: eventData.userRSVPIsPaid || false } : null);
+            } else {
+                throw new Error("Event not found");
             }
-        } catch (error: any) {
-            console.error("Load event error:", error);
-            toast.error("Failed to load event");
+        } catch (error) {
+            toast.error("Failed to load event.");
+            router.push("/explore");
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleRSVP = async (status: "GOING" | "MAYBE" | "NOT_GOING") => {
-        if (!isAuthenticated()) {
-            toast.error("Please login to RSVP");
-            router.push("/login");
-            return;
-        }
-
-        if (!event) return;
-
-        // If event is premium and user is trying to RSVP as GOING, show payment modal
-        if (event.isPremium && event.price > 0 && status === "GOING") {
-            // Check if user already paid
-            if (userRSVP?.isPaid) {
-                toast.success("You've already purchased a ticket for this event");
-                return;
-            }
+        if (!isAuthenticated() || !event) return toast.error("Please login to RSVP.");
+        if (event.isPremium && event.price > 0 && status === "GOING" && !userRSVP?.isPaid) {
             setShowPaymentModal(true);
             return;
         }
-
-        // For free events or non-GOING status, proceed with regular RSVP
         try {
             const token = localStorage.getItem("authToken");
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
-            await axios.post(
-                `${apiUrl}/events/${event.id}/rsvp`,
-                { status },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            // If user cancels RSVP, set to null to hide buttons
-            if (status === "NOT_GOING") {
-                setUserRSVP(null);
-            } else {
-                setUserRSVP({ status });
-            }
-
-            toast.success(
-                status === "GOING"
-                    ? "You're going! 🎉"
-                    : status === "MAYBE"
-                        ? "Marked as maybe"
-                        : "RSVP cancelled"
-            );
+            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/events/${event.id}/rsvp`, { status }, { headers: { Authorization: `Bearer ${token}` } });
+            toast.success(status === "GOING" ? "You're going! 🎉" : status === "MAYBE" ? "Marked as maybe" : "RSVP cancelled");
             loadEvent();
-        } catch (error: any) {
-            console.error("RSVP error:", error);
-            toast.error(error.response?.data?.message || "Failed to update RSVP");
+        } catch (error) {
+            toast.error("Failed to update RSVP.");
         }
     };
 
     const handlePaymentSuccess = () => {
-        setUserRSVP({ status: "GOING", isPaid: true });
+        toast.success("Payment successful! You're going!");
         loadEvent();
     };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString("en-US", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
-    };
+    const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+    const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
 
-    const formatTime = (dateString: string) => {
-        return new Date(dateString).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-
-    const getEventTypeIcon = (type: string) => {
-        switch (type) {
-            case "VIRTUAL":
-                return <Video className="w-5 h-5" />;
-            case "IN_PERSON":
-                return <MapPin className="w-5 h-5" />;
-            case "HYBRID":
-                return <Users className="w-5 h-5" />;
-            default:
-                return <CalendarIcon className="w-5 h-5" />;
-        }
-    };
-
-    const getEventTypeLabel = (type: string) => {
-        return type === "VIRTUAL"
-            ? "Virtual Event"
-            : type === "IN_PERSON"
-                ? "In-Person Event"
-                : "Hybrid Event";
-    };
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 py-12">
-                <div className="max-w-5xl mx-auto px-4">
-                    <Skeleton className="h-12 w-32 mb-8" />
-                    <Skeleton className="h-96 w-full mb-8" />
-                    <Skeleton className="h-8 w-3/4 mb-4" />
-                    <Skeleton className="h-4 w-full mb-2" />
-                </div>
-            </div>
-        );
-    }
-
-    if (!event) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 py-12">
-                <div className="max-w-5xl mx-auto px-4 text-center">
-                    <h1 className="text-4xl font-bold mb-4">Event Not Found</h1>
-                    <Button onClick={() => router.push("/events")}>← Back to Events</Button>
-                </div>
-            </div>
-        );
-    }
+    if (isLoading) return <EventSkeleton />;
+    if (!event) return null;
 
     const isPastEvent = new Date(event.endTime) < new Date();
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-gray-900 dark:to-gray-800">
-            {/* Cover Image */}
+        <div className="bg-background min-h-screen">
             {event.coverImage && (
-                <div
-                    className="h-96 bg-cover bg-center relative"
-                    style={{ backgroundImage: `url(${event.coverImage})` }}
-                >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                </div>
+                <motion.div className="h-[50vh] min-h-[350px] w-full overflow-hidden relative" style={{ y: heroImageY }}>
+                    <Image src={getFullMediaUrl(event.coverImage)!} alt={event.title} fill className="object-cover" style={{ scale: heroImageScale }}/>
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"/>
+                </motion.div>
             )}
 
-            <div className="max-w-5xl mx-auto px-4 py-8">
-                <Button variant="outline" onClick={() => router.back()} className="mb-6">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back
-                </Button>
+            <main className="container mx-auto px-4 pb-12 -mt-24 relative z-10">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start">
+                    {/* Left Column: Main Content */}
+                    <div className="lg:col-span-2 space-y-8">
+                        <BlurFade delay={0.25} inView>
+                            <h1 className="text-5xl font-bold tracking-tight text-foreground">{event.title}</h1>
+                            <div className="mt-4 prose prose-lg dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: event.description }}/>
+                        </BlurFade>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Event Header */}
-                        <Card>
-                            <CardContent className="p-8">
-                                <div className="flex items-center gap-2 mb-4">
-                                    {getEventTypeIcon(event.type)}
-                                    <span className="text-sm font-semibold text-purple-600">
-                                        {getEventTypeLabel(event.type)}
-                                    </span>
-                                    {event.price > 0 && (
-                                        <span className="ml-auto text-2xl font-bold text-purple-600">
-                                            ${event.price}
-                                        </span>
-                                    )}
-                                    {event.price === 0 && (
-                                        <span className="ml-auto text-lg font-semibold text-green-600">FREE</span>
-                                    )}
-                                </div>
-
-                                <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">
-                                    {event.title}
-                                </h1>
-
-                                {/* Host Info */}
-                                <div className="flex items-center gap-3 mb-6">
-                                    {event.host.avatar ? (
-                                        <img
-                                            src={event.host.avatar}
-                                            alt={event.host.name}
-                                            className="w-12 h-12 rounded-full"
-                                        />
-                                    ) : (
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-lg">
-                                            {event.host.name[0]}
-                                        </div>
-                                    )}
-                                    <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">Hosted by</p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                            {event.host.name}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Description */}
-                                <p className="text-gray-700 dark:text-gray-300 text-lg whitespace-pre-line">
-                                    {event.description}
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        {/* Agenda */}
                         {event.agenda && (
-                            <Card>
-                                <CardContent className="p-8">
-                                    <h2 className="text-2xl font-bold mb-4">Event Agenda</h2>
-                                    <pre className="text-gray-700 dark:text-gray-300 whitespace-pre-line font-sans">
-                                        {event.agenda}
-                                    </pre>
-                                </CardContent>
-                            </Card>
+                            <BlurFade delay={0.5} inView>
+                                <div className="p-6 bg-muted/50 rounded-2xl border border-border/30">
+                                    <h2 className="text-2xl font-bold mb-4">Agenda</h2>
+                                    <div className="prose dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: event.agenda }}/>
+                                </div>
+                            </BlurFade>
                         )}
-
-                        {/* Tags */}
-                        {event.tags.length > 0 && (
-                            <Card>
-                                <CardContent className="p-8">
-                                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                        <TagIcon className="w-5 h-5" />
-                                        Tags
-                                    </h2>
-                                    <div className="flex flex-wrap gap-2">
-                                        {event.tags.map((tag, idx) => (
-                                            <span
-                                                key={idx}
-                                                className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full text-sm"
-                                            >
-                                                #{tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
+                        
+                        <BlurFade delay={0.75} inView>
+                            <div className="p-6 bg-muted/50 rounded-2xl border border-border/30">
+                                <h2 className="text-2xl font-bold mb-4">Location</h2>
+                                <p className="text-muted-foreground mb-4">{event.location || "Virtual Event"}</p>
+                                <div className="aspect-video bg-card rounded-lg overflow-hidden">
+                                    <Image src="/map-placeholder.png" alt="Map" width={800} height={450} className="object-cover"/>
+                                </div>
+                            </div>
+                        </BlurFade>
                     </div>
 
-                    {/* Sidebar */}
-                    <div className="space-y-6">
-                        {/* Event Details Card */}
-                        <Card className="sticky top-4">
-                            <CardContent className="p-6 space-y-4">
-                                {/* Date & Time */}
-                                <div>
-                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
-                                        <CalendarIcon className="w-5 h-5" />
-                                        <span className="font-semibold">Date & Time</span>
-                                    </div>
-                                    <p className="text-gray-900 dark:text-white ml-7">
-                                        {formatDate(event.startTime)}
-                                    </p>
-                                    <p className="text-gray-700 dark:text-gray-300 ml-7">
-                                        {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                                    </p>
-                                </div>
-
-                                {/* Location */}
-                                {(event.type === "IN_PERSON" || event.type === "HYBRID") && event.location && (
+                    {/* Right Column: Sticky Sidebar */}
+                    <div className="lg:sticky top-24 space-y-6">
+                        <BlurFade delay={0.5} inView>
+                            <div className="p-6 bg-card/80 backdrop-blur-sm rounded-2xl border border-border/30 space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <Calendar className="w-5 h-5 text-primary"/>
                                     <div>
-                                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
-                                            <MapPin className="w-5 h-5" />
-                                            <span className="font-semibold">Location</span>
-                                        </div>
-                                        <p className="text-gray-900 dark:text-white ml-7">{event.location}</p>
+                                        <p className="font-semibold">{formatDate(event.startTime)}</p>
+                                        <p className="text-sm text-muted-foreground">{formatTime(event.startTime)} - {formatTime(event.endTime)}</p>
                                     </div>
-                                )}
-
-                                {/* Virtual Link */}
-                                {(event.type === "VIRTUAL" || event.type === "HYBRID") && event.virtualLink && (
-                                    <div>
-                                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
-                                            <Video className="w-5 h-5" />
-                                            <span className="font-semibold">Virtual Link</span>
-                                        </div>
-                                        <a
-                                            href={event.virtualLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-purple-600 hover:underline ml-7 block break-all"
-                                        >
-                                            Join Meeting
-                                        </a>
-                                    </div>
-                                )}
-
-                                {/* Attendees */}
-                                <div>
-                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
-                                        <Users className="w-5 h-5" />
-                                        <span className="font-semibold">Attendees</span>
-                                    </div>
-                                    <p className="text-gray-900 dark:text-white ml-7">
-                                        {event._count.rsvps} going
-                                        {event.maxAttendees && ` / ${event.maxAttendees} max`}
-                                    </p>
                                 </div>
+                                <div className="flex items-center gap-3">
+                                    <MapPin className="w-5 h-5 text-primary"/>
+                                    <p className="font-semibold">{event.type === 'VIRTUAL' ? 'Online' : event.location}</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Users className="w-5 h-5 text-primary"/>
+                                    <p className="font-semibold">{event._count.rsvps} going {event.maxAttendees ? `/ ${event.maxAttendees}` : ''}</p>
+                                </div>
+                            </div>
+                        </BlurFade>
 
-                                {/* RSVP Buttons */}
-                                {!isPastEvent && (
-                                    <div className="space-y-2 pt-4 border-t">
-                                        <p className="font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                                            Are you attending?
-                                        </p>
-                                        <Button
-                                            onClick={() => handleRSVP("GOING")}
-                                            className={`w-full ${userRSVP?.status === "GOING"
-                                                    ? "bg-green-600 hover:bg-green-700"
-                                                    : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                                                }`}
-                                        >
-                                            <CheckCircle className="w-4 h-4 mr-2" />
-                                            {userRSVP?.status === "GOING" ? "You're Going! ✓" : "I'm Going"}
-                                        </Button>
-                                        <Button
-                                            onClick={() => handleRSVP("MAYBE")}
-                                            variant="outline"
-                                            className={`w-full ${userRSVP?.status === "MAYBE" ? "border-yellow-500 text-yellow-600" : ""
-                                                }`}
-                                        >
-                                            <HelpCircle className="w-4 h-4 mr-2" />
-                                            {userRSVP?.status === "MAYBE" ? "Marked as Maybe" : "Maybe"}
-                                        </Button>
-                                        {userRSVP?.status === "GOING" && (
-                                            <Button
-                                                onClick={() => router.push(`/events/${event.id}/ticket`)}
-                                                variant="outline"
-                                                className="w-full border-purple-500 text-purple-600 hover:bg-purple-50"
-                                            >
-                                                🎟️ View My Ticket
-                                            </Button>
-                                        )}
-                                        {userRSVP && (
-                                            <Button
-                                                onClick={() => handleRSVP("NOT_GOING")}
-                                                variant="outline"
-                                                className="w-full text-red-600 border-red-300"
-                                            >
-                                                <XCircle className="w-4 h-4 mr-2" />
-                                                Cancel RSVP
-                                            </Button>
-                                        )}
+                        <BlurFade delay={0.65} inView>
+                            <div className="p-6 bg-card/80 backdrop-blur-sm rounded-2xl border border-border/30 space-y-4">
+                                <Link href={`/creators/${event.host.username}`} className="flex items-center gap-3 group">
+                                    <Image src={getFullMediaUrl(event.host.avatar)!} alt={event.host.name} width={40} height={40} className="rounded-full bg-muted"/>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Hosted by</p>
+                                        <p className="font-semibold text-foreground group-hover:text-primary transition-colors">{event.host.name}</p>
                                     </div>
-                                )}
+                                </Link>
+                                <div className="flex items-center gap-2">
+                                    <SocialShare url={window.location.href} title={event.title} trigger={<Button variant="outline" className="w-full"><Share2 className="w-4 h-4 mr-2"/>Share</Button>}/>
+                                    <Button variant="outline" className="w-full"><Heart className="w-4 h-4 mr-2"/>Follow</Button>
+                                </div>
+                            </div>
+                        </BlurFade>
 
-                                {isPastEvent && (
-                                    <div className="text-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                                        <p className="text-gray-600 dark:text-gray-400">This event has ended</p>
-                                    </div>
-                                )}
-
-                                {/* Share */}
-                                <div className="pt-4 border-t">
-                                    <Button
-                                        variant="outline"
-                                        className="w-full"
-                                        onClick={() => setShowShareMenu(!showShareMenu)}
-                                    >
-                                        <Share2 className="w-4 h-4 mr-2" />
-                                        Share Event
-                                    </Button>
-                                    {showShareMenu && (
-                                        <div className="mt-3">
-                                            <SocialShare
-                                                url={typeof window !== "undefined" ? window.location.href : ""}
-                                                title={event.title}
-                                                description={event.description}
-                                            />
+                        {!isPastEvent && (
+                            <BlurFade delay={0.8} inView>
+                                <div className="p-6 bg-card/80 backdrop-blur-sm rounded-2xl border border-border/30 space-y-4">
+                                    <p className="text-2xl font-bold text-center">{event.price > 0 ? `$${event.price}` : 'Free'}</p>
+                                    {userRSVP?.status === 'GOING' ? (
+                                        <div className="text-center space-y-2">
+                                            <p className="font-semibold text-green-500 flex items-center justify-center gap-2"><CheckCircle className="w-5 h-5"/> You are going!</p>
+                                            {event.isPremium && <Button onClick={() => router.push(`/events/${event.id}/ticket`)} className="w-full"><Ticket className="w-4 h-4 mr-2"/>View Ticket</Button>}
+                                            <Button onClick={() => handleRSVP("NOT_GOING")} variant="link" className="text-xs text-muted-foreground">Cancel RSVP</Button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <Button onClick={() => handleRSVP("GOING")} variant="gradient" size="lg" className="w-full">
+                                                <Ticket className="w-5 h-5 mr-2"/> {event.price > 0 ? 'Get Tickets' : 'RSVP Now'}
+                                            </Button>
+                                            <Button onClick={() => handleRSVP("MAYBE")} variant="outline" className="w-full">Maybe</Button>
                                         </div>
                                     )}
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </BlurFade>
+                        )}
                     </div>
                 </div>
-            </div>
+            </main>
 
-            {/* Payment Modal */}
-            {event && (
-                <EventPaymentModal
-                    isOpen={showPaymentModal}
-                    onClose={() => setShowPaymentModal(false)}
-                    eventId={event.id}
-                    eventTitle={event.title}
-                    eventPrice={event.price}
-                    onSuccess={handlePaymentSuccess}
-                />
-            )}
+            {event && <EventPaymentModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)} eventId={event.id} eventTitle={event.title} eventPrice={event.price} onSuccess={handlePaymentSuccess} />}
         </div>
     );
 }
 
+const EventSkeleton = () => (
+    <div className="min-h-screen bg-background">
+        <Skeleton className="h-[50vh] w-full"/>
+        <div className="container mx-auto px-4 pb-12 -mt-24 relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start">
+                <div className="lg:col-span-2 space-y-8">
+                    <Skeleton className="h-16 w-3/4"/>
+                    <div className="space-y-2"><Skeleton className="h-4 w-full"/><Skeleton className="h-4 w-5/6"/></div>
+                    <Skeleton className="h-64 w-full"/>
+                </div>
+                <div className="lg:sticky top-24 space-y-6">
+                    <Skeleton className="h-48 w-full"/>
+                    <Skeleton className="h-24 w-full"/>
+                </div>
+            </div>
+        </div>
+    </div>
+);

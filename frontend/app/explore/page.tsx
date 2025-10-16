@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CampaignCard } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CampaignCard } from "@/components/ui/card";
 import toast from "react-hot-toast";
 import axios from "axios";
+import { motion } from "framer-motion";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { BlurFade } from "@/components/ui/blur-fade";
+import { Spotlight } from "@/components/ui/spotlight";
 import {
   TrendingUp,
   Flame,
@@ -15,85 +18,61 @@ import {
   Zap,
   Award,
   Clock,
-  Heart
+  Heart,
+  Search
 } from "lucide-react";
 
-interface Creator {
-  id: string;
-  name: string;
-  username?: string;
-  email: string;
-  avatar?: string;
-  bannerImage?: string;
-  creatorBio?: string;
-  isCreator: boolean;
-  _count?: {
-    subscribers: number;
-    posts: number;
-  };
-}
-
-interface Campaign {
-  id: string;
-  title: string;
-  slug: string;
-  description: string;
-  goal: number;
-  currentAmount: number;
-  category: string;
-  imageUrl: string;
-  endDate: string;
-  backers?: number;
-  featured?: boolean;
-}
+// Interfaces (assuming these are defined elsewhere, but including for context)
+interface Creator { id: string; name: string; username?: string; email: string; avatar?: string; bannerImage?: string; creatorBio?: string; isCreator: boolean; _count?: { subscribers: number; posts: number; }; }
+interface Campaign { id: string; title: string; slug: string; description: string; goal: number; currentAmount: number; category: string; imageUrl: string; endDate: string; backers?: number; featured?: boolean; }
 
 export default function ExplorePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [trendingCreators, setTrendingCreators] = useState<Creator[]>([]);
-  const [featuredCampaigns, setFeaturedCampaigns] = useState<Campaign[]>([]);
-  const [selectedTab, setSelectedTab] = useState<'trending' | 'featured' | 'new'>('trending');
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([]);
+  const [selectedTab, setSelectedTab] = useState<'creators' | 'campaigns'>('creators');
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     loadExploreData();
   }, []);
 
+  useEffect(() => {
+    // Filter campaigns based on search term
+    if (searchTerm === "") {
+      setFilteredCampaigns(campaigns);
+    } else {
+      const lowercasedTerm = searchTerm.toLowerCase();
+      const filtered = campaigns.filter(c => 
+        c.title.toLowerCase().includes(lowercasedTerm) || 
+        c.description.toLowerCase().includes(lowercasedTerm) ||
+        c.category.toLowerCase().includes(lowercasedTerm)
+      );
+      setFilteredCampaigns(filtered);
+    }
+  }, [searchTerm, campaigns]);
+
+
   const loadExploreData = async () => {
     setIsLoading(true);
     try {
-      // Load trending creators
-      const creatorsResponse = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/creators`
-      );
+      const [creatorsResponse, campaignsResponse] = await Promise.all([
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/creators`),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/campaigns`)
+      ]);
 
       if (creatorsResponse.data.success) {
-        const creators = creatorsResponse.data.data || [];
-        // Sort by subscriber count
-        const sorted = creators
-          .filter((c: Creator) => c._count && c._count.subscribers > 0)
-          .sort((a: Creator, b: Creator) =>
-            (b._count?.subscribers || 0) - (a._count?.subscribers || 0)
-          )
-          .slice(0, 6);
-        setTrendingCreators(sorted);
+        const creatorData = creatorsResponse.data.data || [];
+        const sorted = creatorData.sort((a: Creator, b: Creator) => (b._count?.subscribers || 0) - (a._count?.subscribers || 0));
+        setCreators(sorted);
       }
 
-      // Load featured campaigns
-      const campaignsResponse = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/campaigns`
-      );
-
       if (campaignsResponse.data.success) {
-        const data = campaignsResponse.data.data as any;
-        const campaigns = Array.isArray(data) ? data : data.campaigns || [];
-
-        // Filter and sort campaigns
-        const featured = campaigns
-          .filter((c: Campaign) => c.currentAmount > 0)
-          .sort((a: Campaign, b: Campaign) => b.currentAmount - a.currentAmount)
-          .slice(0, 6);
-
-        setFeaturedCampaigns(featured);
+        const campaignData = (Array.isArray(campaignsResponse.data.data) ? campaignsResponse.data.data : campaignsResponse.data.data.campaigns) || [];
+        setCampaigns(campaignData);
+        setFilteredCampaigns(campaignData);
       }
     } catch (error) {
       console.error("Failed to load explore data:", error);
@@ -103,251 +82,185 @@ export default function ExplorePage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-cyan-50 dark:from-[#1E1E1E] dark:via-[#272822] dark:to-[#2D2A2E] py-12">
-        <div className="container mx-auto px-4">
-          <Skeleton className="h-16 w-96 mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} className="h-64" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  };
+
+  const renderSkeletons = () => (
+    <motion.div 
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {[...Array(6)].map((_, i) => (
+        <motion.div key={i} variants={itemVariants}>
+          <Skeleton className="h-80 w-full rounded-2xl" />
+        </motion.div>
+      ))}
+    </motion.div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-cyan-50 dark:from-[#1E1E1E] dark:via-[#272822] dark:to-[#2D2A2E]">
+    <div className="min-h-screen w-full bg-background relative overflow-hidden">
+      <Spotlight
+        className="-top-40 left-0 md:left-60 md:-top-20"
+        fill="white"
+      />
+      
       {/* Hero Section */}
-      <div className="relative py-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#F92672] via-[#AE81FF] to-[#66D9EF]" />
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-
-        <div className="container mx-auto px-4 relative">
-          <div className="flex items-center gap-3 mb-4">
-            <Zap className="w-12 h-12 text-white animate-pulse" />
-            <h1 className="text-6xl font-bold text-white drop-shadow-lg">
-              Discover Amazing Projects
-            </h1>
-          </div>
-          <p className="text-xl text-white/95 max-w-3xl">
-            Explore trending creators, featured campaigns, and innovative projects from our community
+      <BlurFade delay={0.25} inView>
+        <section className="text-center pt-20 pb-16 px-4 sm:px-6 lg:px-8">
+          <TextGenerateEffect
+            words="Discover Your Next Inspiration"
+            className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-4"
+          />
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            Explore trending creators and innovative campaigns from our global community.
           </p>
-        </div>
+        </section>
+      </BlurFade>
+
+      <div className="container mx-auto px-4 py-8">
+        <BlurFade delay={0.5} inView>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12">
+            {/* Tabs */}
+            <div className="p-1.5 rounded-full bg-muted border border-border flex items-center">
+              <button
+                onClick={() => setSelectedTab('creators')}
+                className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-colors ${selectedTab === 'creators' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <Users className="w-4 h-4 mr-2 inline"/>
+                Creators
+              </button>
+              <button
+                onClick={() => setSelectedTab('campaigns')}
+                className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-colors ${selectedTab === 'campaigns' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <Flame className="w-4 h-4 mr-2 inline"/>
+                Campaigns
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            {selectedTab === 'campaigns' && (
+              <div className="relative w-full max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search campaigns..."
+                  className="pl-10 w-full bg-muted border-border"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        </BlurFade>
+
+        <BlurFade delay={0.75} inView>
+          {isLoading ? renderSkeletons() : (
+            selectedTab === 'creators' ? (
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {creators.map(creator => (
+                  <motion.div key={creator.id} variants={itemVariants}>
+                    <CreatorCard creator={creator} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {filteredCampaigns.map(campaign => (
+                  <motion.div key={campaign.id} variants={itemVariants}>
+                    <CampaignCard
+                      title={campaign.title}
+                      description={campaign.description}
+                      imageUrl={campaign.imageUrl}
+                      currentAmount={campaign.currentAmount}
+                      goal={campaign.goal}
+                      slug={campaign.slug}
+                      category={campaign.category}
+                      daysRemaining={Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
+                      backers={campaign.backers}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )
+          )}
+        </BlurFade>
+      </div>
+    </div>
+  );
+}
+
+// A new, improved Creator Card component
+function CreatorCard({ creator }: { creator: Creator }) {
+  const router = useRouter();
+  return (
+    <div 
+      className="group relative bg-card/50 dark:bg-card/80 backdrop-blur-sm border border-border/30 rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden h-full flex flex-col"
+      onClick={() => router.push(`/creators/${creator.username || creator.id}`)}
+    >
+      <div className="h-36 relative overflow-hidden">
+        <img
+          src={creator.bannerImage || `https://source.unsplash.com/random/400x200?abstract&${creator.id}`}
+          alt={`${creator.name}'s banner`}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+        />
+        <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
-        {/* Tab Navigation */}
-        <div className="flex gap-4 mb-8 overflow-x-auto">
-          <button
-            onClick={() => setSelectedTab('trending')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all whitespace-nowrap ${
-              selectedTab === 'trending'
-                ? 'bg-gradient-to-r from-[#F92672] to-[#FD971F] text-white shadow-lg scale-105'
-                : 'bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 hover:border-[#F92672] hover:scale-105'
-            }`}
-          >
-            <Flame className="w-5 h-5" />
-            Trending Now
-          </button>
-          <button
-            onClick={() => setSelectedTab('featured')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all whitespace-nowrap ${
-              selectedTab === 'featured'
-                ? 'bg-gradient-to-r from-[#A6E22E] to-[#E6DB74] text-white shadow-lg scale-105'
-                : 'bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 hover:border-[#A6E22E] hover:scale-105'
-            }`}
-          >
-            <Star className="w-5 h-5" />
-            Featured Campaigns
-          </button>
-          <button
-            onClick={() => setSelectedTab('new')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all whitespace-nowrap ${
-              selectedTab === 'new'
-                ? 'bg-gradient-to-r from-[#66D9EF] to-[#AE81FF] text-white shadow-lg scale-105'
-                : 'bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 hover:border-[#66D9EF] hover:scale-105'
-            }`}
-          >
-            <Clock className="w-5 h-5" />
-            New & Rising
-          </button>
+      <div className="relative px-6 -mt-12 flex-1 flex flex-col pb-6">
+        <div className="w-24 h-24 rounded-full border-4 border-background bg-muted flex items-center justify-center text-foreground font-bold text-3xl shadow-lg overflow-hidden mb-4">
+          {creator.avatar ? (
+            <img src={creator.avatar} alt={creator.name} className="w-full h-full object-cover" />
+          ) : (
+            creator.name?.charAt(0).toUpperCase()
+          )}
         </div>
+        
+        <h3 className="text-xl font-bold mb-1 truncate">{creator.name}</h3>
+        <p className="text-sm text-muted-foreground mb-3">
+          @{creator.username || `user${creator.id.slice(0, 6)}`}
+        </p>
 
-        {/* Trending Creators Section */}
-        {selectedTab === 'trending' && (
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <TrendingUp className="w-8 h-8 text-[#F92672]" />
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-[#F92672] to-[#FD971F] bg-clip-text text-transparent">
-                Trending Creators
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {trendingCreators.map((creator) => (
-                <Card
-                  key={creator.id}
-                  className="group relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer overflow-hidden"
-                  onClick={() => router.push(`/creator/${creator.username || creator.id}`)}
-                >
-                  {/* Banner */}
-                  <div className="h-32 bg-gradient-to-br from-[#F92672] via-[#AE81FF] to-[#66D9EF] relative">
-                    {creator.bannerImage && (
-                      <img
-                        src={creator.bannerImage}
-                        alt=""
-                        className="w-full h-full object-cover opacity-70"
-                      />
-                    )}
-                    <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
-                      <Flame className="w-4 h-4 text-[#F92672]" />
-                      <span className="text-sm font-semibold">Trending</span>
-                    </div>
-                  </div>
-
-                  {/* Avatar */}
-                  <div className="relative px-6 -mt-12">
-                    <div className="w-20 h-20 rounded-full border-4 border-white dark:border-gray-800 bg-gradient-to-br from-[#F92672] to-[#AE81FF] flex items-center justify-center text-white font-bold text-2xl shadow-lg overflow-hidden">
-                      {creator.avatar ? (
-                        <img src={creator.avatar} alt={creator.name} className="w-full h-full object-cover" />
-                      ) : (
-                        creator.name?.charAt(0).toUpperCase()
-                      )}
-                    </div>
-                  </div>
-
-                  <CardContent className="pt-4">
-                    <h3 className="text-xl font-bold mb-1">{creator.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      @{creator.username || `user${creator.id.slice(0, 6)}`}
-                    </p>
-
-                    {creator.creatorBio && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-                        {creator.creatorBio}
-                      </p>
-                    )}
-
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-[#66D9EF]" />
-                        <span className="font-semibold">{creator._count?.subscribers || 0}</span>
-                        <span className="text-gray-600 dark:text-gray-400">supporters</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Heart className="w-4 h-4 text-[#F92672]" />
-                        <span className="font-semibold">{creator._count?.posts || 0}</span>
-                        <span className="text-gray-600 dark:text-gray-400">posts</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {trendingCreators.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-600 dark:text-gray-400">No trending creators yet. Be the first!</p>
-              </div>
-            )}
-          </div>
+        {creator.creatorBio && (
+          <p className="text-sm text-muted-foreground mb-4 line-clamp-2 flex-grow">
+            {creator.creatorBio}
+          </p>
         )}
 
-        {/* Featured Campaigns Section */}
-        {selectedTab === 'featured' && (
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <Award className="w-8 h-8 text-[#A6E22E]" />
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-[#A6E22E] to-[#E6DB74] bg-clip-text text-transparent">
-                Featured Campaigns
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredCampaigns.map((campaign) => (
-                <CampaignCard
-                  key={campaign.id}
-                  title={campaign.title}
-                  description={campaign.description}
-                  imageUrl={campaign.imageUrl}
-                  goal={campaign.goal}
-                  currentAmount={campaign.currentAmount}
-                  category={campaign.category}
-                  daysRemaining={Math.max(Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)), 0)}
-                  backers={campaign.backers || 0}
-                  slug={campaign.slug}
-                />
-              ))}
-            </div>
-
-            {featuredCampaigns.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-600 dark:text-gray-400">No featured campaigns yet. Check back soon!</p>
-              </div>
-            )}
+        <div className="flex items-center justify-between text-sm mt-auto pt-4 border-t border-border/20">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-primary" />
+            <span className="font-semibold">{creator._count?.subscribers || 0}</span>
+            <span className="text-muted-foreground">supporters</span>
           </div>
-        )}
-
-        {/* New & Rising Section */}
-        {selectedTab === 'new' && (
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <Zap className="w-8 h-8 text-[#66D9EF]" />
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-[#66D9EF] to-[#AE81FF] bg-clip-text text-transparent">
-                New & Rising Stars
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {trendingCreators.slice(0, 3).map((creator) => (
-                <Card
-                  key={creator.id}
-                  className="group relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
-                  onClick={() => router.push(`/creator/${creator.username || creator.id}`)}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#66D9EF] to-[#AE81FF] flex items-center justify-center text-white font-bold text-xl overflow-hidden">
-                        {creator.avatar ? (
-                          <img src={creator.avatar} alt={creator.name} className="w-full h-full object-cover" />
-                        ) : (
-                          creator.name?.charAt(0).toUpperCase()
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold">{creator.name}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          @{creator.username || `user${creator.id.slice(0, 6)}`}
-                        </p>
-                      </div>
-                      <div className="bg-[#66D9EF]/10 p-2 rounded-full">
-                        <Zap className="w-5 h-5 text-[#66D9EF]" />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold bg-gradient-to-r from-[#66D9EF] to-[#AE81FF] bg-clip-text text-transparent">
-                          {creator._count?.subscribers || 0}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">supporters</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold bg-gradient-to-r from-[#F92672] to-[#FD971F] bg-clip-text text-transparent">
-                          {creator._count?.posts || 0}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">posts</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <div className="flex items-center gap-2">
+            <Heart className="w-4 h-4 text-red-500" />
+            <span className="font-semibold">{creator._count?.posts || 0}</span>
+            <span className="text-muted-foreground">posts</span>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
