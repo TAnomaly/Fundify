@@ -223,6 +223,36 @@ app.listen(PORT, () => {
   }).catch(err => {
     console.error('⚠️  Failed to start schedulers:', err.message);
   });
+
+  // Test Redis and RabbitMQ connections on startup
+  import('./utils/redis').then(({ getRedis }) => {
+    getRedis().then(redis => {
+      if (redis) {
+        console.log('✅ Redis connected');
+        redis.ping().then(() => {
+          console.log('✅ Redis ready');
+        }).catch(() => {
+          console.log('⚠️  Redis ping failed');
+        });
+      } else {
+        console.log('⚠️  Redis not configured');
+      }
+    });
+  }).catch(() => {
+    console.log('⚠️  Redis module not found');
+  });
+
+  import('./utils/rabbitmq').then(({ getRabbitChannel }) => {
+    getRabbitChannel().then(channel => {
+      if (channel) {
+        console.log('✅ CLOUD_AMQP channel created');
+      } else {
+        console.log('⚠️  CLOUD_AMQP not configured');
+      }
+    });
+  }).catch(() => {
+    console.log('⚠️  RabbitMQ module not found');
+  });
 });
 
 export default app;
