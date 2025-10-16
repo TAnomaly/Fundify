@@ -1,6 +1,7 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
@@ -54,6 +55,7 @@ const limiter = rateLimit({
 
 // Middleware
 app.use(helmet());
+app.use(compression({ level: 6 }));
 app.use(cors({
   origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
