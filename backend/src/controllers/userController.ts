@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
+import { safeCacheGet, safeCacheSet } from '../utils/redis';
 import { AuthRequest } from '../types';
 import { updateUserSchema } from '../utils/validation';
 import { ZodError } from 'zod';
@@ -291,6 +292,13 @@ export const getAllCreators = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const cacheKey = 'creators:all:v1';
+    const cached = await safeCacheGet<any[]>(cacheKey);
+    if (cached) {
+      res.status(200).json({ success: true, data: cached });
+      return;
+    }
+
     const creators = await prisma.user.findMany({
       where: {
         isCreator: true,
@@ -314,10 +322,10 @@ export const getAllCreators = async (
       },
     });
 
-    res.status(200).json({
-      success: true,
-      data: creators,
-    });
+    // Cache for 5 minutes
+    await safeCacheSet(cacheKey, creators, 300);
+
+    res.status(200).json({ success: true, data: creators });
   } catch (error) {
     next(error);
   }
