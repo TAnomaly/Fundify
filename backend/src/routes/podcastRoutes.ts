@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateToken } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { upload } from '../middleware/upload';
 import {
     createPodcast,
@@ -12,10 +12,10 @@ import {
 const router = Router();
 
 // Create podcast
-router.post('/', authenticateToken, upload.single('coverImage'), createPodcast);
+router.post('/', authenticate, upload.single('coverImage'), createPodcast);
 
 // Get my podcasts
-router.get('/my', authenticateToken, getMyPodcasts);
+router.get('/my', authenticate, getMyPodcasts);
 
 // Get podcasts by creator
 router.get('/', getPodcastsByCreator);
@@ -24,6 +24,6 @@ router.get('/', getPodcastsByCreator);
 router.get('/:id', getPodcast);
 
 // Create episode
-router.post('/:podcastId/episodes', authenticateToken, upload.single('audio'), createEpisode);
+router.post('/:podcastId/episodes', authenticate, upload.single('audio'), createEpisode);
 
 export default router;

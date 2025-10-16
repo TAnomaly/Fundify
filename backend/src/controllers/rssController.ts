@@ -24,7 +24,7 @@ export const generateRSSFeed = async (
           },
         },
         episodes: {
-          where: { published: true },
+          where: { status: 'PUBLISHED' },
           orderBy: { publishedAt: 'desc' },
         },
       },
@@ -46,7 +46,7 @@ export const generateRSSFeed = async (
     <title>${escapeXml(podcast.title)}</title>
     <link>${baseUrl}/podcast/${podcast.id}</link>
     <language>${podcast.language}</language>
-    <copyright>Copyright ${new Date().getFullYear()} ${escapeXml(podcast.author)}</copyright>
+    <copyright>Copyright ${new Date().getFullYear()} ${escapeXml(podcast.creator.name)}</copyright>
     <description>${escapeXml(podcast.description || '')}</description>
     <image>
       <url>${escapeXml(podcast.coverImage || '')}</url>
@@ -54,14 +54,14 @@ export const generateRSSFeed = async (
       <link>${baseUrl}/podcast/${podcast.id}</link>
     </image>
 
-    <itunes:author>${escapeXml(podcast.author)}</itunes:author>
+    <itunes:author>${escapeXml(podcast.creator.name)}</itunes:author>
     <itunes:summary>${escapeXml(podcast.description || '')}</itunes:summary>
     <itunes:category text="${escapeXml(podcast.category)}" />
     <itunes:image href="${escapeXml(podcast.coverImage || '')}" />
-    <itunes:explicit>${podcast.isExplicit ? 'yes' : 'no'}</itunes:explicit>
+    <itunes:explicit>no</itunes:explicit>
     <itunes:owner>
-      <itunes:name>${escapeXml(podcast.author)}</itunes:name>
-      <itunes:email>${escapeXml(podcast.email || podcast.creator.email || '')}</itunes:email>
+      <itunes:name>${escapeXml(podcast.creator.name)}</itunes:name>
+      <itunes:email>${escapeXml(podcast.creator.email || '')}</itunes:email>
     </itunes:owner>
 
     <atom:link href="${baseUrl}/api/podcast/${podcast.id}/rss" rel="self" type="application/rss+xml" />
