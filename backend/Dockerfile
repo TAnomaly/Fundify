@@ -18,6 +18,9 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
+# Run database migration
+RUN npx prisma db push --accept-data-loss
+
 # Expose port
 EXPOSE 4000
 
