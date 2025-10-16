@@ -6,7 +6,7 @@ import prisma from '../utils/prisma';
 const router = Router();
 
 // Create podcast
-router.post('/', authenticate, upload.single('coverImage'), async (req: any, res: any, next: any) => {
+router.post('/', authenticate as any, upload.single('coverImage') as any, async (req: any, res: any, next: any) => {
   try {
     const userId = req.user?.id || req.user?.userId;
     if (!userId) {
@@ -22,7 +22,7 @@ router.post('/', authenticate, upload.single('coverImage'), async (req: any, res
 });
 
 // Get my podcasts
-router.get('/my', authenticate, async (req: any, res: any, next: any) => {
+router.get('/my', authenticate as any, async (req: any, res: any, next: any) => {
   try {
     const userId = req.user?.id || req.user?.userId;
     if (!userId) {
@@ -70,7 +70,7 @@ router.get('/:id', async (req: any, res: any, next: any) => {
 });
 
 // Create episode
-router.post('/:podcastId/episodes', authenticate, upload.single('audio'), async (req: any, res: any, next: any) => {
+router.post('/:podcastId/episodes', authenticate as any, upload.single('audio') as any, async (req: any, res: any, next: any) => {
   try {
     const userId = req.user?.id || req.user?.userId;
     if (!userId) {
