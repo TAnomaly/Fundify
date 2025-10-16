@@ -12,6 +12,7 @@ import {
   Zap, Globe, DollarSign, Star, ArrowRight, Play, Award
 } from "lucide-react";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { BlurFade } from "@/components/ui/blur-fade";
 import Link from "next/link";
 
 export default function Home() {
@@ -209,9 +210,11 @@ export default function Home() {
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Everything You Need
-              </span>
+              <BlurFade delay={0.25} inView>
+                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Everything You Need
+                </span>
+              </BlurFade>
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Powerful tools designed to help you succeed, from launch to scale
@@ -250,12 +253,13 @@ export default function Home() {
         <div className="container mx-auto max-w-7xl">
           <div className="flex justify-between items-center mb-12">
             <div>
-              <h2 className="text-4xl lg:text-5xl font-bold mb-4">
-                <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  Trending Campaigns
-                </span>
-              </h2>
-              <p className="text-xl text-gray-600 dark:text-gray-400">
+                          <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+                            <BlurFade delay={0.25} inView>
+                              <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                                Trending Campaigns
+                              </span>
+                            </BlurFade>
+                          </h2>              <p className="text-xl text-gray-600 dark:text-gray-400">
                 Discover amazing projects from creators worldwide
               </p>
             </div>
@@ -306,9 +310,11 @@ export default function Home() {
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Loved by Creators
-              </span>
+              <BlurFade delay={0.25} inView>
+                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Loved by Creators
+                </span>
+              </BlurFade>
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Join thousands of successful creators who chose Fundify
