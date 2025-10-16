@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
+import { safeCacheGet, safeCacheSet } from '../utils/redis';
 import { AuthRequest } from '../types';
 import { createCampaignSchema, updateCampaignSchema } from '../utils/validation';
 import { ZodError } from 'zod';
@@ -49,6 +50,13 @@ export const getAllCampaigns = async (
       ];
     }
 
+    const cacheKey = `campaigns:list:v1:${JSON.stringify({ status, category, search, page, limit, type })}`;
+    const cached = await safeCacheGet<{ campaigns: any[]; pagination: any }>(cacheKey);
+    if (cached) {
+      res.status(200).json({ success: true, data: cached });
+      return;
+    }
+
     const [campaigns, total] = await Promise.all([
       prisma.campaign.findMany({
         where,
@@ -76,18 +84,19 @@ export const getAllCampaigns = async (
       prisma.campaign.count({ where }),
     ]);
 
-    res.status(200).json({
-      success: true,
-      data: {
-        campaigns,
-        pagination: {
-          page: parseInt(page as string),
-          limit: parseInt(limit as string),
-          total,
-          pages: Math.ceil(total / take),
-        },
+    const payload = {
+      campaigns,
+      pagination: {
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        total,
+        pages: Math.ceil(total / take),
       },
-    });
+    };
+
+    await safeCacheSet(cacheKey, payload, 120); // cache 2 minutes
+
+    res.status(200).json({ success: true, data: payload });
   } catch (error) {
     next(error);
   }

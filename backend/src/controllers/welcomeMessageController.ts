@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { publishJson } from '../utils/rabbitmq';
 
 const prisma = new PrismaClient();
 
@@ -289,14 +290,23 @@ export const sendWelcomeMessages = async (
     });
 
     for (const welcomeMsg of welcomeMessages) {
-      // Apply delay if specified
-      const sendAt = new Date();
-      if (welcomeMsg.delay > 0) {
-        sendAt.setMinutes(sendAt.getMinutes() + welcomeMsg.delay);
-      }
+      const delayMinutes = Math.max(0, welcomeMsg.delay || 0);
+      const job = {
+        type: 'welcome-message',
+        payload: {
+          subscriberId,
+          creatorId,
+          subject: welcomeMsg.subject,
+          content: welcomeMsg.content,
+          welcomeMessageId: welcomeMsg.id,
+        },
+        delayMs: delayMinutes * 60 * 1000,
+        createdAt: Date.now(),
+      } as const;
 
-      // For now, send immediately (in production, use a job queue)
-      if (welcomeMsg.delay === 0) {
+      // Try to enqueue; if RabbitMQ unavailable, fallback to immediate send
+      const published = await publishJson('jobs.welcome', job);
+      if (!published) {
         await prisma.message.create({
           data: {
             content: `**${welcomeMsg.subject}**\n\n${welcomeMsg.content}`,
@@ -305,18 +315,11 @@ export const sendWelcomeMessages = async (
             receiverId: subscriberId,
           },
         });
-
-        // Increment sent count
         await prisma.welcomeMessage.update({
           where: { id: welcomeMsg.id },
-          data: {
-            sentCount: {
-              increment: 1,
-            },
-          },
+          data: { sentCount: { increment: 1 } },
         });
       }
-      // TODO: For delayed messages, create a job in a queue
     }
   } catch (error) {
     console.error('Send welcome messages error:', error);
