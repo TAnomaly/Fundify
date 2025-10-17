@@ -1,9 +1,10 @@
 import { Response, NextFunction } from 'express';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { AuthRequest } from '../types';
 import { CreateSubscriptionDTO } from '../types/subscription';
 import { createNotification } from '../services/notificationService';
+import { normalizeReferralCode } from '../services/referralService';
 
 // Subscribe to a membership tier
 export const createSubscription = async (
@@ -19,7 +20,7 @@ export const createSubscription = async (
       return;
     }
 
-    const { tierId, creatorId }: CreateSubscriptionDTO = req.body;
+    const { tierId, creatorId, referralCode }: CreateSubscriptionDTO = req.body;
 
     // Check if tier exists and is active
     const tier = await prisma.membershipTier.findUnique({
@@ -66,6 +67,60 @@ export const createSubscription = async (
       nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
     }
 
+    let referralRecord: Prisma.ReferralCodeGetPayload<{
+      select: {
+        id: true;
+        creatorId: true;
+        isActive: true;
+        expiresAt: true;
+        usageLimit: true;
+        usageCount: true;
+        code: true;
+      };
+    }> | null = null;
+    let normalizedReferralCode: string | undefined;
+
+    if (referralCode && referralCode.trim()) {
+      normalizedReferralCode = normalizeReferralCode(referralCode);
+      referralRecord = await prisma.referralCode.findUnique({
+        where: { code: normalizedReferralCode },
+        select: {
+          id: true,
+          creatorId: true,
+          isActive: true,
+          expiresAt: true,
+          usageLimit: true,
+          usageCount: true,
+          code: true,
+        },
+      });
+
+      if (!referralRecord) {
+        res.status(400).json({ success: false, message: 'Referral code is invalid' });
+        return;
+      }
+
+      if (referralRecord.creatorId !== creatorId) {
+        res.status(400).json({ success: false, message: 'Referral code does not belong to this creator' });
+        return;
+      }
+
+      if (!referralRecord.isActive) {
+        res.status(400).json({ success: false, message: 'Referral code is not active' });
+        return;
+      }
+
+      if (referralRecord.expiresAt && referralRecord.expiresAt < new Date()) {
+        res.status(400).json({ success: false, message: 'Referral code has expired' });
+        return;
+      }
+
+      if (referralRecord.usageLimit && referralRecord.usageCount >= referralRecord.usageLimit) {
+        res.status(400).json({ success: false, message: 'Referral code usage limit reached' });
+        return;
+      }
+    }
+
     // Create subscription (in production, integrate with Stripe here)
     const subscription = await prisma.subscription.create({
       data: {
@@ -109,26 +164,51 @@ export const createSubscription = async (
       data: { currentSubscribers: { increment: 1 } },
     });
 
+    if (referralRecord && normalizedReferralCode) {
+      await prisma.$transaction([
+        prisma.referralUsage.create({
+          data: {
+            referralCodeId: referralRecord.id,
+            referredUserId: userId,
+            context: 'subscription',
+          },
+        }),
+        prisma.referralCode.update({
+          where: { id: referralRecord.id },
+          data: {
+            usageCount: { increment: 1 },
+          },
+        }),
+      ]);
+    }
+
     // Notify creator about new subscriber
     try {
       await createNotification({
         userId: creatorId,
         type: NotificationType.NEW_SUBSCRIBER,
         title: 'New subscriber',
-        message: `${subscription.subscriber?.name || 'Someone'} joined the ${subscription.tier.name} tier`,
+        message: `${subscription.subscriber?.name || 'Someone'} joined the ${subscription.tier.name} tier${normalizedReferralCode ? ` using referral code ${normalizedReferralCode}` : ''}`,
         link: `/creator-dashboard/subscribers`,
         actorId: userId,
         metadata: {
           subscriptionId: subscription.id,
           tierId,
           subscriberId: userId,
+          referralCode: normalizedReferralCode,
         },
       });
     } catch (notificationError) {
       console.warn('Failed to create notification for new subscriber:', notificationError);
     }
 
-    res.status(201).json({ success: true, data: subscription });
+    res.status(201).json({
+      success: true,
+      data: {
+        ...subscription,
+        referralCode: normalizedReferralCode,
+      },
+    });
   } catch (error) {
     next(error);
   }

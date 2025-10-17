@@ -157,6 +157,10 @@ model User {
   digitalProducts DigitalProduct[] @relation("CreatorDigitalProducts")
   purchases       Purchase[]
 
+  // Referral relations
+  referralCodes  ReferralCode[]  @relation("CreatorReferralCodes")
+  referralUsages ReferralUsage[] @relation("UserReferralUsages")
+
   @@index([email])
   @@index([githubId])
   @@index([isCreator])
@@ -1099,6 +1103,13 @@ enum PurchaseStatus {
   REFUNDED
 }
 
+enum ReferralRewardType {
+  SUBSCRIPTION_CREDIT
+  DISCOUNT
+  BONUS_CONTENT
+  NONE
+}
+
 model DigitalProduct {
   id          String  @id @default(uuid())
   title       String
@@ -1170,6 +1181,42 @@ model Purchase {
   @@index([productId])
   @@index([status])
   @@index([purchasedAt])
+}
+
+model ReferralCode {
+  id          String             @id @default(uuid())
+  code        String             @unique
+  description String?
+  rewardType  ReferralRewardType @default(SUBSCRIPTION_CREDIT)
+  usageLimit  Int?
+  usageCount  Int                @default(0)
+  expiresAt   DateTime?
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  creatorId String
+  creator   User   @relation("CreatorReferralCodes", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  usages ReferralUsage[]
+
+  @@index([creatorId])
+}
+
+model ReferralUsage {
+  id             String       @id @default(uuid())
+  referralCodeId String
+  referralCode   ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+
+  referredUserId String?
+  referredUser   User?        @relation("UserReferralUsages", fields: [referredUserId], references: [id], onDelete: SetNull)
+
+  referredEmail  String?
+  context        String?
+  createdAt      DateTime     @default(now())
+
+  @@index([referralCodeId])
+  @@index([referredUserId])
 }
 
 enum PodcastStatus {

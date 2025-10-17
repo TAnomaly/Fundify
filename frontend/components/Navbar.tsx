@@ -352,6 +352,9 @@ export function Navbar() {
                       <Link href="/creator-dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <Users className="w-4 h-4" /> Creator Hub
                       </Link>
+                      <Link href="/creator-dashboard/referrals" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                        <Sparkles className="w-4 h-4" /> Referral Program
+                      </Link>
                       <Link href="/subscriptions" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <CreditCard className="w-4 h-4" /> Subscriptions
                       </Link>

@@ -32,6 +32,7 @@ export interface Subscription {
   nextBillingDate: string;
   endDate?: string;
   cancelledAt?: string;
+  referralCode?: string;
   subscriber: {
     id: string;
     name: string;
@@ -85,6 +86,7 @@ export interface UpdateMembershipTierInput {
 export interface CreateSubscriptionInput {
   tierId: string;
   creatorId: string;
+  referralCode?: string;
 }
 
 export interface CreatorPost {

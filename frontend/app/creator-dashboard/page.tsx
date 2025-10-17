@@ -362,6 +362,28 @@ export default function CreatorDashboard() {
         </button>
 
         <button
+          onClick={() => router.push("/creator-dashboard/referrals")}
+          className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:scale-105 transition-all text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#66D9EF] to-[#F92672] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M18 8a3 3 0 11-6 0 3 3 0 016 0zM6 8a3 3 0 11-6 0 3 3 0 016 0zm12 8a3 3 0 11-6 0 3 3 0 016 0zm-6 0a3 3 0 11-6 0 3 3 0 016 0zm0 0l3-4m-9 4l3-4m-3-4l3 4m0-4l3 4"
+                />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Referral Program</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Reward supporters who bring friends</p>
+            </div>
+          </div>
+        </button>
+
+        <button
           onClick={() => router.push("/creator-dashboard/posts")}
           className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:scale-105 transition-all text-left group"
         >

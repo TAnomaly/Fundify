@@ -31,6 +31,7 @@ export interface UpdateMembershipTierDTO {
 export interface CreateSubscriptionDTO {
   tierId: string;
   creatorId: string;
+  referralCode?: string;
 }
 
 export interface SubscriptionWithDetails {
