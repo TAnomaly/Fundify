@@ -24,32 +24,6 @@ export default function DashboardPage() {
     totalBackers: 0,
   });
 
-  // loadDashboardData intentionally excluded to avoid triggering data reload loops on state updates
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    console.log('Dashboard mounting...');
-    console.log('isAuthenticated:', isAuthenticated());
-    console.log('getCurrentUser:', getCurrentUser());
-
-    if (!isAuthenticated()) {
-      console.log('Not authenticated, redirecting to login');
-      router.push("/login");
-      return;
-    }
-
-    console.log('Loading dashboard data...');
-    loadDashboardData();
-
-    // Safety timeout - stop loading after 10 seconds
-    const timeout = setTimeout(() => {
-      console.warn('Dashboard loading timeout - forcing stop');
-      setIsLoading(false);
-      toast.error('Dashboard took too long to load. Check console for errors.');
-    }, 10000);
-
-    return () => clearTimeout(timeout);
-  }, [loadDashboardData, router]);
-
   const loadDashboardData = useCallback(async () => {
     console.log('loadDashboardData called');
     setIsLoading(true);
@@ -158,6 +132,30 @@ export default function DashboardPage() {
       setIsLoading(false);
     }
   }, [router]);
+
+  useEffect(() => {
+    console.log('Dashboard mounting...');
+    console.log('isAuthenticated:', isAuthenticated());
+    console.log('getCurrentUser:', getCurrentUser());
+
+    if (!isAuthenticated()) {
+      console.log('Not authenticated, redirecting to login');
+      router.push("/login");
+      return;
+    }
+
+    console.log('Loading dashboard data...');
+    loadDashboardData();
+
+    // Safety timeout - stop loading after 10 seconds
+    const timeout = setTimeout(() => {
+      console.warn('Dashboard loading timeout - forcing stop');
+      setIsLoading(false);
+      toast.error('Dashboard took too long to load. Check console for errors.');
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [loadDashboardData, router]);
 
   const deleteCampaign = async (campaignId: string, e: React.MouseEvent) => {
     e.preventDefault();

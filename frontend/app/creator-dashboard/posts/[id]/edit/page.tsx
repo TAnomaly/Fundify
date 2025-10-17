@@ -48,10 +48,6 @@ export default function EditPostPage() {
         published: true,
     });
 
-        useEffect(() => {
-        loadPost();
-    }, [loadPost]);
-
     const loadPost = useCallback(async () => {
         try {
             const response = await creatorPostApi.getById(postId);
@@ -76,6 +72,10 @@ export default function EditPostPage() {
             setIsLoadingPost(false);
         }
     }, [postId, router]);
+
+    useEffect(() => {
+        loadPost();
+    }, [loadPost]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
