@@ -496,6 +496,37 @@ model EventCollaborator {
 
 ---
 
+## 🌱 Backlog – Upcoming Opportunities
+
+### 🔧 Core Functionality
+- **Real-time Notifications:** Push/e-posta bildirimleriyle yeni kampanya, paylaşım veya destekçi hareketlerini anlık duyur.
+- **Gelişmiş Kampanya Analitiği:** Bağış trendleri, abonelik kayıpları, içerik etkileşimleri gibi metrikleri gösteren kapsamlı dashboard.
+- **İçerik Planlama & Takvim:** Yaratıcılar için hatırlatma, taslak paylaşımı ve otomatik yayınlama akışlarını yöneten planlayıcı.
+
+### 🤝 Topluluk & Gelir
+- **Rozet/Ödül Sistemi:** Uzun süreli destekçilere veya belirli eşiklere ulaşanlara özel rozet ve içerikler.
+- **Topluluk Yönetim Araçları:** Moderasyon, özel yorum yanıtları, destekçi formları ve forum benzeri modüller.
+- **Referral Programı:** Davet kodlarıyla yeni destekçi getiren üyeler için komisyon veya avantaj sağlayan altyapı.
+
+### 🛒 Ürünleşme & Marketplace
+- **Hizmet Satışı:** Mentorluk, workshop, canlı seans gibi servislerin dijital ürünlerin yanında satılabilmesi.
+- **Bundle Paketleri:** Kampanya + dijital ürün kombinasyonları sunan paketler ve sepet/checkout optimizasyonları.
+- **A/B Test Altyapısı:** Kapak görseli, kampanya başlığı gibi içeriklerin performansını karşılaştırmalı test edebilme.
+
+### ⚙️ Teknik Altyapı
+- **Gerçek Zamanlı Altyapı:** WebSocket/SSE ile özellikle check-in, canlı dashboard gibi ekranlarda anlık güncellemeler.
+- **Tam Metin Arama:** ElasticSearch/Meilisearch benzeri motorlarla kampanya ve blog keşfini güçlendirme.
+- **CI/CD + Otomatik Test:** Pull request’lerde lint/test otomasyonu çalıştıran pipeline.
+
+### 📱 UX & Mobil
+- **PWA / Mobil Uygulama:** Push bildirimi ve offline desteği olan PWA veya React Native tabanlı mobil app.
+- **Zengin Kampanya Sunumu:** Timeline, medya galerisi gibi gelişmiş anlatım bileşenleri.
+- **Onboarding & Yardım Merkezi:** SSS, video rehberleri ve self-service dokümantasyon.
+
+> Not: Yukarıdaki maddeler henüz planlama aşamasında; önceliklendirme için ürün/teknik ekip değerlendirmesi bekliyor.
+
+---
+
 ## 🎯 QUICK IMPLEMENTATION PRIORITY
 
 ### Phase 1 (1-2 weeks):
