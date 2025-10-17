@@ -59,29 +59,116 @@ const limiter = rateLimit({
 // Middleware
 app.use(helmet());
 app.use(compression({ level: 6 }));
-const allowedOriginsStatic = [
+const staticOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'https://funify.vercel.app',
   'https://fundify.vercel.app',
   'https://perfect-happiness-production.up.railway.app',
+];
+
+const envOriginTokens = [
   process.env.CORS_ORIGIN,
   process.env.FRONTEND_URL,
-].filter(Boolean) as string[];
+  process.env.NEXT_PUBLIC_FRONTEND_URL,
+  process.env.NEXT_PUBLIC_SITE_URL,
+  process.env.ADMIN_DASHBOARD_ORIGIN,
+  process.env.ALLOWED_ORIGINS,
+  process.env.CORS_ORIGINS,
+]
+  .filter(Boolean)
+  .flatMap(token => token!.split(','))
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
+const allowedOriginsSet = new Set(
+  [...staticOrigins, ...envOriginTokens].map(origin => origin.toLowerCase())
+);
+
+const wildcardOriginMatchers = [
+  /\.vercel\.app$/,
+  /\.railway\.app$/,
+];
+
+const isAllowedOrigin = (origin?: string | null): boolean => {
+  if (!origin) {
+    return true;
+  }
+
+  const normalized = origin.toLowerCase();
+
+  if (allowedOriginsSet.has(normalized)) {
+    return true;
+  }
+
+  return wildcardOriginMatchers.some(pattern => pattern.test(normalized));
+};
+
+const defaultAllowedHeaders = [
+  'Content-Type',
+  'Authorization',
+  'Cache-Control',
+  'X-Requested-With',
+];
+
+const defaultAllowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    const isWhitelisted =
-      allowedOriginsStatic.includes(origin) ||
-      /\.vercel\.app$/.test(origin) ||
-      /\.railway\.app$/.test(origin);
-    return callback(null, isWhitelisted);
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+
+    const corsError = new Error(`CORS origin not allowed: ${origin}`) as ApiError;
+    corsError.statusCode = 403;
+    return callback(corsError);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control'],
+  methods: defaultAllowedMethods,
+  allowedHeaders: defaultAllowedHeaders,
+  optionsSuccessStatus: 204,
 }));
+
+// Ensure preflight requests are always handled
+app.options('*', cors({
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+
+    const corsError = new Error(`CORS origin not allowed: ${origin}`) as ApiError;
+    corsError.statusCode = 403;
+    return callback(corsError);
+  },
+  credentials: true,
+  methods: defaultAllowedMethods,
+  allowedHeaders: defaultAllowedHeaders,
+  optionsSuccessStatus: 204,
+}));
+
+// Normalise response headers for downstream handlers (including error responses)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin;
+
+  if (isAllowedOrigin(origin)) {
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else if (process.env.NODE_ENV !== 'production') {
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+  }
+
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Headers', defaultAllowedHeaders.join(', '));
+  res.header('Access-Control-Allow-Methods', defaultAllowedMethods.join(', '));
+  res.header('Vary', 'Origin');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 app.use(morgan('dev'));
 
 // Stripe webhook needs raw body - must be before express.json()
@@ -105,13 +192,9 @@ app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
   // Set CORS headers for uploaded files - allow all origins for public media
   const origin = req.headers.origin;
   const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://funify.vercel.app',
-    'https://fundify.vercel.app',
-    process.env.CORS_ORIGIN,
-    process.env.FRONTEND_URL
-  ].filter(Boolean);
+    ...staticOrigins,
+    ...envOriginTokens,
+  ];
 
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
