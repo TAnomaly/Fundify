@@ -102,7 +102,7 @@ export default function CreatorsPage() {
           creator.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           creator.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           creator.creatorBio?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      );
 }
 
 function StatPill({ label, value }: { label: string; value: string }) {
