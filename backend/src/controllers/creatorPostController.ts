@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { AuthRequest } from '../types';
 import { CreateCreatorPostDTO, UpdateCreatorPostDTO } from '../types/creatorPost';
+import { Prisma } from '@prisma/client';
 
 // Create a new creator post
 export const createCreatorPost = async (
@@ -103,52 +104,47 @@ export const getCreatorPosts = async (
       where.isPublic = true;
     }
 
+    const include: Prisma.CreatorPostInclude = {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          avatar: true,
+          isCreator: true,
+        },
+      },
+    };
+
+    if (userId) {
+      include.likes = {
+        where: { userId },
+        select: { id: true },
+      };
+    }
+
     const [posts, total] = await Promise.all([
       prisma.creatorPost.findMany({
         where,
         skip,
         take,
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              avatar: true,
-              isCreator: true,
-            },
-          },
-        },
+        include,
         orderBy: { publishedAt: 'desc' },
       }),
       prisma.creatorPost.count({ where }),
     ]);
-
-    let likedPostIds: string[] = [];
-
-    if (userId && posts.length > 0) {
-      const likedPosts = await prisma.postLike.findMany({
-        where: {
-          userId,
-          postId: {
-            in: posts.map((post) => post.id),
-          },
-        },
-        select: { postId: true },
-      });
-
-      likedPostIds = likedPosts.map((like) => like.postId);
-    }
-
-    const likedPostSet = new Set(likedPostIds);
     const userHasAccessToPrivatePosts = Boolean(hasSubscription) || isCreatorOwner;
 
     // Add access information to each post
-    const postsWithAccess = posts.map((post) => ({
-      ...post,
-      hasAccess: post.isPublic || userHasAccessToPrivatePosts,
-      content: post.isPublic || userHasAccessToPrivatePosts ? post.content : post.excerpt || '',
-      hasLiked: likedPostSet.has(post.id),
-    }));
+    const postsWithAccess = posts.map((post) => {
+      const postWithLikes = post as typeof post & { likes?: { id: string }[] };
+      const { likes = [], ...rest } = postWithLikes;
+      return {
+        ...rest,
+        hasAccess: post.isPublic || userHasAccessToPrivatePosts,
+        content: post.isPublic || userHasAccessToPrivatePosts ? post.content : post.excerpt || '',
+        hasLiked: userId ? likes.length > 0 : false,
+      };
+    });
 
     res.status(200).json({
       success: true,

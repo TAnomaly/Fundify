@@ -264,10 +264,6 @@ export const postEngagementApi = {
     const { data } = await api.post(`/posts/${postId}/like`);
     return data;
   },
-  getLikes: async (): Promise<{ success: boolean; data: string[] }> => {
-    const { data } = await api.get("/posts/likes");
-    return data;
-  },
   getComments: async (postId: string): Promise<{ success: boolean; data: Comment[] }> => {
     const { data } = await api.get(`/posts/${postId}/comments`);
     return data;

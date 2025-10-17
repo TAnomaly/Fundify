@@ -70,25 +70,7 @@ export default function CreatorProfilePage() {
           const token = localStorage.getItem("authToken");
           response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/posts/creator/${profile.user.id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
           if (response.data.success) {
-            const fetchedPosts: CreatorPost[] = response.data.data.posts || [];
-            let postsWithLikes = fetchedPosts;
-
-            if (isAuthenticated() && fetchedPosts.length) {
-              try {
-                const likesResponse = await postEngagementApi.getLikes();
-                if (likesResponse.success) {
-                  const likedSet = new Set(likesResponse.data);
-                  postsWithLikes = fetchedPosts.map((post) => ({
-                    ...post,
-                    hasLiked: likedSet.has(post.id),
-                  }));
-                }
-              } catch (error) {
-                console.error("Failed to load liked posts", error);
-              }
-            }
-
-            setPosts(postsWithLikes);
+            setPosts(response.data.data.posts || []);
           }
           break;
         }
