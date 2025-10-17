@@ -90,6 +90,8 @@ export const getCreatorPosts = async (
       },
     }) : null;
 
+    const isCreatorOwner = userId === creatorId;
+
     // Build where clause based on access
     const where: any = {
       authorId: creatorId,
@@ -97,7 +99,7 @@ export const getCreatorPosts = async (
     };
 
     // If not subscribed, only show public posts
-    if (!hasSubscription) {
+    if (!hasSubscription && !isCreatorOwner) {
       where.isPublic = true;
     }
 
@@ -121,11 +123,31 @@ export const getCreatorPosts = async (
       prisma.creatorPost.count({ where }),
     ]);
 
+    let likedPostIds: string[] = [];
+
+    if (userId && posts.length > 0) {
+      const likedPosts = await prisma.postLike.findMany({
+        where: {
+          userId,
+          postId: {
+            in: posts.map((post) => post.id),
+          },
+        },
+        select: { postId: true },
+      });
+
+      likedPostIds = likedPosts.map((like) => like.postId);
+    }
+
+    const likedPostSet = new Set(likedPostIds);
+    const userHasAccessToPrivatePosts = Boolean(hasSubscription) || isCreatorOwner;
+
     // Add access information to each post
     const postsWithAccess = posts.map((post) => ({
       ...post,
-      hasAccess: post.isPublic || (hasSubscription ? true : false),
-      content: post.isPublic || hasSubscription ? post.content : post.excerpt || '',
+      hasAccess: post.isPublic || userHasAccessToPrivatePosts,
+      content: post.isPublic || userHasAccessToPrivatePosts ? post.content : post.excerpt || '',
+      hasLiked: likedPostSet.has(post.id),
     }));
 
     res.status(200).json({

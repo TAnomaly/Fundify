@@ -50,4 +50,5 @@ export interface CreatorPostWithAccess {
     name: string;
     price: number;
   };
+  hasLiked?: boolean;
 }

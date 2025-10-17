@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { redirectToCheckout } from "@/lib/stripe";
 import { isAuthenticated } from "@/lib/auth";
@@ -15,14 +14,18 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { Users, Heart, Calendar, ExternalLink, Lock, CheckCircle2, Globe, Play, Video, Camera, Code, MessageCircle, Share2, Bookmark, Send, Rss, Mic, ShoppingBag, FileText, Award, Headphones } from "lucide-react";
 import PollsList from "@/components/polls/PollsList";
 import ProductCard from "@/components/products/ProductCard";
 import { digitalProductsApi, type DigitalProduct } from "@/lib/api/digitalProducts";
+import { postEngagementApi } from "@/lib/api";
+import ArticleCard from "@/components/articles/ArticleCard";
+import EventCard from "@/components/events/EventCard";
 
 // Interfaces would be here
 interface CreatorProfile { user: { id: string; name: string; username?: string; avatar?: string; bannerImage?: string; creatorBio?: string; socialLinks?: any; createdAt: string; }; campaign: any; tiers: any[]; }
-interface CreatorPost { id: string; title: string; content: string; excerpt?: string; images: string[]; videoUrl?: string; isPublic: boolean; hasAccess: boolean; publishedAt: string; likeCount: number; commentCount: number; author: { id: string; name: string; avatar?: string; }; }
+interface CreatorPost { id: string; title: string; content: string; excerpt?: string; images: string[]; videoUrl?: string; isPublic: boolean; hasAccess: boolean; publishedAt: string; likeCount: number; commentCount: number; hasLiked?: boolean; author: { id: string; name: string; avatar?: string; }; }
 interface Comment { id: string; content: string; createdAt: string; user: { name: string; avatar?: string; }; }
 interface Article { id: string; slug: string; title: string; excerpt?: string; coverImage?: string; status: string; publishedAt?: string; viewCount: number; readTime?: number; author: any; _count?: any; }
 interface Event { id: string; title: string; description: string; coverImage?: string; type: string; status: string; startTime: string; endTime: string; location?: string; virtualLink?: string; price?: number; _count?: any; }
@@ -63,11 +66,32 @@ export default function CreatorProfilePage() {
     try {
       let response;
       switch (tab) {
-        case "posts":
+        case "posts": {
           const token = localStorage.getItem("authToken");
           response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/posts/creator/${profile.user.id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-          if (response.data.success) setPosts(response.data.data.posts || []);
+          if (response.data.success) {
+            const fetchedPosts: CreatorPost[] = response.data.data.posts || [];
+            let postsWithLikes = fetchedPosts;
+
+            if (isAuthenticated() && fetchedPosts.length) {
+              try {
+                const likesResponse = await postEngagementApi.getLikes();
+                if (likesResponse.success) {
+                  const likedSet = new Set(likesResponse.data);
+                  postsWithLikes = fetchedPosts.map((post) => ({
+                    ...post,
+                    hasLiked: likedSet.has(post.id),
+                  }));
+                }
+              } catch (error) {
+                console.error("Failed to load liked posts", error);
+              }
+            }
+
+            setPosts(postsWithLikes);
+          }
           break;
+        }
         case "shop":
           const { success, data } = await digitalProductsApi.list({ creatorId: profile.user.id });
           if (success) setProducts(data);
@@ -118,6 +142,10 @@ export default function CreatorProfilePage() {
       loadTabData(activeTab);
     }
   }, [profile, activeTab]);
+
+  const handlePostEngagementUpdate = useCallback((postId: string, updates: Partial<Pick<CreatorPost, "likeCount" | "commentCount" | "hasLiked">>) => {
+    setPosts(prev => prev.map(post => post.id === postId ? { ...post, ...updates } : post));
+  }, []);
 
   const handleSubscribe = async (tierId: string) => {
     if (!isAuthenticated()) {
@@ -283,7 +311,11 @@ export default function CreatorProfilePage() {
       case "posts":
         return posts.length > 0 ? (
           <motion.div {...motionProps} className="space-y-8">
-            {posts.map(post => <motion.div key={post.id} {...itemProps}><PostCard post={post} /></motion.div>)}
+            {posts.map(post => (
+              <motion.div key={post.id} {...itemProps}>
+                <PostCard post={post} onEngagementUpdate={handlePostEngagementUpdate} />
+              </motion.div>
+            ))}
           </motion.div>
         ) : <EmptyState icon={Rss} message="No posts yet." />;
       case "shop":
@@ -341,10 +373,140 @@ const PodcastCard = ({ podcast }: { podcast: any }) => (
   </Card>
 );
 
-const PostCard = ({ post }: { post: CreatorPost }) => {
-  // Dummy state for interactions - in a real app, this would be handled properly
-  const [liked, setLiked] = useState(false);
+interface PostCardProps {
+  post: CreatorPost;
+  onEngagementUpdate?: (postId: string, updates: Partial<Pick<CreatorPost, "likeCount" | "commentCount" | "hasLiked">>) => void;
+}
+
+const PostCard = ({ post, onEngagementUpdate }: PostCardProps) => {
+  const router = useRouter();
+  const [liked, setLiked] = useState(post.hasLiked ?? false);
+  const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
+  const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
   const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [hasLoadedComments, setHasLoadedComments] = useState(false);
+  const [commentInput, setCommentInput] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+
+  useEffect(() => {
+    setLiked(post.hasLiked ?? false);
+  }, [post.hasLiked]);
+
+  useEffect(() => {
+    setLikeCount(post.likeCount ?? 0);
+  }, [post.likeCount]);
+
+  useEffect(() => {
+    setCommentCount(post.commentCount ?? 0);
+  }, [post.commentCount]);
+
+  const redirectToLogin = () => {
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : "/";
+    router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+  };
+
+  const handleToggleLike = async () => {
+    if (!isAuthenticated()) {
+      toast.error("Please login to like posts");
+      redirectToLogin();
+      return;
+    }
+
+    if (isLiking) return;
+
+    const previousLiked = liked;
+    const previousCount = likeCount;
+
+    setIsLiking(true);
+    setLiked(!previousLiked);
+    setLikeCount(previousCount + (previousLiked ? -1 : 1));
+
+    try {
+      const response = await postEngagementApi.toggleLike(post.id);
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to toggle like");
+      }
+
+      const nextLiked = response.liked;
+      const updatedCount = response.data?.likeCount ?? (previousCount + (nextLiked ? 1 : -1));
+
+      setLiked(nextLiked);
+      setLikeCount(updatedCount);
+      onEngagementUpdate?.(post.id, { likeCount: updatedCount, hasLiked: nextLiked });
+    } catch (error) {
+      setLiked(previousLiked);
+      setLikeCount(previousCount);
+      toast.error("Failed to update like");
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  const loadComments = async () => {
+    if (hasLoadedComments || isLoadingComments) return;
+
+    setIsLoadingComments(true);
+    try {
+      const response = await postEngagementApi.getComments(post.id);
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to load comments");
+      }
+
+      setComments(response.data);
+      setHasLoadedComments(true);
+    } catch (error) {
+      toast.error("Failed to load comments");
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
+
+  const handleToggleComments = async () => {
+    const next = !showComments;
+    setShowComments(next);
+
+    if (next && !hasLoadedComments) {
+      await loadComments();
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    if (!isAuthenticated()) {
+      toast.error("Please login to comment");
+      redirectToLogin();
+      return;
+    }
+
+    if (!commentInput.trim() || isSubmittingComment) return;
+
+    setIsSubmittingComment(true);
+    const content = commentInput.trim();
+
+    try {
+      const response = await postEngagementApi.addComment(post.id, content);
+
+      if (!response.success || !response.data) {
+        throw new Error(response.message || "Failed to add comment");
+      }
+
+      const newComment = response.data;
+      setComments((prev) => [newComment, ...prev]);
+      setCommentInput("");
+      const updatedCount = commentCount + 1;
+      setCommentCount(updatedCount);
+      onEngagementUpdate?.(post.id, { commentCount: updatedCount });
+      toast.success("Comment added");
+    } catch (error) {
+      toast.error("Failed to add comment");
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
 
   if (!post.hasAccess) {
     return (
@@ -358,7 +520,7 @@ const PostCard = ({ post }: { post: CreatorPost }) => {
           <Award className="w-4 h-4 mr-2" /> Become a Supporter
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -383,7 +545,7 @@ const PostCard = ({ post }: { post: CreatorPost }) => {
           {post.images && post.images.length > 0 && (
             <div className="grid grid-cols-2 gap-2 pt-2">
               {post.images.slice(0, 4).map((img, i) => (
-                <img key={i} src={getFullMediaUrl(img)} className={`rounded-lg object-cover aspect-video ${post.images.length > 2 && i == 0 ? 'col-span-2' : ''}`} alt="Post image" />
+                <img key={i} src={getFullMediaUrl(img)} className={`rounded-lg object-cover aspect-video ${post.images.length > 2 && i === 0 ? 'col-span-2' : ''}`} alt="Post image" />
               ))}
             </div>
           )}
@@ -393,11 +555,17 @@ const PostCard = ({ post }: { post: CreatorPost }) => {
         {/* Engagement Bar */}
         <div className="flex items-center justify-between pt-6 mt-6 border-t border-border/20 dark:border-gray-700/20">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => setLiked(!liked)} className={`flex items-center gap-1.5 ${liked ? 'text-red-500' : 'text-muted-foreground dark:text-gray-400'}`}>
-              <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} /> {post.likeCount + (liked ? 1 : 0)}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleLike}
+              disabled={isLiking}
+              className={`flex items-center gap-1.5 ${liked ? 'text-red-500' : 'text-muted-foreground dark:text-gray-400'}`}
+            >
+              <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} /> {likeCount}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 text-muted-foreground dark:text-gray-400">
-              <MessageCircle className="w-4 h-4" /> {post.commentCount}
+            <Button variant="ghost" size="sm" onClick={handleToggleComments} className="flex items-center gap-1.5 text-muted-foreground dark:text-gray-400">
+              <MessageCircle className="w-4 h-4" /> {commentCount}
             </Button>
           </div>
           <div className="flex items-center gap-2">
@@ -410,27 +578,64 @@ const PostCard = ({ post }: { post: CreatorPost }) => {
         {showComments && (
           <div className="pt-6 mt-6 border-t border-border/20 space-y-4">
             <h4 className="font-semibold">Comments</h4>
-            {/* Add comment input */}
-            <div className="flex items-center gap-2">
-              <Input placeholder="Write a comment..." className="bg-muted/50" />
-              <Button><Send className="w-4 h-4" /></Button>
-            </div>
-            {/* Dummy comment */}
-            <div className="flex items-start gap-2 text-sm">
-              <div className="w-8 h-8 rounded-full bg-muted" />
-              <div>
-                <p className="font-semibold">A supporter</p>
-                <p className="text-muted-foreground">Great post!</p>
+            {isAuthenticated() ? (
+              <div className="space-y-3">
+                <Textarea
+                  placeholder="Share your thoughts..."
+                  className="bg-muted/50"
+                  value={commentInput}
+                  onChange={(event) => setCommentInput(event.target.value)}
+                  rows={3}
+                />
+                <div className="flex justify-end">
+                  <Button onClick={handleSubmitComment} disabled={isSubmittingComment || !commentInput.trim()}>
+                    {isSubmittingComment ? "Posting..." : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Post
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-sm text-muted-foreground bg-muted/40 p-3 rounded-md">
+                Login to join the discussion.
+              </div>
+            )}
+
+            {isLoadingComments ? (
+              <div className="text-sm text-muted-foreground">Loading comments...</div>
+            ) : comments.length > 0 ? (
+              <div className="space-y-4">
+                {comments.map((comment) => (
+                  <div key={comment.id} className="flex items-start gap-2 text-sm">
+                    <div className="w-8 h-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                      <img
+                        src={getFullMediaUrl(comment.user.avatar) || `https://api.dicebear.com/7.x/initials/svg?seed=${comment.user.name}`}
+                        alt={comment.user.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-semibold">{comment.user.name}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {new Date(comment.createdAt).toLocaleString()}
+                      </p>
+                      <p className="mt-1">{comment.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No comments yet. Be the first to share your thoughts!</p>
+            )}
           </div>
         )}
       </CardContent>
     </Card>
-  )
-}
-import ArticleCard from "@/components/articles/ArticleCard";
-import EventCard from "@/components/events/EventCard";
+  );
+};
 
 const TierSection = ({ tiers, onSubscribe }: { tiers: any[], onSubscribe: (id: string) => void }) => (
   <Card className="border-border/30">

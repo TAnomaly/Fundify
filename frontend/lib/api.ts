@@ -257,4 +257,27 @@ export const authApi = {
   },
 };
 
+export const postEngagementApi = {
+  toggleLike: async (postId: string): Promise<{ success: boolean; liked: boolean; message?: string; data?: { likeCount: number } }> => {
+    const { data } = await api.post(`/posts/${postId}/like`);
+    return data;
+  },
+  getLikes: async (): Promise<{ success: boolean; data: string[] }> => {
+    const { data } = await api.get("/posts/likes");
+    return data;
+  },
+  getComments: async (postId: string): Promise<{ success: boolean; data: Comment[] }> => {
+    const { data } = await api.get(`/posts/${postId}/comments`);
+    return data;
+  },
+  addComment: async (postId: string, content: string): Promise<{ success: boolean; data?: Comment; message?: string }> => {
+    const { data } = await api.post(`/posts/${postId}/comments`, { content });
+    return data;
+  },
+  deleteComment: async (commentId: string): Promise<{ success: boolean; message?: string }> => {
+    const { data } = await api.delete(`/comments/${commentId}`);
+    return data;
+  },
+};
+
 export default api;
