@@ -26,8 +26,20 @@ interface FeedItem {
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
-const parseLimit = (value: string | string[] | undefined): number => {
-  if (!value || Array.isArray(value)) {
+const getQueryValue = (value: unknown): string | undefined => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+    return value[0];
+  }
+
+  return undefined;
+};
+
+const parseLimit = (value: string | undefined): number => {
+  if (!value) {
     return DEFAULT_LIMIT;
   }
 
@@ -40,8 +52,8 @@ const parseLimit = (value: string | string[] | undefined): number => {
   return Math.min(parsed, MAX_LIMIT);
 };
 
-const parseCursor = (raw: string | string[] | undefined): Date | null => {
-  if (!raw || Array.isArray(raw)) {
+const parseCursor = (raw: string | undefined): Date | null => {
+  if (!raw) {
     return null;
   }
 
@@ -93,8 +105,8 @@ export const getFeed = async (
       return;
     }
 
-    const limit = parseLimit(req.query.limit);
-    const cursorDate = parseCursor(req.query.cursor);
+    const limitParam = parseLimit(getQueryValue(req.query.limit));
+    const cursorDate = parseCursor(getQueryValue(req.query.cursor));
 
     const follows = await prisma.follow.findMany({
       where: { followerId: userId },
@@ -114,7 +126,7 @@ export const getFeed = async (
     }
 
     const followingIds = follows.map((follow) => follow.followingId);
-    const perCollectionCount = limit * 2;
+    const perCollectionCount = limitParam * 2;
 
     const [activeSubscriptions] = await Promise.all([
       prisma.subscription.findMany({
@@ -304,7 +316,7 @@ export const getFeed = async (
 
     items.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
 
-    const pageItems = items.slice(0, limit);
+    const pageItems = items.slice(0, limitParam);
     const lastItem = pageItems[pageItems.length - 1] ?? null;
     const nextCursor = lastItem ? lastItem.publishedAt.toISOString() : null;
 
@@ -316,7 +328,7 @@ export const getFeed = async (
           publishedAt: item.publishedAt.toISOString(),
         })),
         nextCursor,
-        hasMore: items.length > limit,
+        hasMore: items.length > limitParam,
       },
     });
   } catch (error) {

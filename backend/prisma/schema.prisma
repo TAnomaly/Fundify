@@ -765,9 +765,9 @@ model Notification {
   imageUrl String? // Optional image for the notification
   metadata Json?
 
-  isRead    Boolean  @default(false)
+  isRead    Boolean   @default(false)
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   userId String
   user   User   @relation("Notifications", fields: [userId], references: [id], onDelete: Cascade)
@@ -1227,11 +1227,11 @@ model ReferralUsage {
   referralCode   ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
 
   referredUserId String?
-  referredUser   User?        @relation("UserReferralUsages", fields: [referredUserId], references: [id], onDelete: SetNull)
+  referredUser   User?   @relation("UserReferralUsages", fields: [referredUserId], references: [id], onDelete: SetNull)
 
-  referredEmail  String?
-  context        String?
-  createdAt      DateTime     @default(now())
+  referredEmail String?
+  context       String?
+  createdAt     DateTime @default(now())
 
   @@index([referralCodeId])
   @@index([referredUserId])

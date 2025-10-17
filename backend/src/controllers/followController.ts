@@ -4,8 +4,20 @@ import { AuthRequest } from '../types';
 
 const FOLLOW_PAGE_LIMIT = 50;
 
-const sanitizePagination = (value: string | string[] | undefined, fallback: number) => {
-  if (!value || Array.isArray(value)) {
+const getQueryValue = (value: unknown): string | undefined => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+    return value[0];
+  }
+
+  return undefined;
+};
+
+const sanitizePagination = (value: string | undefined, fallback: number) => {
+  if (!value) {
     return fallback;
   }
 
@@ -135,8 +147,8 @@ export const getFollowers = async (
 ): Promise<void> => {
   try {
     const { userId } = req.params;
-    const page = sanitizePagination(req.query.page, 1);
-    const limit = sanitizePagination(req.query.limit, 20);
+    const page = sanitizePagination(getQueryValue(req.query.page), 1);
+    const limit = sanitizePagination(getQueryValue(req.query.limit), 20);
     const skip = (page - 1) * limit;
 
     const [rows, total] = await Promise.all([
@@ -183,8 +195,8 @@ export const getFollowing = async (
 ): Promise<void> => {
   try {
     const { userId } = req.params;
-    const page = sanitizePagination(req.query.page, 1);
-    const limit = sanitizePagination(req.query.limit, 20);
+    const page = sanitizePagination(getQueryValue(req.query.page), 1);
+    const limit = sanitizePagination(getQueryValue(req.query.limit), 20);
     const skip = (page - 1) * limit;
 
     const [rows, total] = await Promise.all([
