@@ -15,12 +15,5 @@ export const getFullMediaUrl = (url: string | undefined | null): string | undefi
 
     // For relative paths, prepend the base URL
     const baseUrl = getMediaBaseUrl();
-    const fullUrl = `${baseUrl}${url}`;
-
-    // Debug logging (remove in production)
-    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-        console.log('Media URL:', { original: url, base: baseUrl, full: fullUrl });
-    }
-
-    return fullUrl;
+    return `${baseUrl}${url}`;
 };

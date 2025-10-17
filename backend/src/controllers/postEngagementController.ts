@@ -17,19 +17,8 @@ export const toggleLike = async (
       return;
     }
 
-    // Check if already liked
-    const existingLike = await prisma.postLike.findUnique({
-      where: {
-        userId_postId: {
-          userId,
-          postId,
-        },
-      },
-    });
-
-    if (existingLike) {
-      // Unlike
-      await prisma.postLike.delete({
+    const result = await prisma.$transaction(async (tx) => {
+      const existingLike = await tx.postLike.findUnique({
         where: {
           userId_postId: {
             userId,
@@ -38,42 +27,53 @@ export const toggleLike = async (
         },
       });
 
-      // Decrement like count
-      const updatedPost = await prisma.creatorPost.update({
-        where: { id: postId },
-        data: { likeCount: { decrement: 1 } },
-        select: { likeCount: true },
-      });
+      if (existingLike) {
+        await tx.postLike.delete({
+          where: {
+            userId_postId: {
+              userId,
+              postId,
+            },
+          },
+        });
 
-      res.json({
-        success: true,
-        liked: false,
-        message: 'Post unliked',
-        data: { likeCount: updatedPost.likeCount }
-      });
-    } else {
-      // Like
-      await prisma.postLike.create({
+        const likeCount = await tx.postLike.count({
+          where: { postId },
+        });
+
+        await tx.creatorPost.update({
+          where: { id: postId },
+          data: { likeCount },
+        });
+
+        return { liked: false, likeCount };
+      }
+
+      await tx.postLike.create({
         data: {
           userId,
           postId,
         },
       });
 
-      // Increment like count
-      const updatedPost = await prisma.creatorPost.update({
-        where: { id: postId },
-        data: { likeCount: { increment: 1 } },
-        select: { likeCount: true },
+      const likeCount = await tx.postLike.count({
+        where: { postId },
       });
 
-      res.json({
-        success: true,
-        liked: true,
-        message: 'Post liked',
-        data: { likeCount: updatedPost.likeCount }
+      await tx.creatorPost.update({
+        where: { id: postId },
+        data: { likeCount },
       });
-    }
+
+      return { liked: true, likeCount };
+    });
+
+    res.json({
+      success: true,
+      liked: result.liked,
+      message: result.liked ? 'Post liked' : 'Post unliked',
+      data: { likeCount: result.likeCount },
+    });
   } catch (error) {
     next(error);
   }
@@ -126,27 +126,34 @@ export const addComment = async (
       return;
     }
 
-    const comment = await prisma.postComment.create({
-      data: {
-        content,
-        userId,
-        postId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
+    const { comment } = await prisma.$transaction(async (tx) => {
+      const createdComment = await tx.postComment.create({
+        data: {
+          content,
+          userId,
+          postId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    // Increment comment count
-    await prisma.creatorPost.update({
-      where: { id: postId },
-      data: { commentCount: { increment: 1 } },
+      const commentCount = await tx.postComment.count({
+        where: { postId },
+      });
+
+      await tx.creatorPost.update({
+        where: { id: postId },
+        data: { commentCount },
+      });
+
+      return { comment: createdComment, commentCount };
     });
 
     res.status(201).json({ success: true, data: comment });
@@ -213,14 +220,19 @@ export const deleteComment = async (
       return;
     }
 
-    await prisma.postComment.delete({
-      where: { id: commentId },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.postComment.delete({
+        where: { id: commentId },
+      });
 
-    // Decrement comment count
-    await prisma.creatorPost.update({
-      where: { id: comment.postId },
-      data: { commentCount: { decrement: 1 } },
+      const commentCount = await tx.postComment.count({
+        where: { postId: comment.postId },
+      });
+
+      await tx.creatorPost.update({
+        where: { id: comment.postId },
+        data: { commentCount },
+      });
     });
 
     res.json({ success: true, message: 'Comment deleted' });
@@ -228,4 +240,3 @@ export const deleteComment = async (
     next(error);
   }
 };
-

@@ -13,35 +13,26 @@ interface DecodedToken {
 
 // Save token to localStorage and cookie
 export const saveToken = async (token: string): Promise<void> => {
-  if (typeof window !== "undefined") {
-    console.log('saveToken called with token:', token.substring(0, 20) + '...');
-    localStorage.setItem(TOKEN_KEY, token);
-    console.log('Token saved to localStorage');
-    // Also save to cookie for middleware
-    document.cookie = `authToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-    console.log('Token saved to cookie');
-    // Verify it was saved
-    const saved = localStorage.getItem(TOKEN_KEY);
-    console.log('Token verification - saved?', saved ? 'YES' : 'NO');
-    
-    // Fetch and save complete user data
-    try {
-      const { default: axios } = await import("axios");
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-      
-      const response = await axios.get(`${apiUrl}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data.success && response.data.data) {
-        localStorage.setItem("user", JSON.stringify(response.data.data));
-        console.log("✅ User data saved to localStorage:", response.data.data.name);
-      }
-    } catch (error) {
-      console.error("Failed to fetch user data after login:", error);
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.setItem(TOKEN_KEY, token);
+  document.cookie = `authToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+
+  try {
+    const { default: axios } = await import("axios");
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
+    const response = await axios.get(`${apiUrl}/users/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (response.data.success && response.data.data) {
+      localStorage.setItem("user", JSON.stringify(response.data.data));
     }
-  } else {
-    console.error('saveToken called on server side!');
+  } catch (error) {
+    console.error("Failed to fetch user data after login:", error);
   }
 };
 

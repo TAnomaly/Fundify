@@ -63,7 +63,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Handle unauthorized access - clean up all auth data
-      console.log('401 Unauthorized - clearing tokens and redirecting to login');
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("401 Unauthorized - clearing tokens and redirecting to login");
+      }
       localStorage.removeItem("authToken");
       // Also clear the cookie
       if (typeof document !== 'undefined') {
