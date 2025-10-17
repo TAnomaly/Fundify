@@ -55,6 +55,13 @@ const sortOptions = [
   { value: "posts", label: "Most Active", icon: Heart },
 ];
 
+const StatPill = ({ label, value }: { label: string; value: string }) => (
+  <div className="flex flex-col items-center gap-1 px-6">
+    <span className="text-2xl font-semibold text-gradient-monokai">{value}</span>
+    <span className="text-sm text-muted-foreground">{label}</span>
+  </div>
+);
+
 export default function CreatorsPage() {
   const router = useRouter();
   const [creators, setCreators] = useState<Creator[]>([]);
@@ -103,16 +110,7 @@ export default function CreatorsPage() {
           creator.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           creator.creatorBio?.toLowerCase().includes(searchQuery.toLowerCase())
       );
-}
-
-function StatPill({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1 px-6">
-      <span className="text-2xl font-semibold text-gradient-monokai">{value}</span>
-      <span className="text-sm text-muted-foreground">{label}</span>
-    </div>
-  );
-}
+    }
 
     // Sort
     switch (sortBy) {
