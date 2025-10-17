@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/Navbar";
+import { AuroraBackground } from "@/components/ui/aurora-background";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -65,18 +66,11 @@ export default function RootLayout({
         )}
       >
         <Toaster position="top-right" />
-        <div className="relative min-h-screen bg-background">
-          {/* Background gradient */}
-          <div className="fixed inset-0 -z-10 bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800" />
-
-          {/* Navigation */}
+        <AuroraBackground className="min-h-screen">
+          <div className="fixed inset-0 -z-10 bg-[radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:60px_60px] opacity-20 pointer-events-none" />
           <Navbar />
-
-          {/* Main content */}
           <main className="flex-1">{children}</main>
-
-          {/* Footer */}
-          <footer className="border-t bg-muted/50 mt-20">
+          <footer className="border-t border-border/40 bg-background/60 backdrop-blur-xl mt-20">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div className="space-y-4">
@@ -124,7 +118,7 @@ export default function RootLayout({
               </div>
             </div>
           </footer>
-        </div>
+        </AuroraBackground>
       </body>
     </html>
   );

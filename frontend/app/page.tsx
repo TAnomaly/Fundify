@@ -119,18 +119,26 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-20 pb-32 px-4 sm:px-6 lg:px-8">
+      <section className="relative px-4 sm:px-6 lg:px-8 pt-24 pb-32">
         <div className="container mx-auto max-w-7xl">
-          <div className="text-center mb-16">
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-200 dark:border-purple-800 rounded-full mb-6"
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 dark:border-white/5 bg-white/70 dark:bg-[#161616]/75 backdrop-blur-2xl px-6 py-16 sm:px-12 md:px-16 shadow-[0_40px_120px_-40px_rgba(249,38,114,0.35)]">
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute -top-32 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(249,38,114,0.35)_0%,rgba(249,38,114,0)_60%)] blur-3xl" />
+              <div className="absolute -bottom-20 right-16 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(102,217,239,0.35)_0%,rgba(102,217,239,0)_65%)] blur-3xl" />
+              <div className="absolute -left-10 top-1/2 h-[380px] w-[380px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(166,226,46,0.25)_0%,rgba(166,226,46,0)_65%)] blur-3xl" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.45),rgba(255,255,255,0))]" />
+            </div>
+
+            <div className="relative text-center mb-16">
+              {/* Badge */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/40 dark:bg-white/10 border border-white/40 text-sm font-semibold rounded-full shadow-soft"
             >
-              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span className="text-sm font-semibold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+              <Sparkles className="w-4 h-4 text-[#F92672]" />
+              <span className="text-gradient">
                 Join 89,234+ Creators Worldwide
               </span>
             </motion.div>
@@ -138,7 +146,7 @@ export default function Home() {
             {/* Main Heading */}
             <TextGenerateEffect
               words="Fund Your Dreams. Build Your Community."
-              className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
+              className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight text-gradient-monokai"
             />
 
             {/* Subtitle */}
@@ -146,7 +154,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 1.5 }} // Increased delay to wait for the text generate effect
-              className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed"
+              className="text-xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed"
             >
               The modern platform for creators, entrepreneurs, and innovators.
               Launch campaigns, build memberships, and connect with supporters who believe in you.
@@ -160,22 +168,22 @@ export default function Home() {
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
               <Link href="/campaigns/create">
-                <Button size="lg" className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-6 text-lg rounded-full shadow-lg hover:shadow-xl transition-all">
+                <Button size="lg" className="group relative overflow-hidden rounded-full px-8 py-6 text-lg bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] shadow-[0_12px_50px_-20px_rgba(249,38,114,0.65)] hover:shadow-[0_18px_60px_-24px_rgba(174,129,255,0.55)]">
                   <span className="relative z-10 flex items-center gap-2">
                     Start Your Campaign
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-pink-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#66D9EF] via-[#AE81FF] to-[#F92672] opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Button>
               </Link>
               <Link href="/campaigns">
-                <Button size="lg" variant="outline" className="px-8 py-6 text-lg rounded-full border-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <Button size="lg" variant="glass" className="px-8 py-6 text-lg rounded-full bg-white/20 text-white dark:text-white border border-white/30">
                   <Play className="w-5 h-5 mr-2" />
                   Explore Campaigns
                 </Button>
               </Link>
             </motion.div>
-          </div>
+            </div>
 
           {/* Stats Grid */}
           <motion.div
@@ -185,64 +193,69 @@ export default function Home() {
             className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-20"
           >
             {stats.map((stat, index) => (
-              <div
+              <motion.article
                 key={index}
-                className="relative group bg-white/50 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:scale-105 transition-all duration-300"
+                whileHover={{ y: -6 }}
+                transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                className="group relative overflow-hidden rounded-3xl border border-white/20 dark:border-white/10 bg-white/70 dark:bg-[#1d1d1d]/75 backdrop-blur-xl p-6 shadow-[0_20px_60px_-35px_rgba(249,38,114,0.9)] transition-transform"
               >
-                <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${stat.gradient} mb-4`}>
-                  <div className="text-white">
-                    {stat.icon}
-                  </div>
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/60 to-transparent dark:from-white/10" />
+                <div className={`relative inline-flex p-3 rounded-xl bg-gradient-to-br ${stat.gradient} mb-4 text-white`}>
+                  {stat.icon}
                 </div>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                <div className="relative text-3xl font-bold text-foreground mb-1">
                   {stat.value}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="relative text-sm text-muted-foreground">
                   {stat.label}
                 </div>
-              </div>
+              </motion.article>
             ))}
           </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
+      <section className="relative py-24 px-4 sm:px-6 lg:px-8">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-[#F92672]/8 via-transparent to-[#66D9EF]/10 dark:from-[#F92672]/15 dark:via-transparent dark:to-[#66D9EF]/12" />
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold mb-4">
               <BlurFade delay={0.25} inView>
-                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <span className="text-gradient-monokai">
                   Everything You Need
                 </span>
               </BlurFade>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Powerful tools designed to help you succeed, from launch to scale
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+                transition={{ duration: 0.6, delay: index * 0.08 }}
                 viewport={{ once: true }}
-                className="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+                className="group relative overflow-hidden rounded-3xl border border-white/20 dark:border-white/10 bg-white/75 dark:bg-[#1A1A1A]/80 backdrop-blur-xl p-8 shadow-[0_25px_70px_-40px_rgba(174,129,255,0.65)] transition-transform hover:-translate-y-2"
               >
-                <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${feature.gradient} mb-6 group-hover:scale-110 transition-transform`}>
-                  <div className="text-white">
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br ${feature.gradient} mix-blend-screen`} />
+                <div className="relative inline-flex p-4 rounded-2xl bg-white/15 shadow-inner">
+                  <div className="text-white drop-shadow-[0_12px_25px_rgba(0,0,0,0.12)]">
                     {feature.icon}
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
+                <h3 className="relative text-xl font-bold mt-6 mb-3 text-foreground">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                <p className="relative text-sm leading-relaxed text-muted-foreground">
                   {feature.description}
                 </p>
+                <div className="relative mt-6 h-[2px] w-16 bg-gradient-to-r from-transparent via-white/70 to-transparent dark:via-white/30" />
               </motion.div>
             ))}
           </div>
