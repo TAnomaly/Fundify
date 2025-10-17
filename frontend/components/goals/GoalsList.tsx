@@ -66,6 +66,7 @@ export default function GoalsList({
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchGoals();
   }, [creatorId]);
@@ -104,7 +105,7 @@ export default function GoalsList({
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              This creator hasn't set any goals yet
+              This creator hasn&apos;t set any goals yet
             </p>
           )}
         </div>

@@ -344,7 +344,7 @@ export default function Home() {
                     ))}
                   </div>
                   <p className="text-gray-700 dark:text-gray-300 mb-6 leading-relaxed italic">
-                    "{testimonial.quote}"
+                    &quot;{testimonial.quote}&quot;
                   </p>
                   <div className="flex items-center gap-4">
                     <img

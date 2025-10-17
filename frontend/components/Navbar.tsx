@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { isAuthenticated, getCurrentUser, removeToken } from "@/lib/auth";
 import { Moon, Sun, Menu, X, Heart, MessageSquare, Sparkles, LayoutDashboard, FolderKanban, Users, CreditCard, ShoppingBag, Settings, LogOut, User } from "lucide-react";
@@ -71,12 +72,12 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Brand + Desktop Nav */}
           <div className="flex items-center gap-3">
-            <a href="/" className="relative group flex items-center gap-2">
+            <Link href="/" className="relative group flex items-center gap-2">
               <div className="relative h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-[0_12px_35px_-20px_rgba(249,38,114,0.9)] ring-1 ring-white/30">
                 <span className="text-white font-bold text-xl">F</span>
               </div>
               <span className="text-xl font-semibold text-gradient">Fundify</span>
-            </a>
+            </Link>
 
             <div className="hidden md:flex items-center gap-1 ml-6">
               {[
@@ -88,13 +89,13 @@ export function Navbar() {
                 { href: "/explore/shop", label: "Shop" },
                 { href: "/campaigns?category=trending", label: "Trending", icon: <Heart className="w-4 h-4" /> },
               ].map((item) => (
-                <a key={item.href} href={item.href} className="group/link relative px-3 py-2 text-sm font-semibold text-foreground/70 hover:text-foreground transition">
+                <Link key={item.href} href={item.href} className="group/link relative px-3 py-2 text-sm font-semibold text-foreground/70 hover:text-foreground transition">
                   <span className="inline-flex items-center gap-1">
                     {item.icon}
                     {item.label}
                   </span>
                   <span className="absolute left-3 right-3 -bottom-0.5 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] transition-transform duration-300 group-hover/link:scale-x-100" />
-                </a>
+                </Link>
               ))}
             </div>
           </div>
@@ -139,31 +140,31 @@ export function Navbar() {
                   </button>
                   {showDropdown && (
                     <div className="absolute right-0 mt-3 w-56 bg-background/95 border border-white/10 rounded-2xl shadow-[0_22px_65px_-40px_rgba(249,38,114,0.65)] py-2 backdrop-blur-xl">
-                      <a href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                      <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <LayoutDashboard className="w-4 h-4" /> Dashboard
-                      </a>
-                      <a href="/dashboard#my-campaigns" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                      </Link>
+                      <Link href="/dashboard#my-campaigns" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <FolderKanban className="w-4 h-4" /> My Projects
-                      </a>
-                      <a href="/creator-dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                      </Link>
+                      <Link href="/creator-dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <Users className="w-4 h-4" /> Creator Hub
-                      </a>
-                      <a href="/subscriptions" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                      </Link>
+                      <Link href="/subscriptions" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <CreditCard className="w-4 h-4" /> Subscriptions
-                      </a>
-                      <a href="/purchases" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                      </Link>
+                      <Link href="/purchases" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <ShoppingBag className="w-4 h-4" /> My Purchases
-                      </a>
+                      </Link>
                       <div className="my-1 border-t border-slate-200/50 dark:border-slate-700/50" />
-                      <a href="/creators/me" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft bg-blue-50 dark:bg-blue-950/20" onClick={() => setShowDropdown(false)}>
+                      <Link href="/creators/me" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft bg-blue-50 dark:bg-blue-950/20" onClick={() => setShowDropdown(false)}>
                         <User className="w-4 h-4" /> View Profile
-                      </a>
-                      <a href="/creator-dashboard/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                      </Link>
+                      <Link href="/creator-dashboard/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <Settings className="w-4 h-4" /> Settings
-                      </a>
-                      <a href="/dashboard#my-donations" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
+                      </Link>
+                      <Link href="/dashboard#my-donations" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <Heart className="w-4 h-4" /> Contributions
-                      </a>
+                      </Link>
                       <hr className="my-2 border-slate-200 dark:border-slate-700" />
                       <button onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20">
                         <LogOut className="w-4 h-4" /> Logout
@@ -172,9 +173,9 @@ export function Navbar() {
                   )}
                 </div>
               ) : (
-                <a href="/login" className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-primary text-white shadow-[0_12px_35px_-20px_rgba(249,38,114,0.85)] hover:shadow-[0_18px_45px_-24px_rgba(174,129,255,0.65)] transition">
+                <Link href="/login" className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-primary text-white shadow-[0_12px_35px_-20px_rgba(249,38,114,0.85)] hover:shadow-[0_18px_45px_-24px_rgba(174,129,255,0.65)] transition">
                   Sign In
-                </a>
+                </Link>
               )}
             </div>
 
@@ -206,18 +207,18 @@ export function Navbar() {
                       { href: "/explore/shop", label: "Shop" },
                       { href: "/campaigns?category=trending", label: "Trending" },
                     ].map((item) => (
-                      <a key={item.href} href={item.href} className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-muted">
+                      <Link key={item.href} href={item.href} className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-muted">
                         {item.label}
-                      </a>
+                      </Link>
                     ))}
 
                     <div className="pt-2">
-                      <a href="/campaigns/create" className="block rounded-xl px-3 py-3 text-sm font-semibold bg-gradient-primary text-white text-center shadow-soft">Start Project</a>
+                      <Link href="/campaigns/create" className="block rounded-xl px-3 py-3 text-sm font-semibold bg-gradient-primary text-white text-center shadow-soft">Start Project</Link>
                     </div>
 
                     {!isLoggedIn && (
                       <div className="pt-2">
-                        <a href="/login" className="block rounded-xl px-3 py-3 text-sm font-semibold bg-slate-900/90 text-white text-center">Sign In</a>
+                        <Link href="/login" className="block rounded-xl px-3 py-3 text-sm font-semibold bg-slate-900/90 text-white text-center">Sign In</Link>
                       </div>
                     )}
                   </div>

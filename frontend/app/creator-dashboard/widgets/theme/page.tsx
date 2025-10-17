@@ -343,7 +343,7 @@ export default function ThemeEditorPage() {
                             color: theme.textColor,
                           }}
                         >
-                          "Keep up the great content!"
+                          &quot;Keep up the great content!&quot;
                         </p>
                       </div>
                     </div>
@@ -354,7 +354,7 @@ export default function ThemeEditorPage() {
               {!previewAlert && (
                 <div className="text-center text-gray-500">
                   <Eye className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                  <p>Click "Test Alert" to preview your theme</p>
+                  <p>Click &quot;Test Alert&quot; to preview your theme</p>
                 </div>
               )}
             </div>

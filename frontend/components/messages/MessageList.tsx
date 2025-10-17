@@ -88,6 +88,7 @@ export default function MessageList({ otherUserId, currentUserId }: MessageListP
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchMessages();
     const interval = setInterval(fetchMessages, 5000); // Poll every 5s

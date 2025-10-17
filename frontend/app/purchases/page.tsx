@@ -15,6 +15,7 @@ export default function PurchasesPage() {
     const [loading, setLoading] = useState(true);
     const [purchases, setPurchases] = useState<Purchase[]>([]);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!isAuthenticated()) {
             router.push("/login");

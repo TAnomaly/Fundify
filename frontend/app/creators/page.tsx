@@ -76,43 +76,24 @@ export default function CreatorsPage() {
   }, []);
 
   useEffect(() => {
-    filterAndSortCreators();
-  }, [searchQuery, selectedCategory, sortBy, creators]);
-
-  const loadCreators = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/creators`
-      );
-
-      if (response.data.success) {
-        const creatorsData: Creator[] = response.data.data || [];
-        setCreators(creatorsData);
-        setFilteredCreators(creatorsData);
-      }
-    } catch (error) {
-      console.error("Error loading creators:", error);
-      toast.error("Failed to load creators");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const filterAndSortCreators = () => {
     let filtered = [...creators];
 
-    // Search filter
     if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (creator) =>
-          creator.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          creator.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          creator.creatorBio?.toLowerCase().includes(searchQuery.toLowerCase())
+          creator.name.toLowerCase().includes(query) ||
+          creator.username?.toLowerCase().includes(query) ||
+          creator.creatorBio?.toLowerCase().includes(query)
       );
     }
 
-    // Sort
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(
+        (creator) => creator.category?.toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
+
     switch (sortBy) {
       case "trending":
         filtered.sort((a, b) => (b._count?.subscribers || 0) - (a._count?.subscribers || 0));
@@ -133,6 +114,27 @@ export default function CreatorsPage() {
     }
 
     setFilteredCreators(filtered);
+  }, [creators, searchQuery, selectedCategory, sortBy]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const loadCreators = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/users/creators`
+      );
+
+      if (response.data.success) {
+        const creatorsData: Creator[] = response.data.data || [];
+        setCreators(creatorsData);
+        setFilteredCreators(creatorsData);
+      }
+    } catch (error) {
+      console.error("Error loading creators:", error);
+      toast.error("Failed to load creators");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreatorClick = (creator: Creator) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -169,13 +169,15 @@ export default function PodcastsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // loadEpisodes depends on selectedPodcastId; additional dependencies intentionally omitted to avoid re-fetch loops
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!selectedPodcastId) {
       setEpisodes([]);
       return;
     }
     loadEpisodes(selectedPodcastId);
-  }, [selectedPodcastId]);
+  }, [loadEpisodes, selectedPodcastId]);
 
   const loadPodcasts = async (creatorId?: string) => {
     setIsLoadingPodcasts(true);
@@ -220,7 +222,7 @@ export default function PodcastsPage() {
     }
   };
 
-  const loadEpisodes = async (podcastId: string) => {
+  const loadEpisodes = useCallback(async (podcastId: string) => {
     setIsLoadingEpisodes(true);
     try {
       const token = localStorage.getItem("authToken");
@@ -253,7 +255,7 @@ export default function PodcastsPage() {
     } finally {
       setIsLoadingEpisodes(false);
     }
-  };
+  }, [router]);
 
   const handleCreatePodcast = async () => {
     if (!podcastForm.title.trim()) {

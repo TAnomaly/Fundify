@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,11 +66,7 @@ export default function CampaignDetailPage({ params }: { params: { slug: string 
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [activeTab, setActiveTab] = useState<"story" | "updates" | "comments">("story");
 
-  useEffect(() => {
-    loadCampaign();
-  }, [params.slug]);
-
-  const loadCampaign = async () => {
+  const loadCampaign = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await campaignApi.getBySlug(params.slug);
@@ -87,7 +83,11 @@ export default function CampaignDetailPage({ params }: { params: { slug: string 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [params.slug, router]);
+
+  useEffect(() => {
+    loadCampaign();
+  }, [loadCampaign]);
 
   const campaignData = campaign || mockCampaign;
   const percentage = calculatePercentage(campaignData.currentAmount, campaignData.goal);
@@ -304,7 +304,7 @@ export default function CampaignDetailPage({ params }: { params: { slug: string 
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground">
-                        The creator hasn't posted any updates yet. Check back soon!
+                        The creator hasn&apos;t posted any updates yet. Check back soon!
                       </p>
                     </CardContent>
                   </Card>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
@@ -88,26 +89,26 @@ export default function RootLayout({
                 <div>
                   <h3 className="font-semibold mb-4">Platform</h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li><a href="/campaigns" className="hover:text-foreground transition-colors">Explore Campaigns</a></li>
-                    <li><a href="/campaigns/create" className="hover:text-foreground transition-colors">Start a Campaign</a></li>
-                    <li><a href="/how-it-works" className="hover:text-foreground transition-colors">How It Works</a></li>
+                    <li><Link href="/campaigns" className="hover:text-foreground transition-colors">Explore Campaigns</Link></li>
+                    <li><Link href="/campaigns/create" className="hover:text-foreground transition-colors">Start a Campaign</Link></li>
+                    <li><Link href="/how-it-works" className="hover:text-foreground transition-colors">How It Works</Link></li>
                   </ul>
                 </div>
 
                 <div>
                   <h3 className="font-semibold mb-4">Company</h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li><a href="/about" className="hover:text-foreground transition-colors">About Us</a></li>
-                    <li><a href="/blog" className="hover:text-foreground transition-colors">Blog</a></li>
-                    <li><a href="/contact" className="hover:text-foreground transition-colors">Contact</a></li>
+                    <li><Link href="/about" className="hover:text-foreground transition-colors">About Us</Link></li>
+                    <li><Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
+                    <li><Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
                   </ul>
                 </div>
 
                 <div>
                   <h3 className="font-semibold mb-4">Legal</h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li><a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a></li>
-                    <li><a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a></li>
+                    <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
+                    <li><Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link></li>
                     <li><a href="/guidelines" className="hover:text-foreground transition-colors">Community Guidelines</a></li>
                   </ul>
                 </div>

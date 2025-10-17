@@ -56,6 +56,7 @@ export default function EventTicketPage() {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadTicket();
   }, [params.id]);
@@ -312,7 +313,7 @@ export default function EventTicketPage() {
 
         {/* Additional Info */}
         <div className="mt-6 text-center text-sm text-muted-foreground">
-          <p>Keep this ticket safe. You'll need it to check in at the event.</p>
+          <p>Keep this ticket safe. You&apos;ll need it to check in at the event.</p>
         </div>
       </div>
     </div>

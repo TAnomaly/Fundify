@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import axios from "axios";
@@ -35,11 +35,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     const heroImageY = useTransform(scrollY, [0, 400], [0, -100]);
     const heroImageScale = useTransform(scrollY, [0, 400], [1, 1.1]);
 
-    useEffect(() => {
-        loadArticleAndComments(true);
-    }, [params.slug]);
-
-    const loadArticleAndComments = async (isInitialLoad = false) => {
+    const loadArticleAndComments = useCallback(async (isInitialLoad = false) => {
         try {
             if (isInitialLoad) {
                 setIsLoading(true);
@@ -73,7 +69,11 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                 setIsLoading(false);
             }
         }
-    };
+    }, [params.slug, router]);
+
+    useEffect(() => {
+        loadArticleAndComments(true);
+    }, [loadArticleAndComments]);
 
     const handleLike = async () => {
         if (!isAuthenticated() || !article) return toast.error("Please login to like articles");

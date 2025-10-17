@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated, getCurrentUser } from "@/lib/auth";
@@ -24,6 +24,8 @@ export default function DashboardPage() {
     totalBackers: 0,
   });
 
+  // loadDashboardData intentionally excluded to avoid triggering data reload loops on state updates
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     console.log('Dashboard mounting...');
     console.log('isAuthenticated:', isAuthenticated());
@@ -46,9 +48,9 @@ export default function DashboardPage() {
     }, 10000);
 
     return () => clearTimeout(timeout);
-  }, [router]);
+  }, [loadDashboardData, router]);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     console.log('loadDashboardData called');
     setIsLoading(true);
     try {
@@ -155,7 +157,7 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
 
   const deleteCampaign = async (campaignId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -226,7 +228,7 @@ export default function DashboardPage() {
             </h1>
           </div>
           <p className="text-lg text-white/90 max-w-2xl">
-            Track your impact, manage campaigns, and see how you're making a difference in the community
+            Track your impact, manage campaigns, and see how you&apos;re making a difference in the community
           </p>
         </div>
       </div>
@@ -514,7 +516,7 @@ export default function DashboardPage() {
                         </p>
                         {donation.message && (
                           <p className="text-sm text-muted-foreground italic mt-1">
-                            "{donation.message}"
+                            &quot;{donation.message}&quot;
                           </p>
                         )}
                       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -151,13 +151,7 @@ export default function EventPaymentModal({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && !clientSecret) {
-      createPaymentIntent();
-    }
-  }, [isOpen]);
-
-  const createPaymentIntent = async () => {
+  const createPaymentIntent = useCallback(async () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("authToken");
@@ -183,7 +177,13 @@ export default function EventPaymentModal({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [eventId, onClose]);
+
+  useEffect(() => {
+    if (isOpen && !clientSecret) {
+      void createPaymentIntent();
+    }
+  }, [clientSecret, createPaymentIntent, isOpen]);
 
   const handleClose = () => {
     setClientSecret(null);

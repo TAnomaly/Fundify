@@ -27,7 +27,7 @@ export default function EditProductPage() {
                 setLoading(false);
             }
         })();
-    }, [id]);
+    }, [id, router]);
 
     if (loading) return <div className="container mx-auto py-8">Loading...</div>;
     if (!product) return null;

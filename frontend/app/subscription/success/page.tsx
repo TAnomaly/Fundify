@@ -64,7 +64,7 @@ function SuccessContent() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-green-600 font-bold">✓</span>
-                <span>You'll receive a confirmation email shortly</span>
+                <span>You&apos;ll receive a confirmation email shortly</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-green-600 font-bold">✓</span>

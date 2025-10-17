@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { subscriptionApi } from "@/lib/api/subscription";
 import { creatorPostApi } from "@/lib/api/creatorPost";
@@ -19,22 +19,7 @@ export default function CreatorDashboard() {
   const [isCreator, setIsCreator] = useState(false);
   const [userName, setUserName] = useState<string>("");
 
-  useEffect(() => {
-    loadDashboard();
-
-    // Listen for storage changes (when profile is updated)
-    const handleStorageChange = () => {
-      console.log("📡 Storage changed, reloading dashboard...");
-      loadDashboard();
-    };
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, []);
-
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     setIsLoading(true);
     try {
       const currentUser = getCurrentUser();
@@ -75,8 +60,21 @@ export default function CreatorDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
 
+  useEffect(() => {
+    void loadDashboard();
+
+    const handleStorageChange = () => {
+      console.log("📡 Storage changed, reloading dashboard...");
+      loadDashboard();
+    };
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [loadDashboard]);
   const becomeCreator = async () => {
     try {
       const response = await userApi.becomeCreator();

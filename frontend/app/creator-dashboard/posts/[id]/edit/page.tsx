@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { creatorPostApi } from "@/lib/api/creatorPost";
 import toast from "react-hot-toast";
@@ -48,11 +48,11 @@ export default function EditPostPage() {
         published: true,
     });
 
-    useEffect(() => {
+        useEffect(() => {
         loadPost();
-    }, [postId]);
+    }, [loadPost]);
 
-    const loadPost = async () => {
+    const loadPost = useCallback(async () => {
         try {
             const response = await creatorPostApi.getById(postId);
             if (response.success && response.data) {
@@ -75,7 +75,7 @@ export default function EditPostPage() {
         } finally {
             setIsLoadingPost(false);
         }
-    };
+    }, [postId, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -239,4 +239,3 @@ export default function EditPostPage() {
         </div>
     );
 }
-

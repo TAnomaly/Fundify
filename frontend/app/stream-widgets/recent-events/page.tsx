@@ -130,7 +130,7 @@ function RecentEventsWidget() {
                     )}
                     {event.message && (
                       <div className="text-sm text-gray-300 italic mt-1 truncate">
-                        "{event.message}"
+                        &quot;{event.message}&quot;
                       </div>
                     )}
                   </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { getApiUrl } from "@/lib/api";
@@ -28,14 +28,8 @@ export default function ProfileEditPage() {
         bannerImage: "",
     });
 
-    useEffect(() => {
-        console.log("🚀 PROFILE EDIT PAGE LOADED");
-        console.log("   API URL:", getApiUrl());
-        console.log("   Has token:", !!localStorage.getItem("authToken"));
-        loadProfile();
-    }, []);
 
-    const loadProfile = async () => {
+    const loadProfile = useCallback(async () => {
         try {
             const token = localStorage.getItem("authToken");
             if (!token) {
@@ -72,7 +66,14 @@ export default function ProfileEditPage() {
         } finally {
             setIsLoadingProfile(false);
         }
-    };
+    }, [router]);
+
+    useEffect(() => {
+        console.log("🚀 PROFILE EDIT PAGE LOADED");
+        console.log("   API URL:", getApiUrl());
+        console.log("   Has token:", !!localStorage.getItem("authToken"));
+        void loadProfile();
+    }, [loadProfile]);
 
     const hasChanges = () => {
         if (!originalData) {

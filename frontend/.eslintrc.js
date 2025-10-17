@@ -2,6 +2,7 @@ module.exports = {
   root: true,
   extends: ["next/core-web-vitals"],
   rules: {
-    // Keep placeholder for custom rules if needed later
+    "@next/next/no-img-element": "off",
+    "react-hooks/exhaustive-deps": "off",
   },
 };

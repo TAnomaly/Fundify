@@ -68,6 +68,7 @@ export default function PollsList({
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchPolls();
   }, [creatorId]);
@@ -137,7 +138,7 @@ export default function PollsList({
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              This creator hasn't created any polls yet
+              This creator hasn&apos;t created any polls yet
             </p>
           )}
           {isOwner && <CreatePollModal onPollCreated={handlePollCreated} />}

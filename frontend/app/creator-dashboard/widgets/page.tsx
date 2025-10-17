@@ -99,10 +99,10 @@ export default function WidgetsPage() {
               </h4>
               <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
                 <li>Open OBS Studio</li>
-                <li>Add new "Browser Source"</li>
+                <li>Add new &quot;Browser Source&quot;</li>
                 <li>Paste the widget URL above</li>
                 <li>Set size: 1920x1080</li>
-                <li>Check "Shutdown source when not visible"</li>
+                <li>Check &quot;Shutdown source when not visible&quot;</li>
                 <li>Click OK!</li>
               </ol>
             </div>

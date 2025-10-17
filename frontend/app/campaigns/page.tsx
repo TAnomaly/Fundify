@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { campaignApi } from "@/lib/api";
 import { Campaign } from "@/lib/types";
 import { CampaignCard } from "@/components/ui/card";
@@ -29,11 +29,7 @@ export default function CampaignsPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    loadCampaigns();
-  }, [selectedCategory, page]);
-
-  const loadCampaigns = async () => {
+  const loadCampaigns = useCallback(async () => {
     setIsLoading(true);
     try {
       const filters: any = {
@@ -64,7 +60,11 @@ export default function CampaignsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, selectedCategory]);
+
+  useEffect(() => {
+    void loadCampaigns();
+  }, [loadCampaigns]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {

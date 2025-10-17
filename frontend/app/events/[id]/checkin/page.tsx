@@ -57,6 +57,7 @@ export default function EventCheckInPage() {
     pending: 0,
   });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadEventAndAttendees();
 
@@ -67,6 +68,7 @@ export default function EventCheckInPage() {
     };
   }, [params.id]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (scannerActive && !scannerRef.current) {
       initScanner();

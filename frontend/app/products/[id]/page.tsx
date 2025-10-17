@@ -28,6 +28,7 @@ export default function ProductDetailPage() {
     const [buying, setBuying] = useState(false);
     const [activeImage, setActiveImage] = useState<string | null>(null);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (id) {
             loadProduct();

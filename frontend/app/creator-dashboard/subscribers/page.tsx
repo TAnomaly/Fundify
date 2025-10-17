@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,8 @@ export default function SubscribersPage() {
   const [showBulkMessage, setShowBulkMessage] = useState(false);
   const [bulkMessage, setBulkMessage] = useState({ subject: "", content: "" });
 
-  useEffect(() => {
-    loadSubscribers();
-  }, [statusFilter, search]);
-
-  const loadSubscribers = async () => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const loadSubscribers = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -46,7 +43,11 @@ export default function SubscribersPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    loadSubscribers();
+  }, [loadSubscribers]);
 
   const sendBulkMessage = async () => {
     if (!bulkMessage.subject || !bulkMessage.content) {

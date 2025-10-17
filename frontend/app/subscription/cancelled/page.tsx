@@ -29,7 +29,7 @@ export default function SubscriptionCancelledPage() {
             <h3 className="font-semibold mb-4">What happened?</h3>
             <p className="text-sm text-muted-foreground mb-4">
               You closed the payment window before completing your subscription.
-              Don't worry - you can try again anytime!
+              Don&apos;t worry - you can try again anytime!
             </p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">

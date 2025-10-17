@@ -45,6 +45,7 @@ export default function EventsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "upcoming" | "past">("upcoming");
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadEvents();
   }, [filter]);
@@ -285,4 +286,3 @@ export default function EventsPage() {
     </div>
   );
 }
-

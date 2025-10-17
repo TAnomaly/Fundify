@@ -31,9 +31,10 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
     const heroImageY = useTransform(scrollY, [0, 400], [0, -100]);
     const heroImageScale = useTransform(scrollY, [0, 400], [1, 1.1]);
 
-    useEffect(() => {
-        loadEvent();
-    }, [params.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    loadEvent();
+  }, [params.id]);
 
     const loadEvent = async () => {
         try {

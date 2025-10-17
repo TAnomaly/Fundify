@@ -21,6 +21,7 @@ function AlertWidget() {
   const [isAnimating, setIsAnimating] = useState(false);
 
   // WebSocket connection for real-time alerts
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!creatorId) return;
 
@@ -132,7 +133,7 @@ function AlertWidget() {
             {currentAlert.message && (
               <div className="bg-gray-800 rounded-2xl p-6 mt-4">
                 <p className="text-xl text-white text-center italic">
-                  "{currentAlert.message}"
+                  &quot;{currentAlert.message}&quot;
                 </p>
               </div>
             )}

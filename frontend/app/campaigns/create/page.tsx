@@ -408,7 +408,7 @@ export default function CreateCampaignPage() {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <span className="text-purple-600 font-bold">•</span>
-                <span>Be clear and specific about what you're raising funds for</span>
+                <span>Be clear and specific about what you&apos;re raising funds for</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-600 font-bold">•</span>

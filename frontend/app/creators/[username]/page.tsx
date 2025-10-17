@@ -59,8 +59,8 @@ export default function CreatorProfilePage() {
     { id: "events", label: "Events", icon: Calendar },
   ], []);
 
-  const loadTabData = async (tab: string) => {
-    if (!profile || dataLoading[tab]) return;
+  const loadTabData = useCallback(async (tab: string) => {
+    if (!profile) return;
 
     setDataLoading(prev => ({ ...prev, [tab]: true }));
     try {
@@ -97,7 +97,7 @@ export default function CreatorProfilePage() {
     } finally {
       setDataLoading(prev => ({ ...prev, [tab]: false }));
     }
-  };
+  }, [profile]);
 
   useEffect(() => {
     const loadCreatorProfile = async () => {
@@ -119,11 +119,12 @@ export default function CreatorProfilePage() {
     loadCreatorProfile();
   }, [username, router]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (profile) {
-      loadTabData(activeTab);
+      void loadTabData(activeTab);
     }
-  }, [profile, activeTab]);
+  }, [activeTab, loadTabData, profile]);
 
   const handlePostEngagementUpdate = useCallback((postId: string, updates: Partial<Pick<CreatorPost, "likeCount" | "commentCount" | "hasLiked">>) => {
     setPosts(prev => prev.map(post => post.id === postId ? { ...post, ...updates } : post));

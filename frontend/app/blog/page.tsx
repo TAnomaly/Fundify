@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isAuthenticated } from "@/lib/auth";
+import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
 import axios from "axios";
 import toast from "react-hot-toast";
 import {
@@ -62,11 +64,7 @@ export default function BlogPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadArticles();
-  }, [selectedCategory]);
-
-  const loadArticles = async () => {
+  const loadArticles = useCallback(async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
@@ -85,7 +83,11 @@ export default function BlogPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    loadArticles();
+  }, [loadArticles]);
 
   const filteredArticles = articles.filter((article) =>
     article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -194,12 +196,13 @@ export default function BlogPage() {
                 {/* Cover Image */}
                 {article.coverImage && (
                   <div className="relative h-48 bg-gradient-to-br from-purple-400 to-blue-400 overflow-hidden">
-                    <img
-                      src={article.coverImage}
+                    <Image
+                      src={getFullMediaUrl(article.coverImage) ?? article.coverImage}
                       alt={article.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-300"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      priority={false}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                   </div>
@@ -252,12 +255,13 @@ export default function BlogPage() {
                   <div className="flex items-center justify-between pt-4 border-t">
                     <div className="flex items-center gap-2">
                       {article.author.avatar ? (
-                        <img
-                          src={article.author.avatar}
+                        <Image
+                          src={getFullMediaUrl(article.author.avatar) ?? article.author.avatar}
                           alt={article.author.name}
-                          loading="lazy"
-                          decoding="async"
-                          className="w-8 h-8 rounded-full"
+                          width={32}
+                          height={32}
+                          className="rounded-full"
+                          sizes="32px"
                         />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-bold">
@@ -292,4 +296,3 @@ export default function BlogPage() {
     </div>
   );
 }
-
