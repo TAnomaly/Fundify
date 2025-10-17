@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { BlurFade } from "@/components/ui/blur-fade";
 import toast from "react-hot-toast";
 import axios from "axios";
 import {
@@ -100,8 +102,17 @@ export default function CreatorsPage() {
           creator.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           creator.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           creator.creatorBio?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+  );
+}
+
+function StatPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 px-6">
+      <span className="text-2xl font-semibold text-gradient-monokai">{value}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
+    </div>
+  );
+}
 
     // Sort
     switch (sortBy) {
@@ -147,81 +158,51 @@ export default function CreatorsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 py-12 px-4">
-        <div className="container mx-auto max-w-7xl">
-          <Skeleton className="h-12 w-64 mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-80" />
-            ))}
-          </div>
+      <div className="min-h-screen bg-background py-16 px-4">
+        <Skeleton className="h-12 w-64 mb-10 mx-auto" />
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-80 rounded-3xl" />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-teal-600 text-white py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-
-        {/* Floating Elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-10 right-20 w-32 h-32 bg-pink-400/20 rounded-full blur-2xl animate-pulse delay-75"></div>
-
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full mb-6 animate-fade-in">
-              <Sparkles className="w-5 h-5 animate-pulse" />
-              <span className="text-sm font-semibold">Discover Amazing Creators</span>
-            </div>
-
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in-up">
-              Support Your Favorite <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-pink-200 to-purple-200">
-                Creators
-              </span>
-            </h1>
-
-            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto animate-fade-in-up delay-100">
-              Browse {creators.length}+ talented creators, subscribe to exclusive content, and become part of their creative journey
-            </p>
-
-            {/* Search Bar */}
-            <div className="relative max-w-2xl mx-auto animate-fade-in-up delay-200">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search creators by name, username, or interests..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-4 py-6 text-lg rounded-2xl bg-white/95 backdrop-blur-sm border-0 shadow-xl focus:ring-4 focus:ring-white/20"
-              />
-            </div>
-
-            {/* Quick Stats */}
-            <div className="flex justify-center gap-8 mt-8 animate-fade-in-up delay-300">
-              <div className="text-center">
-                <div className="text-3xl font-bold">{creators.length}+</div>
-                <div className="text-sm text-white/80">Creators</div>
-              </div>
-              <div className="w-px bg-white/20"></div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">
-                  {creators.reduce((sum, c) => sum + (c._count?.subscribers || 0), 0)}+
-                </div>
-                <div className="text-sm text-white/80">Subscribers</div>
-              </div>
-              <div className="w-px bg-white/20"></div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">
-                  {creators.reduce((sum, c) => sum + (c._count?.posts || 0), 0)}+
-                </div>
-                <div className="text-sm text-white/80">Posts</div>
-              </div>
-            </div>
+    <div className="min-h-screen bg-background">
+      <section className="relative px-4 sm:px-6 lg:px-8 pt-20 pb-16 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(249,38,114,0.1),transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(circle_at_bottom_left,rgba(174,129,255,0.12),transparent_60%)]" />
+        <div className="max-w-5xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/60 dark:bg-white/10 px-4 py-2 text-sm font-semibold text-gradient shadow-sm mb-6">
+            <Sparkles className="w-4 h-4 text-[#F92672]" />
+            Discover amazing creators
           </div>
+          <TextGenerateEffect
+            words="Support your favorite creators"
+            className="text-5xl md:text-6xl font-bold mb-5 text-gradient-monokai"
+          />
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            Browse {creators.length}+ talented creators, subscribe to exclusive content, and become part of their creative journey.
+          </p>
+          <div className="relative max-w-2xl mx-auto mt-8">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search creators by name, username, or interests..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 pr-4 py-6 text-lg rounded-2xl bg-background/85 backdrop-blur-xl border border-white/15 shadow-[0_18px_60px_-40px_rgba(249,38,114,0.4)] focus:ring-2 focus:ring-[#F92672]/40"
+            />
+          </div>
+        </div>
+      </section>
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-6 rounded-3xl border border-white/12 bg-background/80 backdrop-blur-xl py-6 shadow-[0_25px_70px_-50px_rgba(174,129,255,0.45)]">
+          <StatPill label="Creators" value={`${creators.length}+`} />
+          <StatPill label="Subscribers" value={`${creators.reduce((sum, c) => sum + (c._count?.subscribers || 0), 0)}+`} />
+          <StatPill label="Posts" value={`${creators.reduce((sum, c) => sum + (c._count?.posts || 0), 0)}+`} />
         </div>
       </div>
 
@@ -247,7 +228,7 @@ export default function CreatorsPage() {
                 return (
                   <Card
                     key={creator.id}
-                    className="group cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden border-2 border-orange-200 relative"
+                    className="group cursor-pointer overflow-hidden rounded-3xl border border-white/15 bg-background/80 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_30px_80px_-50px_rgba(249,38,114,0.6)] relative"
                     onClick={() => handleCreatorClick(creator)}
                   >
                     {/* Rank Badge */}
@@ -256,7 +237,7 @@ export default function CreatorsPage() {
                     </div>
 
                     {/* Banner */}
-                    <div className="relative h-32 bg-gradient-to-br from-orange-400 via-pink-400 to-purple-400">
+                    <div className="relative h-32 bg-gradient-to-br from-[#F92672]/80 via-[#AE81FF]/80 to-[#66D9EF]/80">
                       {creator.bannerImage && (
                         <img src={creator.bannerImage} alt="" className="w-full h-full object-cover" />
                       )}
@@ -272,14 +253,14 @@ export default function CreatorsPage() {
                           className="w-20 h-20 rounded-full border-4 border-white shadow-xl object-cover"
                         />
                       ) : (
-                        <div className="w-20 h-20 rounded-full border-4 border-white shadow-xl bg-white flex items-center justify-center text-3xl font-bold text-purple-600">
+                        <div className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg bg-gradient-to-br from-[#F92672]/90 to-[#FD971F]/80 flex items-center justify-center text-3xl font-bold text-white">
                           {creator.name.charAt(0).toUpperCase()}
                         </div>
                       )}
                     </div>
 
                     <CardContent className="pt-14 pb-6 px-6 text-center">
-                      <h3 className="text-xl font-bold mb-1 group-hover:text-purple-600 transition-colors">
+                      <h3 className="text-xl font-bold mb-1 text-foreground group-hover:text-gradient-monokai transition-colors">
                         {creator.name}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-3">@{username}</p>
@@ -292,20 +273,20 @@ export default function CreatorsPage() {
 
                       <div className="flex justify-center gap-6 mb-4">
                         <div className="text-center">
-                          <div className="text-xl font-bold text-purple-600">
+                          <div className="text-xl font-bold text-[#AE81FF]">
                             {creator._count?.subscribers || 0}
                           </div>
                           <div className="text-xs text-muted-foreground">Subscribers</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xl font-bold text-blue-600">
+                          <div className="text-xl font-bold text-[#66D9EF]">
                             {creator._count?.posts || 0}
                           </div>
                           <div className="text-xs text-muted-foreground">Posts</div>
                         </div>
                       </div>
 
-                      <Button className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white shadow-lg">
+                      <Button variant="gradient" className="w-full">
                         View Profile
                       </Button>
                     </CardContent>
@@ -337,16 +318,16 @@ export default function CreatorsPage() {
                 return (
                   <Card
                     key={creator.id}
-                    className="group cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden border-2 border-green-200"
+                    className="group cursor-pointer overflow-hidden rounded-3xl border border-white/12 bg-background/80 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_30px_80px_-50px_rgba(102,217,239,0.55)]"
                     onClick={() => handleCreatorClick(creator)}
                   >
                     {/* New Badge */}
-                    <div className="absolute top-4 right-4 z-10 px-3 py-1 rounded-full bg-gradient-to-r from-green-500 to-teal-500 text-white text-xs font-bold shadow-lg flex items-center gap-1">
+                    <div className="absolute top-4 right-4 z-10 px-3 py-1 rounded-full bg-gradient-to-r from-[#66D9EF] to-[#A6E22E] text-white text-xs font-bold shadow-lg flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />
                       NEW
                     </div>
 
-                    <div className="relative h-24 bg-gradient-to-br from-green-400 via-teal-400 to-blue-400">
+                    <div className="relative h-24 bg-gradient-to-br from-[#66D9EF]/80 via-[#A6E22E]/70 to-[#AE81FF]/70">
                       {creator.bannerImage && (
                         <img src={creator.bannerImage} alt="" className="w-full h-full object-cover" />
                       )}
@@ -360,28 +341,28 @@ export default function CreatorsPage() {
                           className="w-16 h-16 rounded-full border-4 border-white shadow-lg object-cover mx-auto -mt-12 mb-3"
                         />
                       ) : (
-                        <div className="w-16 h-16 rounded-full border-4 border-white shadow-lg bg-white flex items-center justify-center text-2xl font-bold text-purple-600 mx-auto -mt-12 mb-3">
+                        <div className="w-16 h-16 rounded-2xl border-4 border-background shadow-lg bg-gradient-to-br from-[#66D9EF]/90 to-[#AE81FF]/80 flex items-center justify-center text-2xl font-bold text-white mx-auto -mt-12 mb-3">
                           {creator.name.charAt(0).toUpperCase()}
                         </div>
                       )}
 
-                      <h3 className="text-lg font-bold mb-1 group-hover:text-purple-600 transition-colors">
+                      <h3 className="text-lg font-bold mb-1 text-foreground group-hover:text-gradient-monokai transition-colors">
                         {creator.name}
                       </h3>
                       <p className="text-xs text-muted-foreground mb-3">@{username}</p>
 
                       <div className="flex justify-center gap-4 text-sm mb-3">
                         <div className="text-center">
-                          <div className="font-bold text-purple-600">{creator._count?.subscribers || 0}</div>
+                          <div className="font-bold text-[#AE81FF]">{creator._count?.subscribers || 0}</div>
                           <div className="text-xs text-muted-foreground">Subs</div>
                         </div>
                         <div className="text-center">
-                          <div className="font-bold text-blue-600">{creator._count?.posts || 0}</div>
+                          <div className="font-bold text-[#66D9EF]">{creator._count?.posts || 0}</div>
                           <div className="text-xs text-muted-foreground">Posts</div>
                         </div>
                       </div>
 
-                      <Button size="sm" className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white">
+                      <Button size="sm" variant="glass" className="w-full text-foreground">
                         View Profile
                       </Button>
                     </CardContent>
@@ -397,17 +378,17 @@ export default function CreatorsPage() {
           {/* Category Filter */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Filter className="w-5 h-5 text-gray-600" />
-              <h3 className="text-lg font-semibold">Categories</h3>
+              <Filter className="w-5 h-5 text-muted-foreground" />
+              <h3 className="text-lg font-semibold text-foreground">Categories</h3>
             </div>
             <div className="flex flex-wrap gap-3">
               {categories.map((category) => (
                 <button
                   key={category.value}
                   onClick={() => setSelectedCategory(category.value)}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg ${selectedCategory === category.value
-                      ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white scale-105"
-                      : "bg-white text-gray-700 hover:scale-105"
+                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${selectedCategory === category.value
+                      ? "bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] text-white shadow-[0_14px_45px_-24px_rgba(249,38,114,0.55)] scale-105"
+                      : "bg-background/80 backdrop-blur border border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20 hover:-translate-y-[2px]"
                     }`}
                 >
                   <span className="mr-2">{category.icon}</span>
@@ -427,9 +408,9 @@ export default function CreatorsPage() {
                   <button
                     key={option.value}
                     onClick={() => setSortBy(option.value)}
-                    className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2 ${sortBy === option.value
-                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white scale-105"
-                        : "bg-white text-gray-700 hover:scale-105"
+                    className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${sortBy === option.value
+                        ? "bg-gradient-to-r from-[#AE81FF] to-[#66D9EF] text-white shadow-[0_14px_45px_-24px_rgba(102,217,239,0.55)] scale-105"
+                        : "bg-background/80 backdrop-blur border border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20 hover:-translate-y-[2px]"
                       }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -479,11 +460,11 @@ export default function CreatorsPage() {
                 return (
                   <Card
                     key={creator.id}
-                    className="group cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden border-0 shadow-xl"
+                    className="group cursor-pointer overflow-hidden rounded-3xl border border-white/12 bg-background/80 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_25px_75px_-45px_rgba(174,129,255,0.55)]"
                     onClick={() => handleCreatorClick(creator)}
                   >
                     {/* Banner/Header */}
-                    <div className="relative h-28 bg-gradient-to-br from-purple-400 via-blue-400 to-teal-400">
+                    <div className="relative h-28 bg-gradient-to-br from-[#F92672]/75 via-[#AE81FF]/80 to-[#66D9EF]/75">
                       {creator.bannerImage && (
                         <img src={creator.bannerImage} alt="" className="w-full h-full object-cover" />
                       )}
@@ -499,14 +480,14 @@ export default function CreatorsPage() {
                           className="w-20 h-20 rounded-full border-4 border-white shadow-lg object-cover"
                         />
                       ) : (
-                        <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg bg-white flex items-center justify-center text-2xl font-bold text-purple-600">
+                        <div className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg bg-gradient-to-br from-[#F92672]/85 to-[#AE81FF]/80 flex items-center justify-center text-2xl font-bold text-white">
                           {creator.name.charAt(0).toUpperCase()}
                         </div>
                       )}
                     </div>
 
                     <CardContent className="pt-3 pb-5 px-5">
-                      <h3 className="text-lg font-bold mb-1 group-hover:text-purple-600 transition-colors truncate">
+                      <h3 className="text-lg font-bold mb-1 text-foreground group-hover:text-gradient-monokai transition-colors truncate">
                         {creator.name}
                       </h3>
                       <p className="text-xs text-muted-foreground mb-3 truncate">@{username}</p>
@@ -518,23 +499,23 @@ export default function CreatorsPage() {
                       )}
 
                       {/* Stats */}
-                      <div className="flex justify-between gap-4 mb-4 pt-3 border-t">
+                      <div className="flex justify-between gap-4 mb-4 pt-3 border-t border-white/10">
                         <div className="text-center flex-1">
-                          <div className="text-lg font-bold text-purple-600">
+                          <div className="text-lg font-bold text-[#AE81FF]">
                             {creator._count?.subscribers || 0}
                           </div>
                           <div className="text-xs text-muted-foreground">Subs</div>
                         </div>
-                        <div className="w-px bg-gray-200"></div>
+                        <div className="w-px bg-white/10"></div>
                         <div className="text-center flex-1">
-                          <div className="text-lg font-bold text-blue-600">
+                          <div className="text-lg font-bold text-[#66D9EF]">
                             {creator._count?.posts || 0}
                           </div>
                           <div className="text-xs text-muted-foreground">Posts</div>
                         </div>
                       </div>
 
-                      <Button size="sm" className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg group-hover:shadow-xl transition-all">
+                      <Button size="sm" variant="glass" className="w-full flex items-center justify-between text-foreground">
                         View Profile
                         <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                       </Button>

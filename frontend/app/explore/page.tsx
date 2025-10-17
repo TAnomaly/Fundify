@@ -9,7 +9,6 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { BlurFade } from "@/components/ui/blur-fade";
-import { Spotlight } from "@/components/ui/spotlight";
 import { Input } from "@/components/ui/input";
 import {
   TrendingUp,
@@ -113,39 +112,41 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen w-full bg-background relative overflow-hidden">
-      <Spotlight
-        className="-top-40 left-0 md:left-60 md:-top-20"
-        fill="white"
-      />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(249,38,114,0.08),transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-64 -z-10 h-[320px] bg-[radial-gradient(circle_at_center,rgba(102,217,239,0.08),transparent_65%)] blur-3xl" />
 
-      {/* Hero Section */}
       <BlurFade delay={0.25} inView>
-        <section className="text-center pt-20 pb-16 px-4 sm:px-6 lg:px-8">
-          <TextGenerateEffect
-            words="Discover Your Next Inspiration"
-            className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-4"
-          />
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Explore trending creators and innovative campaigns from our global community.
-          </p>
+        <section className="relative px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+          <div className="max-w-6xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/60 dark:bg-white/10 px-4 py-2 text-sm font-medium text-gradient shadow-sm mb-6">
+              <Flame className="w-4 h-4 text-[#F92672]" />
+              Curated spotlight
+            </div>
+            <TextGenerateEffect
+              words="Discover Your Next Inspiration"
+              className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-4 text-gradient-monokai"
+            />
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Explore trending creators and innovative campaigns from our global community.
+            </p>
+          </div>
         </section>
       </BlurFade>
 
       <div className="container mx-auto px-4 py-8">
         <BlurFade delay={0.5} inView>
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12">
-            {/* Tabs */}
-            <div className="p-1.5 rounded-full bg-muted border border-border flex items-center">
+            <div className="p-1.5 rounded-full bg-background/70 backdrop-blur-lg border border-white/15 flex items-center shadow-[0_18px_60px_-35px_rgba(174,129,255,0.4)]">
               <button
                 onClick={() => setSelectedTab('creators')}
-                className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-colors ${selectedTab === 'creators' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${selectedTab === 'creators' ? 'bg-gradient-to-r from-[#F92672] to-[#AE81FF] text-white shadow-[0_12px_35px_-18px_rgba(249,38,114,0.6)]' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <Users className="w-4 h-4 mr-2 inline" />
                 Creators
               </button>
               <button
                 onClick={() => setSelectedTab('campaigns')}
-                className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-colors ${selectedTab === 'campaigns' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${selectedTab === 'campaigns' ? 'bg-gradient-to-r from-[#66D9EF] to-[#AE81FF] text-white shadow-[0_12px_35px_-18px_rgba(102,217,239,0.55)]' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <Flame className="w-4 h-4 mr-2 inline" />
                 Campaigns
@@ -158,7 +159,7 @@ export default function ExplorePage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search campaigns..."
-                  className="pl-10 w-full bg-muted border-border"
+                  className="pl-10 w-full bg-background/80 border border-white/15 backdrop-blur-xl shadow-inner"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -218,22 +219,22 @@ function CreatorCard({ creator }: { creator: Creator }) {
   const router = useRouter();
   return (
     <div
-      className="group relative bg-card/50 dark:bg-card/80 backdrop-blur-sm border border-border/30 rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden h-full flex flex-col"
+      className="group relative overflow-hidden rounded-3xl border border-white/15 bg-white/80 dark:bg-[#1b1b1b]/85 backdrop-blur-xl shadow-[0_25px_70px_-40px_rgba(249,38,114,0.45)] transition-transform hover:-translate-y-2 cursor-pointer h-full flex flex-col"
       onClick={() => router.push(`/creators/${creator.username || creator.id}`)}
     >
-      <div className="h-36 relative overflow-hidden">
+      <div className="relative h-36 overflow-hidden">
         <img
-          src={creator.bannerImage || `https://source.unsplash.com/random/400x200?abstract&${creator.id}`}
+          src={creator.bannerImage || `https://source.unsplash.com/random/400x200?creative&${creator.id}`}
           alt={`${creator.name}'s banner`}
           loading="lazy"
           decoding="async"
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
       </div>
 
-      <div className="relative px-6 -mt-12 flex-1 flex flex-col pb-6">
-        <div className="w-24 h-24 rounded-full border-4 border-background bg-muted flex items-center justify-center text-foreground font-bold text-3xl shadow-lg overflow-hidden mb-4">
+      <div className="relative px-6 -mt-14 flex-1 flex flex-col pb-6">
+        <div className="w-24 h-24 rounded-2xl border-4 border-background/80 bg-background/80 flex items-center justify-center text-foreground font-semibold text-3xl shadow-[0_12px_30px_-16px_rgba(249,38,114,0.5)] overflow-hidden mb-4">
           {creator.avatar ? (
             <img src={creator.avatar} alt={creator.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
           ) : (
@@ -241,27 +242,27 @@ function CreatorCard({ creator }: { creator: Creator }) {
           )}
         </div>
 
-        <h3 className="text-xl font-bold mb-1 truncate">{creator.name}</h3>
+        <h3 className="text-xl font-semibold mb-1 truncate">{creator.name}</h3>
         <p className="text-sm text-muted-foreground mb-3">
           @{creator.username || `user${creator.id.slice(0, 6)}`}
         </p>
 
         {creator.creatorBio && (
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-2 flex-grow">
+          <p className="text-sm text-muted-foreground/90 mb-4 line-clamp-3 flex-grow leading-relaxed">
             {creator.creatorBio}
           </p>
         )}
 
-        <div className="flex items-center justify-between text-sm mt-auto pt-4 border-t border-border/20">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" />
-            <span className="font-semibold">{creator._count?.subscribers || 0}</span>
-            <span className="text-muted-foreground">supporters</span>
+        <div className="flex items-center justify-between text-sm mt-auto pt-4 border-t border-white/10">
+          <div className="flex items-center gap-2 text-muted-foreground/90">
+            <Users className="w-4 h-4 text-[#A6E22E]" />
+            <span className="font-semibold text-foreground">{creator._count?.subscribers || 0}</span>
+            <span>supporters</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Heart className="w-4 h-4 text-red-500" />
-            <span className="font-semibold">{creator._count?.posts || 0}</span>
-            <span className="text-muted-foreground">posts</span>
+          <div className="flex items-center gap-2 text-muted-foreground/90">
+            <Heart className="w-4 h-4 text-[#F92672]" />
+            <span className="font-semibold text-foreground">{creator._count?.posts || 0}</span>
+            <span>posts</span>
           </div>
         </div>
       </div>

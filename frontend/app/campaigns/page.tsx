@@ -5,6 +5,8 @@ import { campaignApi } from "@/lib/api";
 import { Campaign } from "@/lib/types";
 import { CampaignCard } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { BlurFade } from "@/components/ui/blur-fade";
 import toast from "react-hot-toast";
 
 const categories = [
@@ -108,22 +110,25 @@ export default function CampaignsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-cyan-50 dark:from-[#1E1E1E] dark:via-[#272822] dark:to-[#2D2A2E]">
-      {/* Header */}
-      <div className="relative py-20 text-white overflow-hidden">
-        {/* Monokai gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#F92672] via-[#AE81FF] to-[#66D9EF]"></div>
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">
-            Explore Campaigns
-          </h1>
-          <p className="text-lg md:text-xl text-white/95 max-w-2xl">
-            Discover amazing projects from creators around the world and help bring them to life
+    <div className="min-h-screen bg-background">
+      <section className="relative px-4 sm:px-6 lg:px-8 pt-20 pb-16 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(249,38,114,0.1),transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(circle_at_bottom_right,rgba(102,217,239,0.08),transparent_60%)]" />
+        <div className="container mx-auto max-w-6xl text-center">
+          <BlurFade delay={0.15} inView>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/60 dark:bg-white/10 px-4 py-2 text-sm font-semibold text-gradient shadow-sm mb-6">
+              Community-powered breakthroughs
+            </div>
+          </BlurFade>
+          <TextGenerateEffect
+            words="Explore campaigns making an impact"
+            className="text-5xl md:text-6xl font-bold mb-5 text-gradient-monokai"
+          />
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            Discover ambitious ideas from visionary creators and help turn their next milestone into reality.
           </p>
         </div>
-      </div>
+      </section>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Search and Filters */}
@@ -149,11 +154,11 @@ export default function CampaignsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="w-full pl-12 pr-28 py-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-[#F92672]/50 focus:border-[#F92672] transition-all"
+              className="w-full pl-12 pr-28 py-4 rounded-2xl border border-white/15 bg-background/80 backdrop-blur-xl shadow-[0_18px_60px_-40px_rgba(249,38,114,0.4)] focus:outline-none focus:ring-2 focus:ring-[#F92672]/40 focus:border-transparent transition-all"
             />
             <button
               onClick={handleSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-gradient-to-r from-[#F92672] to-[#FD971F] text-white rounded-xl hover:shadow-lg hover:scale-105 transition-all font-semibold"
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] text-white font-semibold shadow-[0_12px_30px_-18px_rgba(249,38,114,0.55)] hover:shadow-[0_16px_45px_-20px_rgba(174,129,255,0.6)] hover:scale-[1.02] transition-all"
             >
               Search
             </button>
@@ -167,8 +172,8 @@ export default function CampaignsPage() {
                 onClick={() => handleCategoryChange(category)}
                 className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
                   selectedCategory === category
-                    ? "bg-gradient-to-r from-[#F92672] to-[#AE81FF] text-white shadow-lg scale-105"
-                    : "bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 text-foreground hover:shadow-lg hover:scale-105 hover:border-[#F92672]"
+                    ? "bg-gradient-to-r from-[#F92672] through-[#AE81FF] to-[#66D9EF] text-white shadow-[0_14px_40px_-24px_rgba(249,38,114,0.55)] scale-105"
+                    : "bg-background/75 backdrop-blur border border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20 hover:-translate-y-[2px]"
                 }`}
               >
                 {category === "All" ? category : category.charAt(0) + category.slice(1).toLowerCase()}
@@ -180,31 +185,13 @@ export default function CampaignsPage() {
         {/* Campaigns Grid */}
         {isLoading && page === 1 ? (
           <div className="flex justify-center items-center py-20">
-            <div className="text-center">
-              <svg
-                className="animate-spin h-12 w-12 text-primary mx-auto mb-4"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
+            <div className="text-center space-y-4">
+              <div className="mx-auto h-12 w-12 rounded-full border-2 border-dashed border-[#F92672]/60 animate-spin" />
               <p className="text-muted-foreground">Loading campaigns...</p>
             </div>
           </div>
         ) : filteredCampaigns.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-20 rounded-3xl border border-white/10 bg-background/60 backdrop-blur">
             <p className="text-lg text-muted-foreground">No campaigns found</p>
           </div>
         ) : (
@@ -232,7 +219,7 @@ export default function CampaignsPage() {
                 <Button
                   onClick={loadMore}
                   disabled={isLoading}
-                  variant="outline"
+                  variant="gradient"
                   size="lg"
                 >
                   {isLoading ? "Loading..." : "Load More Campaigns"}

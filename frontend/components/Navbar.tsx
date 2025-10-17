@@ -65,21 +65,17 @@ export function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-slate-200/40 dark:border-slate-700/40 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl">
-      {/* Magic-style gradient glow under navbar */}
+    <nav className="sticky top-0 z-50 w-full border-b border-white/30 dark:border-white/10 bg-background/80 backdrop-blur-2xl shadow-[0_10px_60px_-40px_rgba(249,38,114,0.65)]">
       <div className="pointer-events-none absolute inset-x-0 top-full h-[1px] bg-gradient-to-r from-transparent via-[#F92672]/50 to-transparent" />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Brand + Desktop Nav */}
           <div className="flex items-center gap-3">
             <a href="/" className="relative group flex items-center gap-2">
-              <div className="relative">
-                <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] blur opacity-30 group-hover:opacity-60 transition" />
-                <div className="relative h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-soft">
-                  <span className="text-white font-bold text-xl">F</span>
-                </div>
+              <div className="relative h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-[0_12px_35px_-20px_rgba(249,38,114,0.9)] ring-1 ring-white/30">
+                <span className="text-white font-bold text-xl">F</span>
               </div>
-              <span className="text-xl font-bold text-gradient">Fundify</span>
+              <span className="text-xl font-semibold text-gradient">Fundify</span>
             </a>
 
             <div className="hidden md:flex items-center gap-1 ml-6">
@@ -92,12 +88,11 @@ export function Navbar() {
                 { href: "/explore/shop", label: "Shop" },
                 { href: "/campaigns?category=trending", label: "Trending", icon: <Heart className="w-4 h-4" /> },
               ].map((item) => (
-                <a key={item.href} href={item.href} className="relative px-3 py-2 text-sm font-semibold text-foreground/70 hover:text-foreground transition">
+                <a key={item.href} href={item.href} className="group/link relative px-3 py-2 text-sm font-semibold text-foreground/70 hover:text-foreground transition">
                   <span className="inline-flex items-center gap-1">
                     {item.icon}
                     {item.label}
                   </span>
-                  {/* Animated underline */}
                   <span className="absolute left-3 right-3 -bottom-0.5 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] transition-transform duration-300 group-hover/link:scale-x-100" />
                 </a>
               ))}
@@ -135,7 +130,7 @@ export function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setShowDropdown(!showDropdown)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-primary text-white shadow-soft hover:shadow-glow transition"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-primary text-white shadow-[0_12px_35px_-20px_rgba(249,38,114,0.85)] hover:shadow-[0_18px_45px_-24px_rgba(174,129,255,0.65)] transition"
                   >
                     <span>{user?.name || user?.username || "Account"}</span>
                     <svg className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,7 +138,7 @@ export function Navbar() {
                     </svg>
                   </button>
                   {showDropdown && (
-                    <div className="absolute right-0 mt-3 w-56 bg-glass-card rounded-2xl shadow-soft-hover border-0 py-2 backdrop-blur-xl">
+                    <div className="absolute right-0 mt-3 w-56 bg-background/95 border border-white/10 rounded-2xl shadow-[0_22px_65px_-40px_rgba(249,38,114,0.65)] py-2 backdrop-blur-xl">
                       <a href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-gradient-soft" onClick={() => setShowDropdown(false)}>
                         <LayoutDashboard className="w-4 h-4" /> Dashboard
                       </a>
@@ -177,7 +172,9 @@ export function Navbar() {
                   )}
                 </div>
               ) : (
-                <a href="/login" className="px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-primary text-white shadow-soft hover:shadow-glow transition">Sign In</a>
+                <a href="/login" className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-primary text-white shadow-[0_12px_35px_-20px_rgba(249,38,114,0.85)] hover:shadow-[0_18px_45px_-24px_rgba(174,129,255,0.65)] transition">
+                  Sign In
+                </a>
               )}
             </div>
 
