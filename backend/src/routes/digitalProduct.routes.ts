@@ -10,6 +10,8 @@ import {
     purchaseProduct,
     getMyPurchases,
     downloadProduct,
+    getProductMeta,
+    getProductCollections,
 } from '../controllers/digitalProductController';
 
 const router = Router();
@@ -18,6 +20,8 @@ const router = Router();
 router.get('/products', getAllProducts as any);
 // This route must come before /products/:id to avoid "me" being treated as an ID
 router.get('/products/me', authenticate as any, getCreatorProducts as any);
+router.get('/products/meta', getProductMeta as any);
+router.get('/products/collections', getProductCollections as any);
 
 router.get('/products/:id', getProductById as any);
 router.post('/products', authenticate as any, createProduct as any);

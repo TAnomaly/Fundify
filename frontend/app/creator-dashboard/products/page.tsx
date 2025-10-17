@@ -64,7 +64,7 @@ export default function MyProductsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {products.map((p) => (
                         <div key={p.id} className="space-y-2">
-                            <ProductCard product={p} onBuy={() => { }} />
+                            <ProductCard product={p} showCreator={false} />
                             <div className="flex gap-2">
                                 <Button variant="secondary" className="w-full" onClick={() => router.push(`/creator-dashboard/products/${p.id}/edit`)}>Edit</Button>
                                 <Button variant="destructive" className="w-full" onClick={() => handleDelete(p.id)}>Delete</Button>

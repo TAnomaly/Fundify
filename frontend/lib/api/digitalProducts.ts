@@ -25,6 +25,9 @@ export interface DigitalProduct {
         username?: string;
         avatar?: string;
     };
+    _count?: {
+        purchases?: number;
+    };
 }
 
 export interface Purchase {
@@ -41,9 +44,46 @@ export interface Purchase {
     product?: DigitalProduct;
 }
 
+export interface ProductMeta {
+    types: { type: string; count: number }[];
+    priceRange: { min: number; max: number };
+    stats: {
+        totalProducts: number;
+        featuredCount: number;
+        creatorCount: number;
+        totalRevenue: number;
+    };
+}
+
+export interface ProductCollections {
+    featured: DigitalProduct[];
+    topSelling: DigitalProduct[];
+    newArrivals: DigitalProduct[];
+}
+
 export const digitalProductsApi = {
-    list: async (params?: { type?: string; featured?: boolean; creatorId?: string; search?: string; }) => {
-        const { data } = await api.get("/products", { params: { ...params, featured: params?.featured?.toString() } });
+    list: async (params?: {
+        type?: string;
+        types?: string[];
+        featured?: boolean;
+        creatorId?: string;
+        search?: string;
+        minPrice?: number;
+        maxPrice?: number;
+        sort?: string;
+    }) => {
+        const query: Record<string, any> = {};
+
+        if (params?.type) query.type = params.type;
+        if (params?.types?.length) query.types = params.types.join(",");
+        if (params?.featured !== undefined) query.featured = params.featured.toString();
+        if (params?.creatorId) query.creatorId = params.creatorId;
+        if (params?.search) query.search = params.search;
+        if (params?.minPrice !== undefined) query.minPrice = params.minPrice;
+        if (params?.maxPrice !== undefined) query.maxPrice = params.maxPrice;
+        if (params?.sort) query.sort = params.sort;
+
+        const { data } = await api.get("/products", { params: query });
         return data as { success: boolean; data: DigitalProduct[] };
     },
     getById: async (id: string) => {
@@ -77,5 +117,13 @@ export const digitalProductsApi = {
     getDownloadInfo: async (id: string) => {
         const { data } = await api.get(`/products/${id}/download`);
         return data as { success: boolean; data: { fileUrl: string; fileName: string; fileSize?: string; } };
+    },
+    meta: async () => {
+        const { data } = await api.get("/products/meta");
+        return data as { success: boolean; data: ProductMeta };
+    },
+    collections: async () => {
+        const { data } = await api.get("/products/collections");
+        return data as { success: boolean; data: ProductCollections };
     },
 };
