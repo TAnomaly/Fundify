@@ -1,4 +1,4 @@
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 
 interface CreateNotificationParams {
@@ -31,7 +31,7 @@ export const createNotification = async ({
       link,
       imageUrl,
       actorId,
-      metadata,
+      metadata: metadata as Prisma.InputJsonValue,
     },
   });
 };
