@@ -1,5 +1,5 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
-import cors from 'cors';
+import cors, { CorsOptions, CorsOptionsDelegate } from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
@@ -81,8 +81,18 @@ const envOriginTokens = [
   .map(origin => origin.trim())
   .filter(Boolean);
 
+const normalizeOrigin = (origin?: string | null): string | null => {
+  if (!origin) {
+    return null;
+  }
+
+  return origin.trim().replace(/\/$/, '').toLowerCase();
+};
+
 const allowedOriginsSet = new Set(
-  [...staticOrigins, ...envOriginTokens].map(origin => origin.toLowerCase())
+  [...staticOrigins, ...envOriginTokens]
+    .map(normalizeOrigin)
+    .filter((origin): origin is string => Boolean(origin))
 );
 
 const wildcardOriginMatchers = [
@@ -91,11 +101,11 @@ const wildcardOriginMatchers = [
 ];
 
 const isAllowedOrigin = (origin?: string | null): boolean => {
-  if (!origin) {
+  const normalized = normalizeOrigin(origin);
+
+  if (!normalized) {
     return true;
   }
-
-  const normalized = origin.toLowerCase();
 
   if (allowedOriginsSet.has(normalized)) {
     return true;
@@ -109,42 +119,68 @@ const defaultAllowedHeaders = [
   'Authorization',
   'Cache-Control',
   'X-Requested-With',
+  'Accept',
+  'Accept-Language',
 ];
 
-const defaultAllowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+const defaultAllowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (isAllowedOrigin(origin)) {
-      return callback(null, true);
+const getAllowedHeaders = (req: Request): string[] => {
+  const headers = new Map(
+    defaultAllowedHeaders.map(header => [header.toLowerCase(), header]),
+  );
+  const requested = req.headers['access-control-request-headers'];
+
+  const addHeader = (header: string) => {
+    if (!header) {
+      return;
     }
+    const trimmed = header.trim();
+    if (!trimmed) {
+      return;
+    }
+    headers.set(trimmed.toLowerCase(), trimmed);
+  };
 
+  if (typeof requested === 'string') {
+    requested.split(',').forEach(addHeader);
+  } else if (Array.isArray(requested)) {
+    (requested as string[]).forEach((value) => value.split(',').forEach(addHeader));
+  }
+
+  return Array.from(headers.values());
+};
+
+const buildCorsOptions = (req: Request): CorsOptions => {
+  const origin = req.header('Origin') || undefined;
+
+  if (!isAllowedOrigin(origin)) {
     const corsError = new Error(`CORS origin not allowed: ${origin}`) as ApiError;
     corsError.statusCode = 403;
-    return callback(corsError);
-  },
-  credentials: true,
-  methods: defaultAllowedMethods,
-  allowedHeaders: defaultAllowedHeaders,
-  optionsSuccessStatus: 204,
-}));
+    throw corsError;
+  }
 
-// Ensure preflight requests are always handled
-app.options('*', cors({
-  origin: (origin, callback) => {
-    if (isAllowedOrigin(origin)) {
-      return callback(null, true);
-    }
+  return {
+    origin: origin || true,
+    credentials: true,
+    methods: defaultAllowedMethods,
+    allowedHeaders: getAllowedHeaders(req),
+    optionsSuccessStatus: 204,
+  };
+};
 
-    const corsError = new Error(`CORS origin not allowed: ${origin}`) as ApiError;
-    corsError.statusCode = 403;
-    return callback(corsError);
-  },
-  credentials: true,
-  methods: defaultAllowedMethods,
-  allowedHeaders: defaultAllowedHeaders,
-  optionsSuccessStatus: 204,
-}));
+const corsOptionsDelegate: CorsOptionsDelegate<Request> = (req, callback) => {
+  try {
+    const options = buildCorsOptions(req);
+    callback(null, options);
+  } catch (error) {
+    const corsError = error as ApiError;
+    callback(corsError, { origin: false });
+  }
+};
+
+app.use(cors(corsOptionsDelegate));
+app.options('*', cors(corsOptionsDelegate));
 
 // Normalise response headers for downstream handlers (including error responses)
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -159,7 +195,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
 
   res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Headers', defaultAllowedHeaders.join(', '));
+  const allowedHeaders = getAllowedHeaders(req);
+  res.header('Access-Control-Allow-Headers', allowedHeaders.join(', '));
   res.header('Access-Control-Allow-Methods', defaultAllowedMethods.join(', '));
   res.header('Vary', 'Origin');
 
@@ -192,20 +229,17 @@ app.use('/api/', limiter);
 app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
   // Set CORS headers for uploaded files - allow all origins for public media
   const origin = req.headers.origin;
-  const allowedOrigins = [
-    ...staticOrigins,
-    ...envOriginTokens,
-  ];
 
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin && isAllowedOrigin(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
     // For static media, allow any origin (since they're public anyway)
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
 
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  const allowedHeaders = getAllowedHeaders(req);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS, HEAD');
+  res.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(', '));
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
 
