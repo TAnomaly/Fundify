@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { isAuthenticated, getCurrentUser, removeToken } from "@/lib/auth";
@@ -21,6 +21,7 @@ import {
   LogOut,
   User,
   Bell,
+  Rss,
 } from "lucide-react";
 import { MovingBorderButton } from "@/components/ui/moving-border";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -40,6 +41,23 @@ export function Navbar() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
+  const primaryLinks = useMemo(() => {
+    const links = [
+      { href: "/explore", label: "Discover", icon: <Sparkles className="w-4 h-4" /> },
+      { href: "/campaigns", label: "Campaigns" },
+      { href: "/creators", label: "Creators" },
+      { href: "/blog", label: "Blog", icon: <MessageSquare className="w-4 h-4" /> },
+      { href: "/events", label: "Events" },
+      { href: "/explore/shop", label: "Shop" },
+      { href: "/campaigns?category=trending", label: "Trending", icon: <Heart className="w-4 h-4" /> },
+    ];
+
+    if (isLoggedIn) {
+      links.splice(3, 0, { href: "/feed", label: "Feed", icon: <Rss className="w-4 h-4" /> });
+    }
+
+    return links;
+  }, [isLoggedIn]);
 
   useEffect(() => {
     // Initialize theme from localStorage or system preference
@@ -193,15 +211,7 @@ export function Navbar() {
             </Link>
 
             <div className="hidden md:flex items-center gap-1 ml-6">
-              {[
-                { href: "/explore", label: "Discover", icon: <Sparkles className="w-4 h-4" /> },
-                { href: "/campaigns", label: "Campaigns" },
-                { href: "/creators", label: "Creators" },
-                { href: "/blog", label: "Blog", icon: <MessageSquare className="w-4 h-4" /> },
-                { href: "/events", label: "Events" },
-                { href: "/explore/shop", label: "Shop" },
-                { href: "/campaigns?category=trending", label: "Trending", icon: <Heart className="w-4 h-4" /> },
-              ].map((item) => (
+              {primaryLinks.map((item) => (
                 <Link key={item.href} href={item.href} className="group/link relative px-3 py-2 text-sm font-semibold text-foreground/70 hover:text-foreground transition">
                   <span className="inline-flex items-center gap-1">
                     {item.icon}
@@ -404,15 +414,7 @@ export function Navbar() {
                     <button className="p-2 rounded-lg hover:bg-muted"><X className="w-5 h-5" /></button>
                   </div>
                   <div className="p-4 space-y-1">
-                    {[
-                      { href: "/explore", label: "Discover" },
-                      { href: "/campaigns", label: "Campaigns" },
-                      { href: "/creators", label: "Creators" },
-                      { href: "/blog", label: "Blog" },
-                      { href: "/events", label: "Events" },
-                      { href: "/explore/shop", label: "Shop" },
-                      { href: "/campaigns?category=trending", label: "Trending" },
-                    ].map((item) => (
+                    {primaryLinks.map((item) => (
                       <Link key={item.href} href={item.href} className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-muted">
                         {item.label}
                       </Link>

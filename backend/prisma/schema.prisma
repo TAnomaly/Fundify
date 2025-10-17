@@ -161,6 +161,10 @@ model User {
   referralCodes  ReferralCode[]  @relation("CreatorReferralCodes")
   referralUsages ReferralUsage[] @relation("UserReferralUsages")
 
+  // Follow relations
+  following Follow[] @relation("UserFollowing")
+  followers Follow[] @relation("UserFollowers")
+
   @@index([email])
   @@index([githubId])
   @@index([isCreator])
@@ -468,6 +472,20 @@ model PostComment {
   @@index([userId])
   @@index([postId])
   @@index([createdAt])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }
 
 // ==================== BLOG/ARTICLES ====================

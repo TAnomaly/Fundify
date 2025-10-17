@@ -36,6 +36,7 @@ import podcastRoutes from './routes/podcastRoutes';
 import digitalProductRoutes from './routes/digitalProduct.routes';
 import referralRoutes from './routes/referral.routes';
 import notificationRoutes from './routes/notification.routes';
+import feedRoutes from './routes/feed.routes';
 
 // Types
 import { ApiError } from './types';
@@ -310,6 +311,7 @@ app.use('/api/podcasts', podcastRoutes);
 app.use('/api', digitalProductRoutes);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/feed', feedRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

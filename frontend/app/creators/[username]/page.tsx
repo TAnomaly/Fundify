@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { redirectToCheckout } from "@/lib/stripe";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, getCurrentUser } from "@/lib/auth";
 import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -15,16 +15,32 @@ import { BlurFade } from "@/components/ui/blur-fade";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, Heart, Calendar, ExternalLink, Lock, CheckCircle2, Globe, Play, Video, Camera, Code, MessageCircle, Share2, Bookmark, Send, Rss, Mic, ShoppingBag, FileText, Award, Headphones } from "lucide-react";
+import { Users, Heart, Calendar, ExternalLink, Lock, CheckCircle2, Globe, Play, Video, Camera, Code, MessageCircle, Share2, Bookmark, Send, Rss, Mic, ShoppingBag, FileText, Award, Headphones, UserPlus } from "lucide-react";
 import PollsList from "@/components/polls/PollsList";
 import ProductCard from "@/components/products/ProductCard";
 import { digitalProductsApi, type DigitalProduct } from "@/lib/api/digitalProducts";
-import { postEngagementApi } from "@/lib/api";
+import { postEngagementApi, followApi } from "@/lib/api";
 import ArticleCard from "@/components/articles/ArticleCard";
 import EventCard from "@/components/events/EventCard";
 
 // Interfaces would be here
-interface CreatorProfile { user: { id: string; name: string; username?: string; avatar?: string; bannerImage?: string; creatorBio?: string; socialLinks?: any; createdAt: string; }; campaign: any; tiers: any[]; }
+interface CreatorProfile {
+  user: {
+    id: string;
+    name: string;
+    username?: string;
+    avatar?: string;
+    bannerImage?: string;
+    creatorBio?: string;
+    socialLinks?: any;
+    createdAt: string;
+    followerCount?: number;
+    followingCount?: number;
+    isFollowing?: boolean;
+  };
+  campaign: any;
+  tiers: any[];
+}
 interface CreatorPost { id: string; title: string; content: string; excerpt?: string; images: string[]; videoUrl?: string; isPublic: boolean; hasAccess: boolean; publishedAt: string; likeCount: number; commentCount: number; hasLiked?: boolean; author: { id: string; name: string; avatar?: string; }; }
 interface Comment { id: string; content: string; createdAt: string; user: { name: string; avatar?: string; }; }
 interface Article { id: string; slug: string; title: string; excerpt?: string; coverImage?: string; status: string; publishedAt?: string; viewCount: number; readTime?: number; author: any; _count?: any; }
@@ -46,6 +62,11 @@ export default function CreatorProfilePage() {
   const [activeTab, setActiveTab] = useState("posts");
 
   const [dataLoading, setDataLoading] = useState<Record<string, boolean>>({});
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [isUpdatingFollow, setIsUpdatingFollow] = useState(false);
+  const currentUser = useMemo(() => getCurrentUser(), []);
+  const currentUserId = currentUser?.id;
 
   const { scrollY } = useScroll();
   const bannerScale = useTransform(scrollY, [0, 300], [1, 1.2]);
@@ -105,7 +126,10 @@ export default function CreatorProfilePage() {
         setIsLoading(true);
         const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users/creator/${username}`);
         if (response.data.success) {
-          setProfile(response.data.data);
+          const profileData: CreatorProfile = response.data.data;
+          setProfile(profileData);
+          setIsFollowing(Boolean(profileData.user.isFollowing));
+          setFollowerCount(profileData.user.followerCount ?? 0);
         } else {
           throw new Error(response.data.message || "Creator not found");
         }
@@ -129,6 +153,59 @@ export default function CreatorProfilePage() {
   const handlePostEngagementUpdate = useCallback((postId: string, updates: Partial<Pick<CreatorPost, "likeCount" | "commentCount" | "hasLiked">>) => {
     setPosts(prev => prev.map(post => post.id === postId ? { ...post, ...updates } : post));
   }, []);
+
+  const handleToggleFollow = useCallback(async () => {
+    if (!profile) return;
+
+    if (!isAuthenticated()) {
+      toast.error("Please login to follow creators");
+      router.push(`/login?redirect=/creators/${username}`);
+      return;
+    }
+
+    if (currentUserId === profile.user.id) {
+      return;
+    }
+
+    try {
+      setIsUpdatingFollow(true);
+      if (isFollowing) {
+        const response = await followApi.unfollow(profile.user.id);
+        const updatedCount = response.data?.followerCount ?? Math.max(followerCount - 1, 0);
+        setFollowerCount(updatedCount);
+        setIsFollowing(false);
+        setProfile(prev => prev ? {
+          ...prev,
+          user: {
+            ...prev.user,
+            followerCount: updatedCount,
+            isFollowing: false,
+          },
+        } : prev);
+        toast.success("Unfollowed");
+      } else {
+        const response = await followApi.follow(profile.user.id);
+        const updatedCount = response.data?.followerCount ?? followerCount + 1;
+        setFollowerCount(updatedCount);
+        setIsFollowing(true);
+        setProfile(prev => prev ? {
+          ...prev,
+          user: {
+            ...prev.user,
+            followerCount: updatedCount,
+            isFollowing: true,
+          },
+        } : prev);
+        toast.success(`Now following ${profile.user.name}`);
+      }
+    } catch (error: any) {
+      console.error("Follow toggle failed:", error);
+      const message = error.response?.data?.message || "Failed to update follow status";
+      toast.error(message);
+    } finally {
+      setIsUpdatingFollow(false);
+    }
+  }, [profile, isFollowing, followerCount, currentUserId, router, username]);
 
   const handleSubscribe = async (tierId: string) => {
     if (!isAuthenticated()) {
@@ -179,6 +256,7 @@ export default function CreatorProfilePage() {
   }
 
   const { user, tiers } = profile;
+  const isOwnProfile = currentUserId === user.id;
 
   return (
     <div className="bg-background min-h-screen">
@@ -208,8 +286,36 @@ export default function CreatorProfilePage() {
               <p className="text-muted-foreground mt-1">@{user.username}</p>
             </div>
             <div className="flex items-center gap-2">
+              {!isOwnProfile && (
+                <Button
+                  variant={isFollowing ? "outline" : "secondary"}
+                  size="lg"
+                  onClick={handleToggleFollow}
+                  loading={isUpdatingFollow}
+                >
+                  {isFollowing ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Following
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      Follow
+                    </>
+                  )}
+                </Button>
+              )}
               <Button variant="outline" size="icon"><Share2 className="w-4 h-4" /></Button>
-              <Button variant="gradient" size="lg" onClick={() => document.getElementById('tiers')?.scrollIntoView({ behavior: 'smooth' })}><Heart className="w-4 h-4 mr-2" /> Support</Button>
+              {!isOwnProfile && (
+                <Button
+                  variant="gradient"
+                  size="lg"
+                  onClick={() => document.getElementById('tiers')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  <Heart className="w-4 h-4 mr-2" /> Support
+                </Button>
+              )}
             </div>
           </div>
 
@@ -217,6 +323,10 @@ export default function CreatorProfilePage() {
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4" />
               <span className="font-bold text-foreground">{tiers.reduce((sum, tier) => sum + (tier.currentSubscribers || 0), 0)}</span> supporters
+            </div>
+            <div className="flex items-center gap-1.5">
+              <UserPlus className="w-4 h-4" />
+              <span className="font-bold text-foreground">{followerCount}</span> followers
             </div>
             <div className="flex items-center gap-1.5">
               <Heart className="w-4 h-4" />

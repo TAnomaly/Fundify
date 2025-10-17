@@ -40,6 +40,8 @@ export const getMe = async (
           select: {
             campaigns: true,
             donations: true,
+            followers: true,
+            following: true,
           },
         },
       },
@@ -339,15 +341,28 @@ export const getCreatorByUsername = async (
 ): Promise<void> => {
   try {
     const { username } = req.params;
+    const viewerId = req.user?.id || req.user?.userId || null;
+
+    const normalizedName = username.replace(/-/g, ' ');
 
     // Find user by username (name field, case-insensitive)
     const user = await prisma.user.findFirst({
       where: {
-        name: {
-          equals: username.replace(/-/g, ' '),
-          mode: 'insensitive',
-        },
         isCreator: true,
+        OR: [
+          {
+            username: {
+              equals: username,
+              mode: 'insensitive',
+            },
+          },
+          {
+            name: {
+              equals: normalizedName,
+              mode: 'insensitive',
+            },
+          },
+        ],
       },
       select: {
         id: true,
@@ -360,6 +375,12 @@ export const getCreatorByUsername = async (
         socialLinks: true,
         isCreator: true,
         createdAt: true,
+        _count: {
+          select: {
+            followers: true,
+            following: true,
+          },
+        },
       },
     });
 
@@ -370,6 +391,18 @@ export const getCreatorByUsername = async (
       });
       return;
     }
+
+    const viewerFollow = viewerId && viewerId !== user.id
+      ? await prisma.follow.findUnique({
+          where: {
+            followerId_followingId: {
+              followerId: viewerId,
+              followingId: user.id,
+            },
+          },
+          select: { id: true },
+        })
+      : null;
 
     // Get or create CREATOR campaign
     let campaign = await prisma.campaign.findFirst({
@@ -461,10 +494,17 @@ export const getCreatorByUsername = async (
       },
     });
 
+    const { _count, ...userData } = user;
+
     res.status(200).json({
       success: true,
       data: {
-        user,
+        user: {
+          ...userData,
+          followerCount: _count?.followers ?? 0,
+          followingCount: _count?.following ?? 0,
+          isFollowing: Boolean(viewerFollow),
+        },
         campaign,
         tiers: tiers.map((tier: any) => ({
           ...tier,

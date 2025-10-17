@@ -10,6 +10,7 @@ import {
   CampaignFormData,
   Update,
   Comment,
+  FeedItem,
 } from "./types";
 
 // Create axios instance with default config
@@ -311,6 +312,46 @@ export const notificationApi = {
   },
   create: async (payload: { type: string; title: string; message: string; link?: string; imageUrl?: string }): Promise<{ success: boolean; data: any }> => {
     const { data } = await api.post('/notifications', payload);
+    return data;
+  },
+};
+
+export const feedApi = {
+  get: async (params?: { cursor?: string; limit?: number }): Promise<{
+    success: boolean;
+    data: {
+      items: FeedItem[];
+      nextCursor: string | null;
+      hasMore: boolean;
+    };
+    message?: string;
+  }> => {
+    const { data } = await api.get('/feed', { params });
+    return data;
+  },
+};
+
+export const followApi = {
+  follow: async (userId: string): Promise<{ success: boolean; data?: { followerCount: number }; message?: string }> => {
+    const { data } = await api.post(`/users/${userId}/follow`);
+    return data;
+  },
+  unfollow: async (userId: string): Promise<{ success: boolean; data?: { followerCount: number }; message?: string }> => {
+    const { data } = await api.delete(`/users/${userId}/follow`);
+    return data;
+  },
+  getFollowers: async (userId: string, params?: { page?: number; limit?: number }): Promise<{
+    success: boolean;
+    data: { followers: User[]; pagination: { page: number; limit: number; total: number } };
+  }> => {
+    const { data } = await api.get(`/users/${userId}/followers`, { params });
+    return data;
+  },
+  getFollowing: async (userId: string, params?: { page?: number; limit?: number }): Promise<{
+    success: boolean;
+    data: { following: User[]; pagination: { page: number; limit: number; total: number } };
+  }> => {
+    const { data } = await api.get(`/users/${userId}/following`, { params });
     return data;
   },
 };

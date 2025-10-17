@@ -11,6 +11,9 @@ export interface User {
   socialLinks?: any;
   createdAt: string;
   updatedAt: string;
+  followerCount?: number;
+  followingCount?: number;
+  isFollowing?: boolean;
 }
 
 export interface Campaign {
@@ -186,4 +189,47 @@ export interface NotificationItem {
   readAt?: string;
   createdAt: string;
   actor?: NotificationActor | null;
+}
+
+export type FeedItemType = 'post' | 'article' | 'event';
+
+export interface FeedItemCreator {
+  id: string;
+  name: string;
+  username?: string | null;
+  avatar?: string | null;
+  slug?: string;
+}
+
+export interface FeedItem {
+  id: string;
+  type: FeedItemType;
+  title: string;
+  summary?: string | null;
+  preview?: string | null;
+  coverImage?: string | null;
+  publishedAt: string;
+  link: string;
+  creator: FeedItemCreator;
+  meta?: {
+    likes?: number;
+    comments?: number;
+    readTime?: number | null;
+    rsvps?: number;
+    startTime?: string;
+    endTime?: string;
+    location?: string | null;
+    price?: number | null;
+    visibility?: 'public' | 'supporters';
+  };
+}
+
+export interface FeedResponse {
+  success: boolean;
+  data: {
+    items: FeedItem[];
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+  message?: string;
 }
