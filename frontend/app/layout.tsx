@@ -50,9 +50,14 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  const theme = localStorage.getItem('theme') ||
-                    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                  document.documentElement.classList.toggle('dark', theme === 'dark');
+                  var storedTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('theme') : null;
+                  var prefersDark = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)').matches : false;
+                  var theme = storedTheme ? storedTheme : (prefersDark ? 'dark' : 'light');
+                  if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
                 } catch (e) {}
               })();
             `,
