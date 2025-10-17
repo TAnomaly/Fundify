@@ -164,7 +164,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   res.header('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
+    res.sendStatus(204);
+    return;
   }
 
   next();
