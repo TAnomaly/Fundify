@@ -278,4 +278,41 @@ export const postEngagementApi = {
   },
 };
 
+export const analyticsApi = {
+  getDashboard: async (params?: { period?: string }): Promise<{ success: boolean; data: any }> => {
+    const { data } = await api.get('/analytics', { params });
+    return data;
+  },
+};
+
+export const notificationApi = {
+  list: async (options?: { cursor?: string; limit?: number; unreadOnly?: boolean }): Promise<{
+    success: boolean;
+    data: {
+      items: any[];
+      unreadCount: number;
+      nextCursor: string | null;
+    };
+  }> => {
+    const params: Record<string, any> = {};
+    if (options?.cursor) params.cursor = options.cursor;
+    if (options?.limit) params.limit = options.limit;
+    if (options?.unreadOnly) params.unreadOnly = options.unreadOnly;
+    const { data } = await api.get('/notifications', { params });
+    return data;
+  },
+  markAsRead: async (id: string): Promise<{ success: boolean }> => {
+    const { data } = await api.post(`/notifications/${id}/read`);
+    return data;
+  },
+  markAllRead: async (): Promise<{ success: boolean; data?: { updated: number } }> => {
+    const { data } = await api.post('/notifications/mark-all-read');
+    return data;
+  },
+  create: async (payload: { type: string; title: string; message: string; link?: string; imageUrl?: string }): Promise<{ success: boolean; data: any }> => {
+    const { data } = await api.post('/notifications', payload);
+    return data;
+  },
+};
+
 export default api;

@@ -34,6 +34,7 @@ import scheduledPostRoutes from './routes/scheduledPost.routes';
 import welcomeMessageRoutes from './routes/welcomeMessage.routes';
 import podcastRoutes from './routes/podcastRoutes';
 import digitalProductRoutes from './routes/digitalProduct.routes';
+import notificationRoutes from './routes/notification.routes';
 
 // Types
 import { ApiError } from './types';
@@ -306,6 +307,7 @@ app.use('/api/scheduled-posts', scheduledPostRoutes);
 app.use('/api/welcome-messages', welcomeMessageRoutes);
 app.use('/api/podcasts', podcastRoutes);
 app.use('/api', digitalProductRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

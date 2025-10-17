@@ -1,12 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { isAuthenticated, getCurrentUser, removeToken } from "@/lib/auth";
-import { Moon, Sun, Menu, X, Heart, MessageSquare, Sparkles, LayoutDashboard, FolderKanban, Users, CreditCard, ShoppingBag, Settings, LogOut, User } from "lucide-react";
+import {
+  Moon,
+  Sun,
+  Menu,
+  X,
+  Heart,
+  MessageSquare,
+  Sparkles,
+  LayoutDashboard,
+  FolderKanban,
+  Users,
+  CreditCard,
+  ShoppingBag,
+  Settings,
+  LogOut,
+  User,
+  Bell,
+} from "lucide-react";
 import { MovingBorderButton } from "@/components/ui/moving-border";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { notificationApi } from "@/lib/api";
+import { NotificationItem } from "@/lib/types";
+import { formatDistanceToNow } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 export function Navbar() {
   const router = useRouter();
@@ -14,6 +35,11 @@ export function Navbar() {
   const [user, setUser] = useState<{ username?: string; name?: string; avatar?: string } | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // Initialize theme from localStorage or system preference
@@ -65,6 +91,93 @@ export function Navbar() {
     router.push("/");
   };
 
+  const fetchNotifications = async () => {
+    if (!isAuthenticated()) return;
+    try {
+      setIsLoadingNotifications(true);
+      const response = await notificationApi.list({ limit: 10 });
+      if (response.success) {
+        setNotifications(response.data.items ?? []);
+        setUnreadCount(response.data.unreadCount ?? 0);
+      }
+    } catch (error) {
+      console.error("Failed to load notifications", error);
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 60000); // refresh every minute
+      return () => clearInterval(interval);
+    }
+
+    setNotifications([]);
+    setUnreadCount(0);
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (!isNotificationsOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isNotificationsOpen]);
+
+  const toggleNotifications = () => {
+    const next = !isNotificationsOpen;
+    setIsNotificationsOpen(next);
+    if (next) {
+      fetchNotifications();
+    }
+  };
+
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    if (!notification.isRead) {
+      try {
+        await notificationApi.markAsRead(notification.id);
+        setNotifications((prev) =>
+          prev.map((item) =>
+            item.id === notification.id ? { ...item, isRead: true, readAt: new Date().toISOString() } : item
+          )
+        );
+        setUnreadCount((prev) => Math.max(prev - 1, 0));
+      } catch (error) {
+        console.error("Failed to mark notification as read", error);
+      }
+    }
+
+    if (notification.link) {
+      router.push(notification.link);
+      setIsNotificationsOpen(false);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationApi.markAllRead();
+      setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true, readAt: new Date().toISOString() })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Failed to mark notifications as read", error);
+    }
+  };
+
+  const formatNotificationTime = (date: string) => {
+    try {
+      return formatDistanceToNow(new Date(date), { addSuffix: true });
+    } catch {
+      return "";
+    }
+  };
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-white/30 dark:border-white/10 bg-background/80 backdrop-blur-2xl shadow-[0_10px_60px_-40px_rgba(249,38,114,0.65)]">
       <div className="pointer-events-none absolute inset-x-0 top-full h-[1px] bg-gradient-to-r from-transparent via-[#F92672]/50 to-transparent" />
@@ -102,6 +215,96 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
+            {isLoggedIn && (
+              <div className="relative" ref={notificationsRef}>
+                <button
+                  onClick={toggleNotifications}
+                  className="relative p-2.5 rounded-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-gray-200/70 dark:border-gray-700/70 hover:border-[#F92672] transition-all hover:scale-105 shadow-sm"
+                  aria-label="Notifications"
+                >
+                  <Bell className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] px-1.5 py-0.5 rounded-full bg-[#F92672] text-white text-[10px] font-semibold">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {isNotificationsOpen && (
+                  <div className="absolute right-0 mt-3 w-80 rounded-2xl border border-border/40 bg-background/95 shadow-2xl backdrop-blur-xl z-50">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
+                      <p className="font-semibold">Notifications</p>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="text-xs font-medium text-primary hover:underline"
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {isLoadingNotifications ? (
+                        <div className="p-4 text-sm text-muted-foreground">Loading...</div>
+                      ) : notifications.length === 0 ? (
+                        <div className="p-6 text-sm text-muted-foreground text-center">No notifications yet.</div>
+                      ) : (
+                        notifications.map((notification) => (
+                          <button
+                            key={notification.id}
+                            onClick={() => handleNotificationClick(notification)}
+                            className={`w-full text-left px-4 py-3 border-b border-border/30 transition ${
+                              notification.isRead ? "bg-background hover:bg-muted/40" : "bg-muted/60 hover:bg-muted"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F92672] via-[#AE81FF] to-[#66D9EF] text-white font-semibold">
+                                {notification.actor?.avatar ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={notification.actor.avatar}
+                                    alt={notification.actor.name}
+                                    className="h-full w-full rounded-full object-cover"
+                                  />
+                                ) : (
+                                  notification.actor?.name?.charAt(0) ?? "F"
+                                )}
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="font-semibold text-sm leading-tight">{notification.title}</p>
+                                  {!notification.isRead && (
+                                    <Badge variant="default" className="text-[10px]">
+                                      New
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-snug">{notification.message}</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {formatNotificationTime(notification.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                    <div className="px-4 py-2 text-center">
+                      <button
+                        className="text-xs text-muted-foreground hover:text-foreground transition"
+                        onClick={() => {
+                          setIsNotificationsOpen(false);
+                          router.push("/creator-dashboard/subscribers");
+                        }}
+                      >
+                        View all activity
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}

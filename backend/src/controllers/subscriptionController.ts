@@ -1,7 +1,9 @@
 import { Response, NextFunction } from 'express';
+import { NotificationType } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { AuthRequest } from '../types';
 import { CreateSubscriptionDTO } from '../types/subscription';
+import { createNotification } from '../services/notificationService';
 
 // Subscribe to a membership tier
 export const createSubscription = async (
@@ -91,6 +93,13 @@ export const createSubscription = async (
             avatar: true,
           },
         },
+        subscriber: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
       },
     });
 
@@ -99,6 +108,25 @@ export const createSubscription = async (
       where: { id: tierId },
       data: { currentSubscribers: { increment: 1 } },
     });
+
+    // Notify creator about new subscriber
+    try {
+      await createNotification({
+        userId: creatorId,
+        type: NotificationType.NEW_SUBSCRIBER,
+        title: 'New subscriber',
+        message: `${subscription.subscriber?.name || 'Someone'} joined the ${subscription.tier.name} tier`,
+        link: `/creator-dashboard/subscribers`,
+        actorId: userId,
+        metadata: {
+          subscriptionId: subscription.id,
+          tierId,
+          subscriberId: userId,
+        },
+      });
+    } catch (notificationError) {
+      console.warn('Failed to create notification for new subscriber:', notificationError);
+    }
 
     res.status(201).json({ success: true, data: subscription });
   } catch (error) {

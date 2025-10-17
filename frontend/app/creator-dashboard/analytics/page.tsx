@@ -1,460 +1,549 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { subscriptionApi } from "@/lib/api/subscription";
 import toast from "react-hot-toast";
+import { format, parseISO } from "date-fns";
 import {
   LineChart,
   Line,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Legend,
   BarChart,
   Bar,
   PieChart,
   Pie,
   Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, TrendingDown, DollarSign, Users, CreditCard, Calendar } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { analyticsApi } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  UserPlus,
+  DollarSign,
+  FileText,
+  MessageCircle,
+  Heart,
+  Calendar,
+} from "lucide-react";
 
-interface AnalyticsData {
-  totalRevenue: number;
-  monthlyRevenue: number;
-  totalSubscribers: number;
-  activeSubscribers: number;
-  revenueGrowth: number;
-  subscriberGrowth: number;
-  revenueByMonth: Array<{ month: string; revenue: number }>;
-  subscribersByMonth: Array<{ month: string; subscribers: number }>;
-  tierDistribution: Array<{ name: string; value: number; revenue: number }>;
+type TrendPoint = {
+  date: string;
+  revenue?: number;
+  subscribers?: number;
+};
+
+interface AnalyticsResponse {
+  overview: {
+    activeSubscribers: number;
+    newSubscribers: number;
+    canceledSubscribers: number;
+    monthlyRevenue: number;
+    totalPosts: number;
+    totalPolls: number;
+    totalEvents: number;
+    totalArticles: number;
+    totalGoals: number;
+    completedGoals: number;
+    totalLikes: number;
+    totalComments: number;
+    totalDownloads: number;
+  };
+  trends: {
+    revenue: TrendPoint[];
+    subscribers: TrendPoint[];
+  };
+  content: {
+    postsInPeriod: number;
+    topPosts: Array<{
+      id: string;
+      title: string;
+      likeCount: number;
+      commentCount: number;
+      createdAt: string;
+    }>;
+  };
+  tiers: Array<{
+    count: number;
+    revenue: number;
+    tier: {
+      id: string;
+      name: string;
+      price: number;
+    } | null;
+  }>;
 }
 
-// Monokai color palette for charts
-const COLORS = ["#F92672", "#A6E22E", "#E6DB74", "#66D9EF", "#AE81FF", "#FD971F"];
+const CHART_COLORS = ["#F92672", "#A6E22E", "#66D9EF", "#E6DB74", "#AE81FF", "#FD971F"];
+
+const PERIOD_OPTIONS = [
+  { label: "Last 7 days", value: "7days" },
+  { label: "Last 30 days", value: "30days" },
+  { label: "Last 90 days", value: "90days" },
+  { label: "Last 12 months", value: "12months" },
+];
+
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
+
+const numberFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
+
+const formatPercentage = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
+
+const computeGrowth = (trend: TrendPoint[], key: "revenue" | "subscribers") => {
+  if (!trend.length) return 0;
+  const firstValue = trend[0][key] ?? 0;
+  const lastValue = trend[trend.length - 1][key] ?? 0;
+
+  if (firstValue === 0) {
+    return lastValue > 0 ? 100 : 0;
+  }
+
+  return ((lastValue - firstValue) / Math.abs(firstValue)) * 100;
+};
+
+const normalizeDateLabel = (isoDate: string) => {
+  try {
+    return format(parseISO(isoDate), "MMM d");
+  } catch {
+    return isoDate;
+  }
+};
 
 export default function AnalyticsPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [analytics, setAnalytics] = useState<AnalyticsData>({
-    totalRevenue: 0,
-    monthlyRevenue: 0,
-    totalSubscribers: 0,
-    activeSubscribers: 0,
-    revenueGrowth: 0,
-    subscriberGrowth: 0,
-    revenueByMonth: [],
-    subscribersByMonth: [],
-    tierDistribution: [],
-  });
+  const [period, setPeriod] = useState<string>("30days");
+  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    loadAnalytics();
-  }, []);
-
-  const loadAnalytics = async () => {
-    setIsLoading(true);
-    try {
-      const response = await subscriptionApi.getMySubscribers();
-
-      if (response.success && response.data) {
-        const subscriptions = response.data.subscriptions || [];
-        const stats = response.data.stats || { totalSubscribers: 0, monthlyRevenue: 0 };
-
-        // Calculate analytics
-        const activeSubscribers = subscriptions.filter(
-          (s: any) => s.status === "ACTIVE"
-        ).length;
-
-        // Group by month (last 6 months)
-        const last6Months = Array.from({ length: 6 }, (_, i) => {
-          const date = new Date();
-          date.setMonth(date.getMonth() - i);
-          return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-        }).reverse();
-
-        const revenueByMonth = last6Months.map((month) => ({
-          month,
-          revenue: stats.monthlyRevenue * (0.7 + Math.random() * 0.6), // Simulated data
-        }));
-
-        const subscribersByMonth = last6Months.map((month, index) => ({
-          month,
-          subscribers: Math.floor(activeSubscribers * (0.5 + (index / 6) * 0.5)), // Growth trend
-        }));
-
-        // Tier distribution
-        const tierCounts: Record<string, { count: number; revenue: number }> = {};
-        subscriptions.forEach((sub: any) => {
-          const tierName = sub.tier?.name || "Unknown";
-          const tierPrice = sub.tier?.price || 0;
-          if (!tierCounts[tierName]) {
-            tierCounts[tierName] = { count: 0, revenue: 0 };
-          }
-          tierCounts[tierName].count++;
-          tierCounts[tierName].revenue += tierPrice;
-        });
-
-        const tierDistribution = Object.entries(tierCounts).map(([name, data]) => ({
-          name,
-          value: data.count,
-          revenue: data.revenue,
-        }));
-
-        setAnalytics({
-          totalRevenue: stats.monthlyRevenue * 12, // Annual projection
-          monthlyRevenue: stats.monthlyRevenue,
-          totalSubscribers: stats.totalSubscribers,
-          activeSubscribers,
-          revenueGrowth: 12.5, // Simulated
-          subscriberGrowth: 8.3, // Simulated
-          revenueByMonth,
-          subscribersByMonth,
-          tierDistribution,
-        });
+    const loadAnalytics = async () => {
+      setIsLoading(true);
+      try {
+        const response = await analyticsApi.getDashboard({ period });
+        if (response.success) {
+          setAnalytics(response.data);
+        }
+      } catch (error: any) {
+        toast.error(error?.response?.data?.message || "Failed to load analytics");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to load analytics");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    loadAnalytics();
+  }, [period]);
+
+  const revenueGrowth = useMemo(
+    () => computeGrowth(analytics?.trends.revenue ?? [], "revenue"),
+    [analytics?.trends.revenue]
+  );
+
+  const subscriberGrowth = useMemo(
+    () => computeGrowth(analytics?.trends.subscribers ?? [], "subscribers"),
+    [analytics?.trends.subscribers]
+  );
+
+  const revenueChartData = useMemo(
+    () =>
+      (analytics?.trends.revenue ?? []).map((point) => ({
+        date: normalizeDateLabel(point.date),
+        revenue: point.revenue ?? 0,
+      })),
+    [analytics?.trends.revenue]
+  );
+
+  const subscriberChartData = useMemo(
+    () =>
+      (analytics?.trends.subscribers ?? []).map((point) => ({
+        date: normalizeDateLabel(point.date),
+        subscribers: point.subscribers ?? 0,
+      })),
+    [analytics?.trends.subscribers]
+  );
+
+  const tierPieData = useMemo(
+    () =>
+      (analytics?.tiers ?? []).map((tier) => ({
+        name: tier.tier?.name ?? "Unknown",
+        value: tier.count,
+        revenue: tier.revenue,
+      })),
+    [analytics?.tiers]
+  );
 
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <Skeleton className="h-12 w-64 mb-8" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32" />
+        <Skeleton className="h-12 w-64 mb-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[1, 2, 3, 4].map((item) => (
+            <Skeleton key={item} className="h-32" />
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-96" />
-          <Skeleton className="h-96" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
         </div>
       </div>
     );
   }
 
+  if (!analytics) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl text-center">
+        <p className="text-muted-foreground mb-4">No analytics data available yet.</p>
+        <button
+          onClick={() => router.push("/creator-dashboard")}
+          className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] text-white shadow-lg hover:shadow-xl transition"
+        >
+          Back to dashboard
+        </button>
+      </div>
+    );
+  }
+
+  const { overview, content } = analytics;
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Header */}
-      <div className="mb-8">
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
+      <div className="flex flex-col gap-4">
         <button
           onClick={() => router.back()}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-2 mb-4 transition-all hover:gap-3"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Dashboard
+          <ArrowLeft className="w-4 h-4" />
+          Back to dashboard
         </button>
-        <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] bg-clip-text text-transparent">
-          Analytics Dashboard
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Track your performance and growth with real-time insights
-        </p>
+        <div>
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] bg-clip-text text-transparent">
+            Analytics Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-2 max-w-2xl">
+            Track your subscriber growth, revenue trends, and content performance in one place.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-muted-foreground">Period:</span>
+          <div className="flex flex-wrap gap-2">
+            {PERIOD_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setPeriod(option.value)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                  period === option.value
+                    ? "bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] text-white shadow"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Total Revenue */}
-        <Card className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#A6E22E]/5 to-[#E6DB74]/5 -z-10" />
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Revenue
-              </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#A6E22E] to-[#E6DB74] rounded-full flex items-center justify-center shadow-md">
-                <DollarSign className="w-5 h-5 text-white" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold bg-gradient-to-r from-[#A6E22E] to-[#E6DB74] bg-clip-text text-transparent">
-              ${analytics.totalRevenue.toFixed(2)}
-            </div>
-            <div className="flex items-center gap-1 text-sm mt-2">
-              {analytics.revenueGrowth > 0 ? (
-                <>
-                  <TrendingUp className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600">+{analytics.revenueGrowth}%</span>
-                </>
-              ) : (
-                <>
-                  <TrendingDown className="w-4 h-4 text-red-600" />
-                  <span className="text-red-600">{analytics.revenueGrowth}%</span>
-                </>
-              )}
-              <span className="text-gray-600 dark:text-gray-400">from last month</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Monthly Revenue */}
-        <Card className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#66D9EF]/5 to-[#AE81FF]/5 -z-10" />
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Monthly Revenue
-              </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#66D9EF] to-[#AE81FF] rounded-full flex items-center justify-center shadow-md">
-                <CreditCard className="w-5 h-5 text-white" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold bg-gradient-to-r from-[#66D9EF] to-[#AE81FF] bg-clip-text text-transparent">
-              ${analytics.monthlyRevenue.toFixed(2)}
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Recurring revenue/month
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Total Subscribers */}
-        <Card className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#F92672]/5 to-[#FD971F]/5 -z-10" />
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Subscribers
-              </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#F92672] to-[#FD971F] rounded-full flex items-center justify-center shadow-md">
-                <Users className="w-5 h-5 text-white" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold bg-gradient-to-r from-[#F92672] to-[#FD971F] bg-clip-text text-transparent">
-              {analytics.totalSubscribers}
-            </div>
-            <div className="flex items-center gap-1 text-sm mt-2">
-              {analytics.subscriberGrowth > 0 ? (
-                <>
-                  <TrendingUp className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600">+{analytics.subscriberGrowth}%</span>
-                </>
-              ) : (
-                <>
-                  <TrendingDown className="w-4 h-4 text-red-600" />
-                  <span className="text-red-600">{analytics.subscriberGrowth}%</span>
-                </>
-              )}
-              <span className="text-gray-600 dark:text-gray-400">from last month</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Active Subscribers */}
-        <Card className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#AE81FF]/5 to-[#F92672]/5 -z-10" />
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Active Subscribers
-              </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#AE81FF] to-[#F92672] rounded-full flex items-center justify-center shadow-md">
-                <Calendar className="w-5 h-5 text-white" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold bg-gradient-to-r from-[#AE81FF] to-[#F92672] bg-clip-text text-transparent">
-              {analytics.activeSubscribers}
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Currently paying members
-            </p>
-          </CardContent>
-        </Card>
+      {/* Metrics grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <AnalyticsCard
+          title="Active subscribers"
+          value={numberFormatter.format(overview.activeSubscribers)}
+          icon={<Users className="w-5 h-5 text-white" />}
+          tone="primary"
+          footer={`${formatPercentage(subscriberGrowth)} vs start of period`}
+          footerPositive={subscriberGrowth >= 0}
+        />
+        <AnalyticsCard
+          title="Monthly revenue"
+          value={currencyFormatter.format(overview.monthlyRevenue)}
+          icon={<DollarSign className="w-5 h-5 text-white" />}
+          tone="secondary"
+          footer={`${formatPercentage(revenueGrowth)} vs start of period`}
+          footerPositive={revenueGrowth >= 0}
+        />
+        <AnalyticsCard
+          title="New subscribers"
+          value={numberFormatter.format(overview.newSubscribers)}
+          icon={<UserPlus className="w-5 h-5 text-white" />}
+          tone="positive"
+          footer={`${numberFormatter.format(overview.canceledSubscribers)} cancellations`}
+          footerPositive={overview.newSubscribers >= overview.canceledSubscribers}
+        />
+        <AnalyticsCard
+          title="Engagement"
+          value={`${numberFormatter.format(overview.totalLikes)} likes`}
+          icon={<Heart className="w-5 h-5 text-white" />}
+          tone="purple"
+          footer={`${numberFormatter.format(overview.totalComments)} comments`}
+        />
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Revenue Chart */}
-        <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="bg-background/60 backdrop-blur-xl border border-border/40">
           <CardHeader>
-            <CardTitle className="text-xl font-bold bg-gradient-to-r from-[#A6E22E] to-[#E6DB74] bg-clip-text text-transparent">
-              Revenue Trend (Last 6 Months)
+            <CardTitle className="flex items-center justify-between">
+              <span>Revenue trend</span>
+              <Badge variant="outline">{PERIOD_OPTIONS.find((opt) => opt.value === period)?.label}</Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics.revenueByMonth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" opacity={0.1} />
-                <XAxis
-                  dataKey="month"
-                  stroke="#6b7280"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis
-                  stroke="#6b7280"
-                  style={{ fontSize: '12px' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.95)",
-                    border: "2px solid #A6E22E",
-                    borderRadius: "12px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-                  }}
-                />
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={revenueChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <Tooltip formatter={(value: number) => currencyFormatter.format(value)} />
                 <Legend />
                 <Line
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#A6E22E"
-                  strokeWidth={3}
-                  name="Revenue ($)"
-                  dot={{ fill: "#A6E22E", r: 5 }}
-                  activeDot={{ r: 7, fill: "#E6DB74" }}
+                  stroke="#F92672"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Revenue"
                 />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Subscriber Growth Chart */}
-        <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+        <Card className="bg-background/60 backdrop-blur-xl border border-border/40">
           <CardHeader>
-            <CardTitle className="text-xl font-bold bg-gradient-to-r from-[#F92672] to-[#FD971F] bg-clip-text text-transparent">
-              Subscriber Growth (Last 6 Months)
-            </CardTitle>
+            <CardTitle>Subscriber growth</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analytics.subscribersByMonth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" opacity={0.1} />
-                <XAxis
-                  dataKey="month"
-                  stroke="#6b7280"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis
-                  stroke="#6b7280"
-                  style={{ fontSize: '12px' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.95)",
-                    border: "2px solid #F92672",
-                    borderRadius: "12px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-                  }}
-                />
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={subscriberChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <Tooltip />
                 <Legend />
-                <Bar
+                <Line
+                  type="monotone"
                   dataKey="subscribers"
-                  fill="url(#colorSubscribers)"
+                  stroke="#66D9EF"
+                  strokeWidth={2}
+                  dot={false}
                   name="Subscribers"
-                  radius={[8, 8, 0, 0]}
                 />
-                <defs>
-                  <linearGradient id="colorSubscribers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F92672" stopOpacity={0.9}/>
-                    <stop offset="95%" stopColor="#FD971F" stopOpacity={0.9}/>
-                  </linearGradient>
-                </defs>
-              </BarChart>
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tier Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 bg-background/60 backdrop-blur-xl border border-border/40">
           <CardHeader>
-            <CardTitle className="text-xl font-bold bg-gradient-to-r from-[#66D9EF] to-[#AE81FF] bg-clip-text text-transparent">
-              Subscribers by Tier
-            </CardTitle>
+            <CardTitle>Content performance</CardTitle>
           </CardHeader>
-          <CardContent>
-            {analytics.tierDistribution.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={analytics.tierDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) =>
-                      `${name} (${(percent * 100).toFixed(0)}%)`
-                    }
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="uppercase tracking-wide">
+                Posts in period
+              </Badge>
+              <span className="text-xl font-semibold">{content.postsInPeriod}</span>
+            </div>
+            <div className="space-y-3">
+              {content.topPosts.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No posts yet.</p>
+              ) : (
+                content.topPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-lg border border-border/40 px-4 py-3 hover:border-border transition"
                   >
-                    {analytics.tierDistribution.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-gray-500">
-                No tier data available
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Tier Revenue Breakdown */}
-        <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold bg-gradient-to-r from-[#FD971F] to-[#E6DB74] bg-clip-text text-transparent">
-              Revenue by Tier
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analytics.tierDistribution.map((tier, index) => (
-                <div key={tier.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                    />
                     <div>
-                      <div className="font-medium">{tier.name}</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {tier.value} subscriber{tier.value !== 1 ? "s" : ""}
-                      </div>
+                      <h3 className="font-semibold">{post.title}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Published {format(new Date(post.createdAt), "MMM d, yyyy")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <Heart className="w-4 h-4" /> {post.likeCount}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <MessageCircle className="w-4 h-4" /> {post.commentCount}
+                      </span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold text-gradient">
-                      ${tier.revenue.toFixed(2)}
-                    </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">
-                      /month
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {analytics.tierDistribution.length === 0 && (
-                <div className="text-center text-gray-500 py-8">
-                  No tier data available
-                </div>
+                ))
               )}
             </div>
           </CardContent>
         </Card>
+
+        <Card className="bg-background/60 backdrop-blur-xl border border-border/40">
+          <CardHeader>
+            <CardTitle>Tier distribution</CardTitle>
+          </CardHeader>
+          <CardContent className="h-80 flex flex-col">
+            {tierPieData.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+                No active tiers yet.
+              </div>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height="60%">
+                  <PieChart>
+                    <Pie
+                      data={tierPieData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={40}
+                      outerRadius={80}
+                      paddingAngle={4}
+                    >
+                      {tierPieData.map((entry, index) => (
+                        <Cell key={`cell-${entry.name}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number, _name, payload) =>
+                        [`${value} subscribers`, payload && payload.payload ? payload.payload.name : ""]
+                      }
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-2 mt-4">
+                  {tierPieData.map((tier, index) => (
+                    <div key={tier.name} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                        />
+                        <span>{tier.name}</span>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {tier.value} members · {currencyFormatter.format(tier.revenue)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-background/60 backdrop-blur-xl border border-border/40">
+        <CardHeader>
+          <CardTitle>Platform footprint</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <FootprintStat icon={<FileText className="w-4 h-4" />} label="Total posts" value={overview.totalPosts} />
+          <FootprintStat icon={<Calendar className="w-4 h-4" />} label="Events hosted" value={overview.totalEvents} />
+          <FootprintStat icon={<MessageCircle className="w-4 h-4" />} label="Comments" value={overview.totalComments} />
+          <FootprintStat icon={<Heart className="w-4 h-4" />} label="Likes" value={overview.totalLikes} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+interface AnalyticsCardProps {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  tone?: "primary" | "secondary" | "positive" | "purple";
+  footer?: string;
+  footerPositive?: boolean;
+}
+
+const CARD_TONE_STYLES: Record<
+  NonNullable<AnalyticsCardProps["tone"]>,
+  { gradient: string; icon: string }
+> = {
+  primary: {
+    gradient: "from-[#F92672]/10 via-[#AE81FF]/10 to-[#66D9EF]/10",
+    icon: "from-[#F92672] to-[#AE81FF]",
+  },
+  secondary: {
+    gradient: "from-[#A6E22E]/10 via-[#E6DB74]/10 to-[#FD971F]/10",
+    icon: "from-[#A6E22E] to-[#FD971F]",
+  },
+  positive: {
+    gradient: "from-emerald-500/10 via-green-500/10 to-teal-500/10",
+    icon: "from-emerald-500 to-teal-500",
+  },
+  purple: {
+    gradient: "from-[#66D9EF]/10 via-[#AE81FF]/10 to-[#F92672]/10",
+    icon: "from-[#66D9EF] to-[#AE81FF]",
+  },
+};
+
+function AnalyticsCard({
+  title,
+  value,
+  icon,
+  tone = "primary",
+  footer,
+  footerPositive,
+}: AnalyticsCardProps) {
+  const styles = CARD_TONE_STYLES[tone];
+
+  return (
+    <Card className="relative overflow-hidden border border-border/40 bg-background/60 backdrop-blur-xl">
+      <div className={`absolute inset-0 bg-gradient-to-br ${styles.gradient} -z-10`} />
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${styles.icon} flex items-center justify-center shadow`}>
+            {icon}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl md:text-4xl font-bold">{value}</div>
+        {footer && (
+          <div className="flex items-center gap-2 text-xs mt-2 text-muted-foreground">
+            {footerPositive !== undefined && footerPositive !== null ? (
+              footerPositive ? (
+                <TrendingUp className="w-4 h-4 text-emerald-500" />
+              ) : (
+                <TrendingDown className="w-4 h-4 text-red-500" />
+              )
+            ) : null}
+            <span>{footer}</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FootprintStat({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border/40 px-3 py-2">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">{icon}</div>
+      <div>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="text-lg font-semibold">{numberFormatter.format(value)}</p>
       </div>
     </div>
   );

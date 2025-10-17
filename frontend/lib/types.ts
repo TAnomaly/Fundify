@@ -167,3 +167,23 @@ export interface CampaignFormData {
   endDate: string;
   tags?: string[];
 }
+
+export interface NotificationActor {
+  id: string;
+  name: string;
+  avatar?: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  link?: string;
+  imageUrl?: string;
+  metadata?: Record<string, unknown>;
+  isRead: boolean;
+  readAt?: string;
+  createdAt: string;
+  actor?: NotificationActor | null;
+}
