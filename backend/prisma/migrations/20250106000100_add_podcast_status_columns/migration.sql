@@ -39,14 +39,14 @@ BEGIN
     EXECUTE
       'UPDATE "Podcast"
          SET "status" = CASE
-           WHEN COALESCE("isPublic", true) THEN ''PUBLISHED''
-           ELSE ''DRAFT''
+           WHEN COALESCE("isPublic", true) THEN ''PUBLISHED''::"PodcastStatus"
+           ELSE ''DRAFT''::"PodcastStatus"
          END
        WHERE "status" IS NULL';
   ELSE
     EXECUTE
       'UPDATE "Podcast"
-         SET "status" = ''PUBLISHED''
+         SET "status" = ''PUBLISHED''::"PodcastStatus"
        WHERE "status" IS NULL';
   END IF;
 END $$;
@@ -74,14 +74,14 @@ BEGIN
     EXECUTE
       'UPDATE "PodcastEpisode"
          SET "status" = CASE
-           WHEN COALESCE("published", true) THEN ''PUBLISHED''
-           ELSE ''DRAFT''
+           WHEN COALESCE("published", true) THEN ''PUBLISHED''::"EpisodeStatus"
+           ELSE ''DRAFT''::"EpisodeStatus"
          END
        WHERE "status" IS NULL';
   ELSE
     EXECUTE
       'UPDATE "PodcastEpisode"
-         SET "status" = ''PUBLISHED''
+         SET "status" = ''PUBLISHED''::"EpisodeStatus"
        WHERE "status" IS NULL';
   END IF;
 END $$;
