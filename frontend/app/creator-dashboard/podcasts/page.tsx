@@ -1,1109 +1,1006 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
-import { ArrowLeft, Mic, Music, Rss, Upload, Edit2, Trash2 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import AudioPlayer from "@/components/podcast/AudioPlayer";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  Headphones,
+  Mic,
+  Music2,
+  PlayCircle,
+  Plus,
+  Radio,
+  Waves,
+} from "lucide-react";
+
+type PodcastStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+type EpisodeStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
+interface Podcast {
+  id: string;
+  title: string;
+  description?: string;
+  category: string;
+  language: string;
+  status: PodcastStatus;
+  coverImage?: string;
+  spotifyShowUrl?: string;
+  externalFeedUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    episodes: number;
+  };
+}
+
+interface PodcastEpisode {
+  id: string;
+  title: string;
+  description?: string;
+  episodeNumber: number;
+  duration?: number | null;
+  status: EpisodeStatus;
+  audioUrl?: string | null;
+  spotifyEpisodeUrl?: string | null;
+  publishedAt?: string | null;
+  createdAt: string;
+}
+
+interface PodcastFormState {
+  title: string;
+  description: string;
+  category: string;
+  language: string;
+  status: PodcastStatus;
+  coverImage: string;
+  spotifyShowUrl: string;
+  externalFeedUrl: string;
+}
+
+interface EpisodeFormState {
+  title: string;
+  description: string;
+  episodeNumber: string;
+  duration: string;
+  audioUrl: string;
+  status: EpisodeStatus;
+  spotifyEpisodeUrl: string;
+  publishedAt: string;
+}
+
+const PODCAST_DEFAULTS: PodcastFormState = {
+  title: "",
+  description: "",
+  category: "Technology",
+  language: "English",
+  status: "PUBLISHED",
+  coverImage: "",
+  spotifyShowUrl: "",
+  externalFeedUrl: "",
+};
+
+const EPISODE_DEFAULTS: EpisodeFormState = {
+  title: "",
+  description: "",
+  episodeNumber: "",
+  duration: "",
+  audioUrl: "",
+  status: "PUBLISHED",
+  spotifyEpisodeUrl: "",
+  publishedAt: "",
+};
+
+const statusCopy: Record<
+  PodcastStatus | EpisodeStatus,
+  { label: string; tone: "default" | "secondary" | "outline" }
+> = {
+  PUBLISHED: { label: "Published", tone: "default" },
+  DRAFT: { label: "Draft", tone: "secondary" },
+  ARCHIVED: { label: "Archived", tone: "outline" },
+};
 
 export default function PodcastsPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [podcasts, setPodcasts] = useState<any[]>([]);
-  const [episodes, setEpisodes] = useState<any[]>([]);
-  const [selectedPodcast, setSelectedPodcast] = useState<string | null>(null);
-  const [showCreatePodcast, setShowCreatePodcast] = useState(false);
-  const [showCreateEpisode, setShowCreateEpisode] = useState(false);
-  const [showEditPodcast, setShowEditPodcast] = useState(false);
-  const [showEditEpisode, setShowEditEpisode] = useState(false);
-  const [editingPodcast, setEditingPodcast] = useState<any>(null);
-  const [editingEpisode, setEditingEpisode] = useState<any>(null);
-  const [podcastForm, setPodcastForm] = useState({
-    title: "",
-    description: "",
-    author: "",
-    category: "Technology",
-    isPublic: true,
-  });
-  const [episodeForm, setEpisodeForm] = useState({
-    title: "",
-    description: "",
-    audioUrl: "",
-    duration: 0,
-    episodeNumber: "",
-    showNotes: "",
-    fileSize: 0,
-  });
-  const [uploadingAudio, setUploadingAudio] = useState(false);
-  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [isLoadingPodcasts, setIsLoadingPodcasts] = useState(true);
+  const [isLoadingEpisodes, setIsLoadingEpisodes] = useState(false);
+  const [savingPodcast, setSavingPodcast] = useState(false);
+  const [savingEpisode, setSavingEpisode] = useState(false);
+  const [podcasts, setPodcasts] = useState<Podcast[]>([]);
+  const [episodes, setEpisodes] = useState<PodcastEpisode[]>([]);
+  const [selectedPodcastId, setSelectedPodcastId] = useState<string | null>(
+    null
+  );
+  const [podcastForm, setPodcastForm] =
+    useState<PodcastFormState>(PODCAST_DEFAULTS);
+  const [episodeForm, setEpisodeForm] =
+    useState<EpisodeFormState>(EPISODE_DEFAULTS);
+  const [isPodcastDialogOpen, setPodcastDialogOpen] = useState(false);
+  const [isEpisodeDialogOpen, setEpisodeDialogOpen] = useState(false);
+
+  const selectedPodcast = useMemo(
+    () => podcasts.find((podcast) => podcast.id === selectedPodcastId) ?? null,
+    [podcasts, selectedPodcastId]
+  );
 
   useEffect(() => {
-    loadPodcasts();
+    const initialise = async () => {
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        toast.error("Please sign in to manage your podcasts");
+        router.push("/login");
+        return;
+      }
+
+      await loadPodcasts(currentUser.id);
+    };
+
+    initialise();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (selectedPodcast) {
-      loadEpisodes(selectedPodcast);
+    if (!selectedPodcastId) {
+      setEpisodes([]);
+      return;
     }
-  }, [selectedPodcast]);
+    loadEpisodes(selectedPodcastId);
+  }, [selectedPodcastId]);
 
-  const loadPodcasts = async () => {
-    setIsLoading(true);
+  const loadPodcasts = async (creatorId?: string) => {
+    setIsLoadingPodcasts(true);
     try {
-      const currentUser = getCurrentUser();
-      if (!currentUser) {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        toast.error("You need to be logged in to manage podcasts");
+        router.push("/login");
+        return;
+      }
+
+      const query = creatorId
+        ? `?creatorId=${creatorId}&includeDrafts=true`
+        : "";
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/podcasts${query}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || "Failed to load podcasts");
+      }
+
+      const nextPodcasts: Podcast[] = data.data?.podcasts ?? [];
+      setPodcasts(nextPodcasts);
+
+      if (nextPodcasts.length > 0 && !selectedPodcastId) {
+        setSelectedPodcastId(nextPodcasts[0].id);
+      }
+    } catch (error) {
+      console.error("Error loading podcasts", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load podcasts"
+      );
+    } finally {
+      setIsLoadingPodcasts(false);
+    }
+  };
+
+  const loadEpisodes = async (podcastId: string) => {
+    setIsLoadingEpisodes(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        toast.error("Please log in again");
         router.push("/login");
         return;
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/podcasts?creatorId=${currentUser.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/${podcastId}/episodes?includeDrafts=true`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
 
       const data = await response.json();
-      if (data.success) {
-        setPodcasts(data.data || []);
-        if (data.data && data.data.length > 0 && !selectedPodcast) {
-          setSelectedPodcast(data.data[0].id);
-        }
-      } else {
-        toast.error(data.message || "Failed to load podcasts");
+      if (!data.success) {
+        throw new Error(data.message || "Failed to load episodes");
       }
+
+      setEpisodes(data.data?.episodes ?? []);
     } catch (error) {
-      console.error("Error loading podcasts:", error);
-      toast.error("Failed to load podcasts");
+      console.error("Error loading episodes", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load episodes"
+      );
     } finally {
-      setIsLoading(false);
+      setIsLoadingEpisodes(false);
     }
   };
 
-  const loadEpisodes = async (podcastId: string) => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/${podcastId}/episodes`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        setEpisodes(data.data || []);
-      }
-    } catch (error) {
-      toast.error("Failed to load episodes");
-    }
-  };
-
-  const createPodcast = async () => {
-    if (!podcastForm.title || !podcastForm.author) {
-      toast.error("Title and author are required");
+  const handleCreatePodcast = async () => {
+    if (!podcastForm.title.trim()) {
+      toast.error("Podcast title is required");
       return;
     }
 
+    setSavingPodcast(true);
     try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        toast.error("Please log in again");
+        router.push("/login");
+        return;
+      }
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/podcasts`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(podcastForm),
+          body: JSON.stringify({
+            title: podcastForm.title.trim(),
+            description: podcastForm.description.trim() || undefined,
+            category: podcastForm.category,
+            language: podcastForm.language,
+            status: podcastForm.status,
+            coverImage: podcastForm.coverImage.trim() || undefined,
+            spotifyShowUrl: podcastForm.spotifyShowUrl.trim() || undefined,
+            externalFeedUrl: podcastForm.externalFeedUrl.trim() || undefined,
+          }),
         }
       );
 
       const data = await response.json();
-      if (data.success) {
-        toast.success("Podcast created!");
-        setShowCreatePodcast(false);
-        setPodcastForm({
-          title: "",
-          description: "",
-          author: "",
-          category: "Technology",
-          isPublic: true,
-        });
-        loadPodcasts();
-      } else {
-        toast.error(data.message || "Failed to create podcast");
+      if (!data.success) {
+        throw new Error(data.message || "Failed to create podcast");
+      }
+
+      toast.success("Podcast created successfully");
+      setPodcastForm(PODCAST_DEFAULTS);
+      setPodcastDialogOpen(false);
+      await loadPodcasts(data.data?.podcast?.creatorId);
+      if (data.data?.podcast?.id) {
+        setSelectedPodcastId(data.data.podcast.id);
       }
     } catch (error) {
-      toast.error("Failed to create podcast");
-    }
-  };
-
-  const handleAudioFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith("audio/")) {
-      toast.error("Please select an audio file");
-      return;
-    }
-
-    setAudioFile(file);
-    setUploadingAudio(true);
-
-    try {
-      // For now, we'll use a placeholder URL since we don't have S3/CDN setup
-      // In production, you would upload to S3, Cloudflare R2, or similar
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Get audio duration using HTML5 Audio API
-      const audio = new Audio();
-      audio.src = URL.createObjectURL(file);
-
-      await new Promise((resolve) => {
-        audio.addEventListener("loadedmetadata", () => {
-          const duration = Math.floor(audio.duration);
-          setEpisodeForm({
-            ...episodeForm,
-            duration,
-            fileSize: file.size,
-            audioUrl: URL.createObjectURL(file), // Temporary - replace with actual upload
-          });
-          resolve(null);
-        });
-      });
-
-      toast.success(`Audio file loaded: ${file.name}`);
-    } catch (error) {
-      toast.error("Failed to process audio file");
+      console.error("Error creating podcast", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create podcast"
+      );
     } finally {
-      setUploadingAudio(false);
+      setSavingPodcast(false);
     }
   };
 
-  const createEpisode = async () => {
-    if (!episodeForm.title || !episodeForm.audioUrl || !episodeForm.duration) {
-      toast.error("Title, audio URL, and duration are required");
+  const handleCreateEpisode = async () => {
+    if (!selectedPodcastId) {
+      toast.error("Select a podcast first");
       return;
     }
 
-    if (!selectedPodcast) {
-      toast.error("Please select a podcast first");
+    if (!episodeForm.title.trim()) {
+      toast.error("Episode title is required");
       return;
     }
 
-    // If audioUrl is a blob URL, warn user
-    if (episodeForm.audioUrl.startsWith("blob:")) {
-      toast.error("Please upload your audio file to a server and paste the URL");
+    if (!episodeForm.audioUrl.trim()) {
+      toast.error("Please provide an audio URL");
       return;
     }
 
+    setSavingEpisode(true);
     try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        toast.error("Please log in again");
+        router.push("/login");
+        return;
+      }
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/${selectedPodcast}/episodes`,
+        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/${selectedPodcastId}/episodes`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            ...episodeForm,
-            episodeNumber: episodeForm.episodeNumber
-              ? parseInt(episodeForm.episodeNumber)
-              : null,
-            fileSize: episodeForm.fileSize || 1000000, // Default 1MB if not set
+            title: episodeForm.title.trim(),
+            description: episodeForm.description.trim() || undefined,
+            episodeNumber: episodeForm.episodeNumber || undefined,
+            duration: episodeForm.duration
+              ? parseInt(episodeForm.duration, 10)
+              : undefined,
+            audioUrl: episodeForm.audioUrl.trim(),
+            status: episodeForm.status,
+            spotifyEpisodeUrl:
+              episodeForm.spotifyEpisodeUrl.trim() || undefined,
+            publishedAt: episodeForm.publishedAt || undefined,
           }),
         }
       );
 
       const data = await response.json();
-      if (data.success) {
-        toast.success("Episode created!");
-        setShowCreateEpisode(false);
-        setEpisodeForm({
-          title: "",
-          description: "",
-          audioUrl: "",
-          duration: 0,
-          episodeNumber: "",
-          showNotes: "",
-          fileSize: 0,
-        });
-        setAudioFile(null);
-        loadEpisodes(selectedPodcast);
-      } else {
-        toast.error(data.message || "Failed to create episode");
+      if (!data.success) {
+        throw new Error(data.message || "Failed to create episode");
       }
+
+      toast.success("Episode published");
+      setEpisodeForm(EPISODE_DEFAULTS);
+      setEpisodeDialogOpen(false);
+      await loadEpisodes(selectedPodcastId);
     } catch (error) {
-      toast.error("Failed to create episode");
-    }
-  };
-
-  const deletePodcast = async (podcastId: string) => {
-    if (!confirm("Are you sure you want to delete this podcast? This will delete all episodes too.")) {
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/${podcastId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
+      console.error("Error creating episode", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create episode"
       );
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Podcast deleted!");
-        setSelectedPodcast(null);
-        loadPodcasts();
-      } else {
-        toast.error(data.message || "Failed to delete podcast");
-      }
-    } catch (error) {
-      toast.error("Failed to delete podcast");
+    } finally {
+      setSavingEpisode(false);
     }
   };
 
-  const updatePodcast = async () => {
-    if (!editingPodcast) return;
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/${editingPodcast.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify(podcastForm),
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Podcast updated!");
-        setShowEditPodcast(false);
-        setEditingPodcast(null);
-        loadPodcasts();
-      } else {
-        toast.error(data.message || "Failed to update podcast");
-      }
-    } catch (error) {
-      toast.error("Failed to update podcast");
-    }
-  };
-
-  const deleteEpisode = async (episodeId: string) => {
-    if (!confirm("Are you sure you want to delete this episode?")) {
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/episodes/${episodeId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Episode deleted!");
-        if (selectedPodcast) {
-          loadEpisodes(selectedPodcast);
-        }
-      } else {
-        toast.error(data.message || "Failed to delete episode");
-      }
-    } catch (error) {
-      toast.error("Failed to delete episode");
-    }
-  };
-
-  const updateEpisode = async () => {
-    if (!editingEpisode) return;
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/episodes/${editingEpisode.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify({
-            ...episodeForm,
-            episodeNumber: episodeForm.episodeNumber
-              ? parseInt(episodeForm.episodeNumber)
-              : null,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Episode updated!");
-        setShowEditEpisode(false);
-        setEditingEpisode(null);
-        if (selectedPodcast) {
-          loadEpisodes(selectedPodcast);
-        }
-      } else {
-        toast.error(data.message || "Failed to update episode");
-      }
-    } catch (error) {
-      toast.error("Failed to update episode");
-    }
-  };
-
-  const trackProgress = async (episodeId: string, progress: number, completed: boolean) => {
-    try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/episodes/${episodeId}/listen`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify({ progress, completed }),
-        }
-      );
-    } catch (error) {
-      console.error("Failed to track progress");
-    }
-  };
-
-  const formatDuration = (seconds: number) => {
+  const formatDuration = (seconds?: number | null) => {
+    if (!seconds || Number.isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const getRSSFeedUrl = (podcastId: string) => {
-    return `${process.env.NEXT_PUBLIC_API_URL}/podcast/${podcastId}/rss`;
-  };
+  const renderPodcasts = () => {
+    if (isLoadingPodcasts) {
+      return (
+        <div className="space-y-4">
+          {[1, 2, 3].map((index) => (
+            <Skeleton key={index} className="h-20 w-full rounded-xl" />
+          ))}
+        </div>
+      );
+    }
 
-  if (isLoading) {
+    if (podcasts.length === 0) {
+      return (
+        <Card className="border-dashed bg-muted/30">
+          <CardHeader className="flex flex-col items-center text-center">
+            <Mic className="mb-4 h-10 w-10 text-muted-foreground" />
+            <CardTitle>No podcasts yet</CardTitle>
+            <CardDescription>
+              Launch your show by creating your first podcast. You can publish
+              to supporters instantly or keep it as a draft while you refine
+              episodes.
+            </CardDescription>
+            <Button
+              className="mt-4"
+              onClick={() => setPodcastDialogOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create podcast
+            </Button>
+          </CardHeader>
+        </Card>
+      );
+    }
+
     return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <Skeleton className="h-12 w-64 mb-8" />
-        <Skeleton className="h-96" />
+      <div className="space-y-4">
+        {podcasts.map((podcast) => {
+          const statusMeta = statusCopy[podcast.status];
+          return (
+            <button
+              key={podcast.id}
+              onClick={() => setSelectedPodcastId(podcast.id)}
+              className={`w-full rounded-xl border p-4 text-left transition hover:border-primary hover:bg-primary/5 ${
+                selectedPodcastId === podcast.id
+                  ? "border-primary bg-primary/10"
+                  : "border-border bg-background"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold">{podcast.title}</h3>
+                    <Badge variant={statusMeta.tone}>
+                      {statusMeta.label}
+                    </Badge>
+                  </div>
+                  {podcast.description && (
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                      {podcast.description}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right text-xs text-muted-foreground">
+                  <div>{podcast.category}</div>
+                  <div>{podcast.language}</div>
+                  <div>
+                    {podcast._count?.episodes ?? 0}{" "}
+                    {(podcast._count?.episodes ?? 0) === 1
+                      ? "episode"
+                      : "episodes"}
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
     );
-  }
+  };
+
+  const renderEpisodes = () => {
+    if (!selectedPodcast) {
+      return (
+        <Card className="h-full border-dashed bg-muted/30">
+          <CardHeader className="flex h-full flex-col items-center justify-center text-center">
+            <Headphones className="mb-4 h-10 w-10 text-muted-foreground" />
+            <CardTitle>Select a podcast</CardTitle>
+            <CardDescription>
+              Choose a podcast from the list to see its episodes.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      );
+    }
+
+    return (
+      <Card className="h-full">
+        <CardHeader className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <PlayCircle className="h-5 w-5 text-primary" />
+              {selectedPodcast.title}
+            </CardTitle>
+            <CardDescription className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+              <span>{selectedPodcast._count?.episodes ?? 0} episodes</span>
+              <span>•</span>
+              <span>{selectedPodcast.language}</span>
+              {selectedPodcast.spotifyShowUrl && (
+                <>
+                  <span>•</span>
+                  <a
+                    href={selectedPodcast.spotifyShowUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    <Waves className="h-4 w-4" />
+                    Spotify show link
+                  </a>
+                </>
+              )}
+              {selectedPodcast.externalFeedUrl && (
+                <>
+                  <span>•</span>
+                  <a
+                    href={selectedPodcast.externalFeedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Public RSS feed
+                  </a>
+                </>
+              )}
+            </CardDescription>
+          </div>
+          <Button onClick={() => setEpisodeDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New episode
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoadingEpisodes ? (
+            <div className="space-y-4">
+              {[1, 2].map((loader) => (
+                <Skeleton key={loader} className="h-24 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : episodes.length === 0 ? (
+            <div className="rounded-xl border border-dashed bg-muted/20 p-8 text-center">
+              <Radio className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+              <h3 className="text-lg font-semibold">No episodes yet</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Create your first episode to start sharing with your followers.
+              </p>
+              <Button
+                size="sm"
+                className="mt-4"
+                onClick={() => setEpisodeDialogOpen(true)}
+              >
+                Record episode
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {episodes.map((episode) => {
+                const statusMeta = statusCopy[episode.status];
+                return (
+                  <Card
+                    key={episode.id}
+                    className="border-border bg-muted/10 shadow-none"
+                  >
+                    <CardContent className="flex flex-col gap-4 pt-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="text-base font-semibold">
+                            Episode {episode.episodeNumber}. {episode.title}
+                          </h4>
+                          <Badge variant={statusMeta.tone}>
+                            {statusMeta.label}
+                          </Badge>
+                        </div>
+                        {episode.description && (
+                          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                            {episode.description}
+                          </p>
+                        )}
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <Music2 className="h-3.5 w-3.5" />
+                            {formatDuration(episode.duration)}
+                          </span>
+                          {episode.publishedAt && (
+                            <>
+                              <span>•</span>
+                              <span>
+                                Published{" "}
+                                {new Date(
+                                  episode.publishedAt
+                                ).toLocaleDateString()}
+                              </span>
+                            </>
+                          )}
+                          {episode.spotifyEpisodeUrl && (
+                            <>
+                              <span>•</span>
+                              <a
+                                href={episode.spotifyEpisodeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-primary hover:underline"
+                              >
+                                <Waves className="h-3.5 w-3.5" />
+                                Spotify episode
+                              </a>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {episode.audioUrl && (
+                        <div className="w-full md:w-64">
+                          <AudioPlayer src={episode.audioUrl} />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Dashboard
-      </Button>
-
-      <div className="flex justify-between items-center mb-8">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-4xl font-bold mb-2 text-gradient">Podcasts</h1>
-          <p className="text-muted-foreground">Manage your podcast episodes</p>
+          <h1 className="flex items-center gap-2 text-3d-text text-2xl font-semibold">
+            <Mic className="h-6 w-6 text-primary" />
+            Podcast studio
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Publish your creator podcast, manage episodes, and share Spotify
+            links so supporters can follow along anywhere.
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowCreatePodcast(true)}>
-            <Mic className="w-4 h-4 mr-2" />
-            New Podcast
-          </Button>
-          {selectedPodcast && (
-            <Button onClick={() => setShowCreateEpisode(true)} variant="outline">
-              <Upload className="w-4 h-4 mr-2" />
-              New Episode
-            </Button>
-          )}
+          <Dialog open={isPodcastDialogOpen} onOpenChange={setPodcastDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                New podcast
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create podcast</DialogTitle>
+                <DialogDescription>
+                  Give your show a name, set visibility, and optionally link an
+                  external feed so Spotify stays in sync.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="podcast-title">Title</Label>
+                  <Input
+                    id="podcast-title"
+                    placeholder="Creator Coffee Chats"
+                    value={podcastForm.title}
+                    onChange={(event) =>
+                      setPodcastForm((prev) => ({
+                        ...prev,
+                        title: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="podcast-description">Description</Label>
+                  <Textarea
+                    id="podcast-description"
+                    placeholder="Tell listeners what your show is about."
+                    value={podcastForm.description}
+                    onChange={(event) =>
+                      setPodcastForm((prev) => ({
+                        ...prev,
+                        description: event.target.value,
+                      }))
+                    }
+                    rows={4}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="podcast-category">Category</Label>
+                    <Input
+                      id="podcast-category"
+                      value={podcastForm.category}
+                      onChange={(event) =>
+                        setPodcastForm((prev) => ({
+                          ...prev,
+                          category: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="podcast-language">Language</Label>
+                    <Input
+                      id="podcast-language"
+                      value={podcastForm.language}
+                      onChange={(event) =>
+                        setPodcastForm((prev) => ({
+                          ...prev,
+                          language: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={podcastForm.status}
+                    onValueChange={(value: PodcastStatus) =>
+                      setPodcastForm((prev) => ({ ...prev, status: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select visibility" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PUBLISHED">Published</SelectItem>
+                      <SelectItem value="DRAFT">Draft</SelectItem>
+                      <SelectItem value="ARCHIVED">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="podcast-cover">Cover image URL</Label>
+                  <Input
+                    id="podcast-cover"
+                    placeholder="https://cdn.yourhost.com/podcasts/cover.jpg"
+                    value={podcastForm.coverImage}
+                    onChange={(event) =>
+                      setPodcastForm((prev) => ({
+                        ...prev,
+                        coverImage: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="podcast-spotify">Spotify show link</Label>
+                  <Input
+                    id="podcast-spotify"
+                    placeholder="https://open.spotify.com/show/..."
+                    value={podcastForm.spotifyShowUrl}
+                    onChange={(event) =>
+                      setPodcastForm((prev) => ({
+                        ...prev,
+                        spotifyShowUrl: event.target.value,
+                      }))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Paste your Spotify show URL to help fans subscribe. You can
+                    also leave this empty and link it later.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="podcast-feed">External RSS feed</Label>
+                  <Input
+                    id="podcast-feed"
+                    placeholder="https://anchor.fm/s/your-feed/rss"
+                    value={podcastForm.externalFeedUrl}
+                    onChange={(event) =>
+                      setPodcastForm((prev) => ({
+                        ...prev,
+                        externalFeedUrl: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+              <DialogFooter className="mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPodcastDialogOpen(false);
+                    setPodcastForm(PODCAST_DEFAULTS);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleCreatePodcast} disabled={savingPodcast}>
+                  {savingPodcast ? "Creating..." : "Create podcast"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      {podcasts.length === 0 ? (
-        <Card className="p-12 text-center">
-          <Music className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <h3 className="text-xl font-semibold mb-2">No podcasts yet</h3>
-          <p className="text-gray-600 mb-4">
-            Create your first podcast to start sharing audio content
-          </p>
-          <Button onClick={() => setShowCreatePodcast(true)}>
-            <Mic className="w-4 h-4 mr-2" />
-            Create Podcast
-          </Button>
+      <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Mic className="h-5 w-5 text-primary" />
+              Your podcasts
+            </CardTitle>
+            <CardDescription>
+              Manage visibility, Spotify links, and episodes for each show.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>{renderPodcasts()}</CardContent>
         </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Podcast List */}
+
+        {renderEpisodes()}
+      </div>
+
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Waves className="h-5 w-5 text-primary" />
+            Share on Spotify & podcast apps
+          </CardTitle>
+          <CardDescription>
+            Fundify produces an RSS feed for every published episode. Submit
+            that feed to Spotify for Podcasters, Apple Podcasts, and other
+            directories to help fans discover you everywhere.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Waves className="h-4 w-4 text-primary" />
+              Spotify setup
+            </h3>
+            <ol className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>1. Head to Spotify for Podcasters and click “Add show”.</li>
+              <li>
+                2. Paste your Fundify RSS feed (generated automatically once you
+                publish).
+              </li>
+              <li>3. Copy the Spotify show link back here for quick access.</li>
+            </ol>
+          </div>
+          <div className="rounded-lg border bg-background p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <PlayCircle className="h-4 w-4 text-primary" />
+              Episode best practices
+            </h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>• Upload high-quality MP3 or WAV files.</li>
+              <li>• Add show notes and Spotify links for cross-promotion.</li>
+              <li>• Schedule drafts to build a consistent release cadence.</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isEpisodeDialogOpen} onOpenChange={setEpisodeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Publish new episode</DialogTitle>
+            <DialogDescription>
+              Upload your audio and we&apos;ll handle distribution.
+            </DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
-            {podcasts.map((podcast) => (
-              <Card
-                key={podcast.id}
-                className={`p-4 cursor-pointer transition ${
-                  selectedPodcast === podcast.id
-                    ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                    : ""
-                }`}
-                onClick={() => setSelectedPodcast(podcast.id)}
+            <div className="space-y-2">
+              <Label htmlFor="episode-title">Title</Label>
+              <Input
+                id="episode-title"
+                placeholder="Episode 3 — Behind the campaign"
+                value={episodeForm.title}
+                onChange={(event) =>
+                  setEpisodeForm((prev) => ({
+                    ...prev,
+                    title: event.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="episode-description">Description</Label>
+              <Textarea
+                id="episode-description"
+                placeholder="Add show notes, links, and takeaways."
+                value={episodeForm.description}
+                onChange={(event) =>
+                  setEpisodeForm((prev) => ({
+                    ...prev,
+                    description: event.target.value,
+                  }))
+                }
+                rows={4}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="episode-number">Episode number</Label>
+                <Input
+                  id="episode-number"
+                  type="number"
+                  min="1"
+                  placeholder="Auto"
+                  value={episodeForm.episodeNumber}
+                  onChange={(event) =>
+                    setEpisodeForm((prev) => ({
+                      ...prev,
+                      episodeNumber: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="episode-duration">Duration (seconds)</Label>
+                <Input
+                  id="episode-duration"
+                  type="number"
+                  min="0"
+                  placeholder="3600"
+                  value={episodeForm.duration}
+                  onChange={(event) =>
+                    setEpisodeForm((prev) => ({
+                      ...prev,
+                      duration: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="episode-audio">Audio file URL</Label>
+              <Input
+                id="episode-audio"
+                placeholder="https://cdn.yourhost.com/audio/episode3.mp3"
+                value={episodeForm.audioUrl}
+                onChange={(event) =>
+                  setEpisodeForm((prev) => ({
+                    ...prev,
+                    audioUrl: event.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={episodeForm.status}
+                onValueChange={(value: EpisodeStatus) =>
+                  setEpisodeForm((prev) => ({ ...prev, status: value }))
+                }
               >
-                <div className="flex items-start gap-3">
-                  {podcast.coverImage && (
-                    <img
-                      src={podcast.coverImage}
-                      alt={podcast.title}
-                      className="w-16 h-16 rounded-lg object-cover"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{podcast.title}</h3>
-                    <p className="text-sm text-gray-600">
-                      {podcast._count.episodes} episodes
-                    </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const url = getRSSFeedUrl(podcast.id);
-                          navigator.clipboard.writeText(url);
-                          toast.success("RSS feed URL copied!");
-                        }}
-                      >
-                        <Rss className="w-3 h-3 mr-1" />
-                        RSS
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingPodcast(podcast);
-                          setPodcastForm({
-                            title: podcast.title,
-                            description: podcast.description || "",
-                            author: podcast.author,
-                            category: podcast.category,
-                            isPublic: podcast.isPublic,
-                          });
-                          setShowEditPodcast(true);
-                        }}
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deletePodcast(podcast.id);
-                        }}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PUBLISHED">Published</SelectItem>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
+                  <SelectItem value="ARCHIVED">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="episode-spotify">Spotify episode link</Label>
+              <Input
+                id="episode-spotify"
+                placeholder="https://open.spotify.com/episode/..."
+                value={episodeForm.spotifyEpisodeUrl}
+                onChange={(event) =>
+                  setEpisodeForm((prev) => ({
+                    ...prev,
+                    spotifyEpisodeUrl: event.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="episode-published">Publish date (optional)</Label>
+              <Input
+                id="episode-published"
+                type="datetime-local"
+                value={episodeForm.publishedAt}
+                onChange={(event) =>
+                  setEpisodeForm((prev) => ({
+                    ...prev,
+                    publishedAt: event.target.value,
+                  }))
+                }
+              />
+            </div>
           </div>
-
-          {/* Episodes List */}
-          <div className="lg:col-span-2 space-y-4">
-            {episodes.length === 0 ? (
-              <Card className="p-8 text-center">
-                <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <h3 className="font-semibold mb-2">No episodes yet</h3>
-                <p className="text-gray-600 mb-4 text-sm">
-                  Upload your first episode to get started
-                </p>
-                <Button onClick={() => setShowCreateEpisode(true)} size="sm">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Episode
-                </Button>
-              </Card>
-            ) : (
-              episodes.map((episode) => (
-                <Card key={episode.id} className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        {episode.episodeNumber && (
-                          <span className="text-sm text-gray-500">
-                            #{episode.episodeNumber}
-                          </span>
-                        )}
-                        <h3 className="font-semibold text-lg">{episode.title}</h3>
-                      </div>
-                      {episode.description && (
-                        <p className="text-gray-600 text-sm mb-2">
-                          {episode.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-3 text-sm text-gray-500">
-                        <span>{formatDuration(episode.duration)}</span>
-                        <span>•</span>
-                        <span>{episode.listenCount} listens</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingEpisode(episode);
-                          setEpisodeForm({
-                            title: episode.title,
-                            description: episode.description || "",
-                            audioUrl: episode.audioUrl,
-                            duration: episode.duration,
-                            episodeNumber: episode.episodeNumber?.toString() || "",
-                            showNotes: episode.showNotes || "",
-                            fileSize: episode.fileSize,
-                          });
-                          setShowEditEpisode(true);
-                        }}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => deleteEpisode(episode.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <AudioPlayer
-                    src={episode.audioUrl}
-                    title={episode.title}
-                    episodeId={episode.id}
-                    onProgress={(progress, completed) =>
-                      trackProgress(episode.id, progress, completed)
-                    }
-                  />
-
-                  {episode.showNotes && (
-                    <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <h4 className="font-semibold text-sm mb-2">Show Notes</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                        {episode.showNotes}
-                      </p>
-                    </div>
-                  )}
-                </Card>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Create Podcast Modal */}
-      {showCreatePodcast && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">Create New Podcast</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Title *</label>
-                <input
-                  type="text"
-                  value={podcastForm.title}
-                  onChange={(e) =>
-                    setPodcastForm({ ...podcastForm, title: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="My Awesome Podcast"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Author *
-                </label>
-                <input
-                  type="text"
-                  value={podcastForm.author}
-                  onChange={(e) =>
-                    setPodcastForm({ ...podcastForm, author: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="Your Name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={podcastForm.description}
-                  onChange={(e) =>
-                    setPodcastForm({
-                      ...podcastForm,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg h-24"
-                  placeholder="What's your podcast about?"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Category
-                </label>
-                <select
-                  value={podcastForm.category}
-                  onChange={(e) =>
-                    setPodcastForm({ ...podcastForm, category: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="Technology">Technology</option>
-                  <option value="Business">Business</option>
-                  <option value="Education">Education</option>
-                  <option value="Entertainment">Entertainment</option>
-                  <option value="News">News</option>
-                  <option value="Comedy">Comedy</option>
-                  <option value="Music">Music</option>
-                  <option value="Sports">Sports</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="podcastPublic"
-                  checked={podcastForm.isPublic}
-                  onChange={(e) =>
-                    setPodcastForm({ ...podcastForm, isPublic: e.target.checked })
-                  }
-                  className="w-4 h-4"
-                />
-                <label htmlFor="podcastPublic" className="text-sm">
-                  Public (anyone can listen)
-                </label>
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button onClick={createPodcast} className="flex-1">
-                  <Mic className="w-4 h-4 mr-2" />
-                  Create Podcast
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCreatePodcast(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Edit Podcast Modal */}
-      {showEditPodcast && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">Edit Podcast</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Title *</label>
-                <input
-                  type="text"
-                  value={podcastForm.title}
-                  onChange={(e) =>
-                    setPodcastForm({ ...podcastForm, title: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="My Awesome Podcast"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Author *
-                </label>
-                <input
-                  type="text"
-                  value={podcastForm.author}
-                  onChange={(e) =>
-                    setPodcastForm({ ...podcastForm, author: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="Your Name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={podcastForm.description}
-                  onChange={(e) =>
-                    setPodcastForm({
-                      ...podcastForm,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg h-24"
-                  placeholder="What's your podcast about?"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Category
-                </label>
-                <select
-                  value={podcastForm.category}
-                  onChange={(e) =>
-                    setPodcastForm({ ...podcastForm, category: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="Technology">Technology</option>
-                  <option value="Business">Business</option>
-                  <option value="Education">Education</option>
-                  <option value="Entertainment">Entertainment</option>
-                  <option value="News">News</option>
-                  <option value="Comedy">Comedy</option>
-                  <option value="Music">Music</option>
-                  <option value="Sports">Sports</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="editPodcastPublic"
-                  checked={podcastForm.isPublic}
-                  onChange={(e) =>
-                    setPodcastForm({ ...podcastForm, isPublic: e.target.checked })
-                  }
-                  className="w-4 h-4"
-                />
-                <label htmlFor="editPodcastPublic" className="text-sm">
-                  Public (anyone can listen)
-                </label>
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button onClick={updatePodcast} className="flex-1">
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Update Podcast
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowEditPodcast(false);
-                    setEditingPodcast(null);
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Create Episode Modal */}
-      {showCreateEpisode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">Upload New Episode</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Title *</label>
-                <input
-                  type="text"
-                  value={episodeForm.title}
-                  onChange={(e) =>
-                    setEpisodeForm({ ...episodeForm, title: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="Episode title"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Audio File *
-                </label>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="file"
-                      accept="audio/*"
-                      onChange={handleAudioFileChange}
-                      className="hidden"
-                      id="audioFileInput"
-                    />
-                    <label
-                      htmlFor="audioFileInput"
-                      className="px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      {audioFile ? audioFile.name : "Choose Audio File"}
-                    </label>
-                    {uploadingAudio && (
-                      <span className="text-sm text-gray-500">Processing...</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Or paste a direct URL below (MP3, WAV, etc.)
-                  </p>
-                  <input
-                    type="text"
-                    value={episodeForm.audioUrl.startsWith("blob:") ? "" : episodeForm.audioUrl}
-                    onChange={(e) =>
-                      setEpisodeForm({ ...episodeForm, audioUrl: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border rounded-lg"
-                    placeholder="https://example.com/episode.mp3"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Duration (seconds) *
-                </label>
-                <input
-                  type="number"
-                  value={episodeForm.duration}
-                  onChange={(e) =>
-                    setEpisodeForm({
-                      ...episodeForm,
-                      duration: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="1800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Episode Number
-                </label>
-                <input
-                  type="number"
-                  value={episodeForm.episodeNumber}
-                  onChange={(e) =>
-                    setEpisodeForm({
-                      ...episodeForm,
-                      episodeNumber: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={episodeForm.description}
-                  onChange={(e) =>
-                    setEpisodeForm({
-                      ...episodeForm,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg h-24"
-                  placeholder="Episode description"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Show Notes
-                </label>
-                <textarea
-                  value={episodeForm.showNotes}
-                  onChange={(e) =>
-                    setEpisodeForm({
-                      ...episodeForm,
-                      showNotes: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg h-32"
-                  placeholder="Additional notes, links, timestamps..."
-                />
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button onClick={createEpisode} className="flex-1">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Episode
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCreateEpisode(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Edit Episode Modal */}
-      {showEditEpisode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">Edit Episode</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Title *</label>
-                <input
-                  type="text"
-                  value={episodeForm.title}
-                  onChange={(e) =>
-                    setEpisodeForm({ ...episodeForm, title: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="Episode title"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Audio URL *
-                </label>
-                <input
-                  type="text"
-                  value={episodeForm.audioUrl}
-                  onChange={(e) =>
-                    setEpisodeForm({ ...episodeForm, audioUrl: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="https://example.com/episode.mp3"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Duration (seconds) *
-                </label>
-                <input
-                  type="number"
-                  value={episodeForm.duration}
-                  onChange={(e) =>
-                    setEpisodeForm({
-                      ...episodeForm,
-                      duration: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="1800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Episode Number
-                </label>
-                <input
-                  type="number"
-                  value={episodeForm.episodeNumber}
-                  onChange={(e) =>
-                    setEpisodeForm({
-                      ...episodeForm,
-                      episodeNumber: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={episodeForm.description}
-                  onChange={(e) =>
-                    setEpisodeForm({
-                      ...episodeForm,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg h-24"
-                  placeholder="Episode description"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Show Notes
-                </label>
-                <textarea
-                  value={episodeForm.showNotes}
-                  onChange={(e) =>
-                    setEpisodeForm({
-                      ...episodeForm,
-                      showNotes: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg h-32"
-                  placeholder="Additional notes, links, timestamps..."
-                />
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button onClick={updateEpisode} className="flex-1">
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Update Episode
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowEditEpisode(false);
-                    setEditingEpisode(null);
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
+          <DialogFooter className="mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEpisodeDialogOpen(false);
+                setEpisodeForm(EPISODE_DEFAULTS);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCreateEpisode} disabled={savingEpisode}>
+              {savingEpisode ? "Publishing..." : "Publish episode"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

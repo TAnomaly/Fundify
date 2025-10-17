@@ -2,8 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -125,7 +124,7 @@ model User {
   eventReminders EventReminder[] @relation("EventReminders")
 
   // Notification relations
-  notifications      Notification[] @relation("Notifications")
+  notifications          Notification[] @relation("Notifications")
   triggeredNotifications Notification[] @relation("NotificationActors")
 
   // Poll relations
@@ -136,8 +135,8 @@ model User {
   goals Goal[] @relation("CreatorGoals")
 
   // Digital Downloads relations
-  downloads         Download[]       @relation("CreatorDownloads")
-  downloadRecords   DownloadRecord[]
+  downloads       Download[]       @relation("CreatorDownloads")
+  downloadRecords DownloadRecord[]
 
   // Direct Messaging relations
   sentMessages     Message[]      @relation("SentMessages")
@@ -153,7 +152,6 @@ model User {
 
   // Analytics relations
   analytics AnalyticsCache[] @relation("CreatorAnalytics")
-
 
   // Digital Products relations
   digitalProducts DigitalProduct[] @relation("CreatorDigitalProducts")
@@ -350,9 +348,9 @@ model MembershipTier {
   campaignId String
   campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  subscriptions    Subscription[]
-  scheduledPosts   ScheduledPost[]
-  welcomeMessages  WelcomeMessage[]
+  subscriptions   Subscription[]
+  scheduledPosts  ScheduledPost[]
+  welcomeMessages WelcomeMessage[]
 
   @@index([campaignId])
   @@index([isActive])
@@ -683,12 +681,12 @@ model EventRSVP {
   updatedAt DateTime   @updatedAt
 
   // Ticket information
-  ticketCode    String   @unique @default(uuid()) // Unique ticket code for QR
-  isPaid        Boolean  @default(false) // For premium events
-  paymentId     String? // Stripe payment intent ID
-  checkedIn     Boolean  @default(false) // Has the user checked in?
-  checkedInAt   DateTime?
-  checkedInBy   String? // Staff member who checked them in
+  ticketCode  String    @unique @default(uuid()) // Unique ticket code for QR
+  isPaid      Boolean   @default(false) // For premium events
+  paymentId   String? // Stripe payment intent ID
+  checkedIn   Boolean   @default(false) // Has the user checked in?
+  checkedInAt DateTime?
+  checkedInBy String? // Staff member who checked them in
 
   userId String
   user   User   @relation("EventRSVPs", fields: [userId], references: [id], onDelete: Cascade)
@@ -737,15 +735,15 @@ enum NotificationType {
 }
 
 model Notification {
-  id        String           @id @default(uuid())
-  type      NotificationType
-  title     String
-  message   String           @db.Text
-  link      String? // URL to the relevant content
-  imageUrl  String? // Optional image for the notification
+  id       String           @id @default(uuid())
+  type     NotificationType
+  title    String
+  message  String           @db.Text
+  link     String? // URL to the relevant content
+  imageUrl String? // Optional image for the notification
 
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   userId String
   user   User   @relation("Notifications", fields: [userId], references: [id], onDelete: Cascade)
@@ -761,9 +759,9 @@ model Notification {
 
 // Poll System
 model Poll {
-  id        String   @id @default(uuid())
-  question  String   @db.Text
-  options   String[] // JSON array of options
+  id       String   @id @default(uuid())
+  question String   @db.Text
+  options  String[] // JSON array of options
 
   // Settings
   expiresAt      DateTime?
@@ -771,14 +769,14 @@ model Poll {
   allowAddOption Boolean   @default(false)
 
   // Access control
-  isPublic       Boolean @default(false) // If false, only supporters can vote
-  minimumTierId  String? // Minimum tier required to vote
+  isPublic      Boolean @default(false) // If false, only supporters can vote
+  minimumTierId String? // Minimum tier required to vote
 
   // Stats
   totalVotes Int @default(0)
 
   // Status
-  isActive  Boolean @default(true)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -793,10 +791,10 @@ model Poll {
 }
 
 model PollVote {
-  id           String   @id @default(uuid())
-  optionIndex  Int // Index of the option in the options array
-  optionText   String // Store the text in case poll is deleted
-  createdAt    DateTime @default(now())
+  id          String   @id @default(uuid())
+  optionIndex Int // Index of the option in the options array
+  optionText  String // Store the text in case poll is deleted
+  createdAt   DateTime @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -814,9 +812,9 @@ model PollVote {
 // ============================================
 
 enum GoalType {
-  REVENUE      // Monthly revenue goal
-  SUBSCRIBERS  // Subscriber count goal
-  CUSTOM       // Custom metric goal
+  REVENUE // Monthly revenue goal
+  SUBSCRIBERS // Subscriber count goal
+  CUSTOM // Custom metric goal
 }
 
 model Goal {
@@ -826,8 +824,8 @@ model Goal {
   type        GoalType @default(REVENUE)
 
   // Target and Progress
-  targetAmount Decimal  @db.Decimal(10, 2)
-  currentAmount Decimal @db.Decimal(10, 2) @default(0)
+  targetAmount  Decimal @db.Decimal(10, 2)
+  currentAmount Decimal @default(0) @db.Decimal(10, 2)
 
   // Reward for reaching goal
   rewardDescription String? @db.Text
@@ -858,32 +856,32 @@ model Goal {
 // ============================================
 
 enum FileType {
-  AUDIO    // MP3, WAV, etc
-  VIDEO    // MP4, MOV, etc
+  AUDIO // MP3, WAV, etc
+  VIDEO // MP4, MOV, etc
   DOCUMENT // PDF, DOCX, etc
-  IMAGE    // JPG, PNG, etc
-  ARCHIVE  // ZIP, RAR, etc
+  IMAGE // JPG, PNG, etc
+  ARCHIVE // ZIP, RAR, etc
   OTHER
 }
 
 model Download {
-  id          String   @id @default(uuid())
-  title       String   @db.Text
-  description String?  @db.Text
+  id          String  @id @default(uuid())
+  title       String  @db.Text
+  description String? @db.Text
 
   // File Info
-  fileUrl      String   @db.Text
-  fileName     String
-  fileSize     BigInt   // Size in bytes
-  fileType     FileType
-  mimeType     String
+  fileUrl  String   @db.Text
+  fileName String
+  fileSize BigInt // Size in bytes
+  fileType FileType
+  mimeType String
 
   // Thumbnail/Preview
-  thumbnailUrl String?  @db.Text
+  thumbnailUrl String? @db.Text
 
   // Access Control
-  isPublic       Boolean @default(false)
-  minimumTierId  String? // Tier required to download
+  isPublic      Boolean @default(false)
+  minimumTierId String? // Tier required to download
 
   // Stats
   downloadCount Int @default(0)
@@ -904,7 +902,7 @@ model Download {
 }
 
 model DownloadRecord {
-  id         String   @id @default(uuid())
+  id           String   @id @default(uuid())
   downloadedAt DateTime @default(now())
 
   userId String
@@ -923,9 +921,9 @@ model DownloadRecord {
 // ============================================
 
 enum MessageType {
-  TEXT      // Regular text message
-  IMAGE     // Image message
-  FILE      // File attachment
+  TEXT // Regular text message
+  IMAGE // Image message
+  FILE // File attachment
   BROADCAST // Broadcast to all supporters
 }
 
@@ -939,8 +937,8 @@ model Message {
   attachmentName String?
 
   // Read status
-  isRead   Boolean  @default(false)
-  readAt   DateTime?
+  isRead Boolean   @default(false)
+  readAt DateTime?
 
   // Broadcast
   isBroadcast Boolean @default(false)
@@ -963,7 +961,7 @@ model Message {
 }
 
 model Conversation {
-  id           String   @id @default(uuid())
+  id            String   @id @default(uuid())
   lastMessageAt DateTime @default(now())
 
   // Participants
@@ -984,22 +982,22 @@ model Conversation {
 
 // Scheduled Posts - Content Scheduling System
 model ScheduledPost {
-  id          String   @id @default(uuid())
-  title       String   @db.Text
-  content     String   @db.Text
-  excerpt     String?  @db.Text
-  coverImage  String?  @db.Text
-  mediaUrls   String[] // Array of media URLs
+  id         String   @id @default(uuid())
+  title      String   @db.Text
+  content    String   @db.Text
+  excerpt    String?  @db.Text
+  coverImage String?  @db.Text
+  mediaUrls  String[] // Array of media URLs
 
   // Scheduling
   scheduledFor DateTime // When to publish
-  published    Boolean  @default(false)
+  published    Boolean   @default(false)
   publishedAt  DateTime?
 
   // Access Control
-  isPublic       Boolean @default(true)
-  minimumTierId  String?
-  minimumTier    MembershipTier? @relation(fields: [minimumTierId], references: [id], onDelete: SetNull)
+  isPublic      Boolean         @default(true)
+  minimumTierId String?
+  minimumTier   MembershipTier? @relation(fields: [minimumTierId], references: [id], onDelete: SetNull)
 
   // Metadata
   createdAt DateTime @default(now())
@@ -1054,18 +1052,18 @@ model AnalyticsCache {
   year  Int
 
   // Metrics
-  revenue            Decimal @db.Decimal(10, 2) @default(0)
-  newSubscribers     Int     @default(0)
-  canceledSubscribers Int    @default(0)
-  activeSubscribers  Int     @default(0)
-  totalSubscribers   Int     @default(0)
-  postsPublished     Int     @default(0)
-  pollsCreated       Int     @default(0)
-  eventsCreated      Int     @default(0)
-  totalViews         Int     @default(0)
-  totalLikes         Int     @default(0)
-  totalComments      Int     @default(0)
-  totalDownloads     Int     @default(0)
+  revenue             Decimal @default(0) @db.Decimal(10, 2)
+  newSubscribers      Int     @default(0)
+  canceledSubscribers Int     @default(0)
+  activeSubscribers   Int     @default(0)
+  totalSubscribers    Int     @default(0)
+  postsPublished      Int     @default(0)
+  pollsCreated        Int     @default(0)
+  eventsCreated       Int     @default(0)
+  totalViews          Int     @default(0)
+  totalLikes          Int     @default(0)
+  totalComments       Int     @default(0)
+  totalDownloads      Int     @default(0)
 
   // Metadata
   createdAt DateTime @default(now())
@@ -1081,15 +1079,14 @@ model AnalyticsCache {
   @@index([date])
 }
 
-
 enum ProductType {
-  EBOOK       // Digital books, PDFs
-  COURSE      // Online courses, tutorials
-  TEMPLATE    // Design templates, code templates
-  AUDIO       // Music, audio files
-  VIDEO       // Video content
-  SOFTWARE    // Apps, plugins, tools
-  ASSET       // 3D models, graphics, etc
+  EBOOK // Digital books, PDFs
+  COURSE // Online courses, tutorials
+  TEMPLATE // Design templates, code templates
+  AUDIO // Music, audio files
+  VIDEO // Video content
+  SOFTWARE // Apps, plugins, tools
+  ASSET // 3D models, graphics, etc
   OTHER
 }
 
@@ -1101,41 +1098,41 @@ enum PurchaseStatus {
 }
 
 model DigitalProduct {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
-  description String?  @db.Text
-  price       Float    // Price in USD
+  description String? @db.Text
+  price       Float // Price in USD
 
   // Product Details
   productType ProductType
-  fileUrl     String?  @db.Text // File download URL
-  fileSize    BigInt?  // Size in bytes
+  fileUrl     String?     @db.Text // File download URL
+  fileSize    BigInt? // Size in bytes
 
   // Media
-  coverImage  String?  @db.Text
-  previewUrl  String?  @db.Text // Demo/preview file
+  coverImage String? @db.Text
+  previewUrl String? @db.Text // Demo/preview file
 
   // Content
-  features    String[] // List of features/what's included
+  features     String[] // List of features/what's included
   requirements String[] // System requirements or prerequisites
 
   // Sales Info
-  salesCount  Int      @default(0)
-  revenue     Float    @default(0)
+  salesCount Int   @default(0)
+  revenue    Float @default(0)
 
   // Status
-  isActive    Boolean  @default(true)
-  isFeatured  Boolean  @default(false)
+  isActive   Boolean @default(true)
+  isFeatured Boolean @default(false)
 
   // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  creatorId   String
-  creator     User     @relation("CreatorDigitalProducts", fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String
+  creator   User   @relation("CreatorDigitalProducts", fields: [creatorId], references: [id], onDelete: Cascade)
 
-  purchases   Purchase[]
+  purchases Purchase[]
 
   @@index([creatorId])
   @@index([productType])
@@ -1144,25 +1141,25 @@ model DigitalProduct {
 }
 
 model Purchase {
-  id          String         @id @default(uuid())
-  amount      Float          // Purchase amount
-  status      PurchaseStatus @default(PENDING)
+  id     String         @id @default(uuid())
+  amount Float // Purchase amount
+  status PurchaseStatus @default(PENDING)
 
   // Payment Info
   paymentMethod String?
-  transactionId String?      @unique
+  transactionId String? @unique
 
   // Download tracking
-  downloadCount Int          @default(0)
+  downloadCount  Int       @default(0)
   lastDownloadAt DateTime?
 
   // Timestamps
-  purchasedAt DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  purchasedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  userId    String
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   productId String
   product   DigitalProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -1186,49 +1183,56 @@ enum EpisodeStatus {
 }
 
 model Podcast {
-  id          String        @id @default(uuid())
-  title       String
-  description String?
-  category    String        @default("Technology")
-  language    String        @default("English")
-  coverImage  String?
-  status      PodcastStatus @default(DRAFT)
-  
+  id              String        @id @default(uuid())
+  title           String
+  description     String?
+  category        String        @default("Technology")
+  language        String        @default("English")
+  coverImage      String?
+  spotifyShowUrl  String?
+  spotifyShowId   String?
+  externalFeedUrl String?
+  status          PodcastStatus @default(DRAFT)
+
   // Timestamps
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  creatorId   String
-  creator     User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  
-  episodes    PodcastEpisode[]
-  
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  episodes PodcastEpisode[]
+
   @@index([creatorId])
   @@index([status])
   @@index([createdAt])
+  @@index([spotifyShowId])
 }
 
 model PodcastEpisode {
-  id            String        @id @default(uuid())
-  title         String
-  description   String?
-  episodeNumber Int
-  duration      Int?          // Duration in seconds
-  audioUrl      String?
-  status        EpisodeStatus @default(DRAFT)
-  
+  id                String        @id @default(uuid())
+  title             String
+  description       String?
+  episodeNumber     Int
+  duration          Int? // Duration in seconds
+  audioUrl          String?
+  spotifyEpisodeUrl String?
+  spotifyEpisodeId  String?
+  status            EpisodeStatus @default(DRAFT)
+
   // Timestamps
-  publishedAt   DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   // Relations
-  podcastId     String
-  podcast       Podcast       @relation(fields: [podcastId], references: [id], onDelete: Cascade)
-  
+  podcastId String
+  podcast   Podcast @relation(fields: [podcastId], references: [id], onDelete: Cascade)
+
   @@index([podcastId])
   @@index([episodeNumber])
   @@index([status])
   @@index([publishedAt])
+  @@index([spotifyEpisodeId])
 }
