@@ -20,20 +20,20 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Fundify - Crowdfunding Platform for Creative Projects",
-  description: "Bring your creative projects to life with Fundify. The modern crowdfunding platform for innovative ideas.",
-  keywords: ["crowdfunding", "fundraising", "creative projects", "startup", "innovation"],
+  title: "Fundify – The Creator Growth Platform",
+  description: "Build communities, launch products, host events, and grow recurring revenue with Fundify’s all-in-one creator platform.",
+  keywords: ["creator economy", "subscriptions", "digital products", "events", "membership", "community", "crowdfunding"],
   authors: [{ name: "Fundify Team" }],
   openGraph: {
-    title: "Fundify - Crowdfunding Platform",
-    description: "Bring your creative projects to life with Fundify",
+    title: "Fundify – The Creator Growth Platform",
+    description: "Launch campaigns, memberships, events and premium content from a single dashboard.",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fundify - Crowdfunding Platform",
-    description: "Bring your creative projects to life with Fundify",
+    title: "Fundify – The Creator Growth Platform",
+    description: "Launch campaigns, memberships, events and premium content from a single dashboard.",
   },
 };
 
@@ -68,7 +68,7 @@ export default function RootLayout({
                     <span className="text-xl font-bold text-gradient">Fundify</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    The modern crowdfunding platform for creative projects and innovative ideas.
+                    The operating system for creators to launch, monetise, and nurture community across campaigns, memberships, events, and digital releases.
                   </p>
                 </div>
 

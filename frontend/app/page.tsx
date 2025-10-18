@@ -49,55 +49,55 @@ export default function Home() {
   const features = [
     {
       icon: <Rocket className="w-7 h-7" />,
-      title: "Launch in Minutes",
-      description: "Create your campaign with our intuitive builder. No technical skills needed.",
+      title: "Launch Your Creator Hub",
+      description: "Campaigns, memberships, events, podcast episodes, digital products — all orchestrated from one dashboard.",
       gradient: "from-purple-500 to-pink-500"
     },
     {
       icon: <Shield className="w-7 h-7" />,
-      title: "Bank-Level Security",
-      description: "Your funds are protected with enterprise-grade encryption and compliance.",
+      title: "Monetise Every Format",
+      description: "Offer tiered subscriptions, paywalled articles, live experiences, and exclusive drops without stitching tools together.",
       gradient: "from-blue-500 to-cyan-500"
     },
     {
       icon: <Globe className="w-7 h-7" />,
-      title: "Global Reach",
-      description: "Connect with supporters from 190+ countries. Accept payments anywhere.",
+      title: "Programmable Creator Feed",
+      description: "Schedule highlights, pin announcements, and surface recommendations your community actually cares about.",
       gradient: "from-green-500 to-emerald-500"
     },
     {
       icon: <TrendingUp className="w-7 h-7" />,
-      title: "Real-Time Analytics",
-      description: "Track performance, engagement, and revenue with beautiful dashboards.",
+      title: "Audience Intelligence",
+      description: "Real-time analytics for revenue, retention, and content performance with cohort tracking and A/B insights.",
       gradient: "from-orange-500 to-red-500"
     },
   ];
 
   const stats = [
     { icon: <Users className="w-6 h-6" />, label: "Active Creators", value: "12,345+", gradient: "from-purple-500 to-pink-500" },
-    { icon: <DollarSign className="w-6 h-6" />, label: "Total Raised", value: "$24.5M", gradient: "from-blue-500 to-cyan-500" },
-    { icon: <Heart className="w-6 h-6" />, label: "Supporters", value: "89,234", gradient: "from-red-500 to-pink-500" },
-    { icon: <Award className="w-6 h-6" />, label: "Success Rate", value: "87%", gradient: "from-yellow-500 to-orange-500" },
+    { icon: <Heart className="w-6 h-6" />, label: "Supporters Reached", value: "3.8M", gradient: "from-red-500 to-pink-500" },
+    { icon: <DollarSign className="w-6 h-6" />, label: "Recurring Revenue", value: "$12.7M", gradient: "from-blue-500 to-cyan-500" },
+    { icon: <Award className="w-6 h-6" />, label: "Launch Success", value: "87%", gradient: "from-yellow-500 to-orange-500" },
   ];
 
   const testimonials = [
     {
       name: "Sarah Johnson",
-      role: "Tech Entrepreneur",
+      role: "Tech Educator",
       image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      quote: "Fundify helped me raise $50K in just 2 weeks. The platform is incredible!"
+      quote: "I replaced four different tools with Fundify — campaigns, newsletters, memberships, even my live cohorts now live in one timeline."
     },
     {
       name: "Marcus Chen",
       role: "Game Developer",
       image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
-      quote: "Best crowdfunding platform I've used. The analytics dashboard is a game-changer."
+      quote: "The creator feed feels like Substack meets Patreon. Highlights, saved posts, and intelligent recommendations doubled my engagement overnight."
     },
     {
       name: "Emily Rodriguez",
-      role: "Artist",
+      role: "Artist & Podcaster",
       image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
-      quote: "I built a community of 1000+ patrons. Fundify made it so easy!"
+      quote: "Fundify unlocked new income streams — premium episodes, events, merch drops — and the analytics show exactly what resonates."
     }
   ];
 
@@ -139,13 +139,13 @@ export default function Home() {
             >
               <Sparkles className="w-4 h-4 text-[#F92672]" />
               <span className="text-gradient">
-                Join 89,234+ Creators Worldwide
+                Join 89,234+ creators running their business on Fundify
               </span>
             </motion.div>
 
             {/* Main Heading */}
             <TextGenerateEffect
-              words="Fund Your Dreams. Build Your Community."
+              words="Ship campaigns. Stream content. Grow recurring revenue."
               className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight text-gradient-monokai"
             />
 
@@ -156,8 +156,7 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 1.5 }} // Increased delay to wait for the text generate effect
               className="text-xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed"
             >
-              The modern platform for creators, entrepreneurs, and innovators.
-              Launch campaigns, build memberships, and connect with supporters who believe in you.
+              Fundify is your command centre for the creator economy — launch campaigns, schedule posts, host live events, sell drops, and keep fans engaged with a programmable feed.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -170,16 +169,16 @@ export default function Home() {
               <Link href="/campaigns/create">
                 <Button size="lg" className="group relative overflow-hidden rounded-full px-8 py-6 text-lg bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] shadow-[0_12px_50px_-20px_rgba(249,38,114,0.65)] hover:shadow-[0_18px_60px_-24px_rgba(174,129,255,0.55)]">
                   <span className="relative z-10 flex items-center gap-2">
-                    Start Your Campaign
+                    Launch Your Creator Hub
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-[#66D9EF] via-[#AE81FF] to-[#F92672] opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Button>
               </Link>
-              <Link href="/campaigns">
+              <Link href="/feed">
                 <Button size="lg" variant="glass" className="px-8 py-6 text-lg rounded-full bg-white/20 text-white dark:text-white border border-white/30">
                   <Play className="w-5 h-5 mr-2" />
-                  Explore Campaigns
+                  Explore Creator Feed
                 </Button>
               </Link>
             </motion.div>
