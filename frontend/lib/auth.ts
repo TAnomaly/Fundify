@@ -2,6 +2,7 @@ import { jwtDecode } from "jwt-decode";
 import { User } from "./types";
 
 const TOKEN_KEY = "authToken";
+export const AUTH_EVENT = "fundify-auth-change";
 
 interface DecodedToken {
   userId: string;
@@ -34,6 +35,10 @@ export const saveToken = async (token: string): Promise<void> => {
   } catch (error) {
     console.error("Failed to fetch user data after login:", error);
   }
+
+  window.dispatchEvent(
+    new CustomEvent(AUTH_EVENT, { detail: { status: "login" as const } })
+  );
 };
 
 // Get token from localStorage
@@ -50,6 +55,9 @@ export const removeToken = (): void => {
     localStorage.removeItem(TOKEN_KEY);
     // Also remove from cookie
     document.cookie = "authToken=; path=/; max-age=0";
+    window.dispatchEvent(
+      new CustomEvent(AUTH_EVENT, { detail: { status: "logout" as const } })
+    );
   }
 };
 

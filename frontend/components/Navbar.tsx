@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, getCurrentUser, removeToken } from "@/lib/auth";
+import { isAuthenticated, getCurrentUser, removeToken, AUTH_EVENT } from "@/lib/auth";
 import {
   Moon,
   Sun,
@@ -24,7 +24,7 @@ import {
   Rss,
 } from "lucide-react";
 import { MovingBorderButton } from "@/components/ui/moving-border";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { notificationApi } from "@/lib/api";
 import { NotificationItem } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
@@ -40,6 +40,7 @@ export function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const primaryLinks = useMemo(() => {
     const links = [
@@ -80,18 +81,22 @@ export function Navbar() {
 
     checkAuth();
     // Check auth on every route change and storage updates
-    window.addEventListener("storage", checkAuth);
-
-    // Also listen for custom storage events (from same window)
     const handleStorageChange = () => {
       console.log("📡 Storage change detected, updating Navbar...");
       checkAuth();
     };
+
+    const handleAuthChange = (_event: Event) => {
+      console.log("🔑 Auth change event received, refreshing Navbar state...");
+      checkAuth();
+    };
+
     window.addEventListener("storage", handleStorageChange);
+    window.addEventListener(AUTH_EVENT, handleAuthChange);
 
     return () => {
-      window.removeEventListener("storage", checkAuth);
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(AUTH_EVENT, handleAuthChange);
     };
   }, []);
 
@@ -398,13 +403,13 @@ export function Navbar() {
 
             {/* Mobile menu */}
             <div className="sm:hidden">
-              <Dialog>
+              <Dialog open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <DialogTrigger asChild>
                   <button aria-label="Open menu" className="p-2.5 rounded-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-gray-200/70 dark:border-gray-700/70 shadow-sm">
                     <Menu className="w-5 h-5" />
                   </button>
                 </DialogTrigger>
-                <DialogContent className="p-0 w-[90vw] max-w-sm overflow-hidden border-0 bg-white/95 dark:bg-slate-900/95">
+                <DialogContent className="p-0 w-[90vw] max-w-sm overflow-hidden border-0 bg-white/95 dark:bg-slate-900/95 [&>button[data-radix-dialog-close]]:hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
@@ -412,22 +417,45 @@ export function Navbar() {
                       </div>
                       <span className="font-bold">Fundify</span>
                     </div>
-                    <button className="p-2 rounded-lg hover:bg-muted"><X className="w-5 h-5" /></button>
+                    <DialogClose asChild>
+                      <button className="p-2 rounded-lg hover:bg-muted" aria-label="Close menu">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </DialogClose>
                   </div>
                   <div className="p-4 space-y-1">
                     {primaryLinks.map((item) => (
-                      <Link key={item.href} href={item.href} className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-muted">
-                        {item.label}
-                      </Link>
+                      <DialogClose asChild key={item.href}>
+                        <Link
+                          href={item.href}
+                          className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-muted"
+                        >
+                          {item.label}
+                        </Link>
+                      </DialogClose>
                     ))}
 
                     <div className="pt-2">
-                      <Link href="/campaigns/create" className="block rounded-xl px-3 py-3 text-sm font-semibold bg-gradient-primary text-white text-center shadow-soft">Start Project</Link>
+                      <DialogClose asChild>
+                        <Link
+                          href="/campaigns/create"
+                          className="block rounded-xl px-3 py-3 text-sm font-semibold bg-gradient-primary text-white text-center shadow-soft"
+                        >
+                          Start Project
+                        </Link>
+                      </DialogClose>
                     </div>
 
                     {!isLoggedIn && (
                       <div className="pt-2">
-                        <Link href="/login" className="block rounded-xl px-3 py-3 text-sm font-semibold bg-slate-900/90 text-white text-center">Sign In</Link>
+                        <DialogClose asChild>
+                          <Link
+                            href="/login"
+                            className="block rounded-xl px-3 py-3 text-sm font-semibold bg-slate-900/90 text-white text-center"
+                          >
+                            Sign In
+                          </Link>
+                        </DialogClose>
                       </div>
                     )}
                   </div>
