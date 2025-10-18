@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
   ChevronRight,
   Filter
 } from "lucide-react";
+import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
 
 interface Creator {
   id: string;
@@ -37,6 +39,22 @@ interface Creator {
     posts: number;
   };
 }
+
+const getCreatorSlug = (creator: Creator) => {
+  if (creator.username) return creator.username;
+  if (creator.name) {
+    return creator.name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+  }
+  return creator.id;
+};
+
+const getDisplayHandle = (creator: Creator) =>
+  creator.username || (creator.name ? getCreatorSlug(creator) : `user${creator.id.slice(0, 6)}`);
 
 const categories = [
   { value: "all", label: "All Creators", icon: "🎨" },
@@ -63,7 +81,6 @@ const StatPill = ({ label, value }: { label: string; value: string }) => (
 );
 
 export default function CreatorsPage() {
-  const router = useRouter();
   const [creators, setCreators] = useState<Creator[]>([]);
   const [filteredCreators, setFilteredCreators] = useState<Creator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,11 +152,6 @@ export default function CreatorsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleCreatorClick = (creator: Creator) => {
-    const username = creator.username || creator.name.toLowerCase().replace(/\s+/g, "-");
-    router.push(`/creators/${username}`);
   };
 
   // Get trending creators (top 3)
@@ -222,75 +234,90 @@ export default function CreatorsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               {trendingCreators.map((creator, index) => {
-                const username = creator.username || creator.name.toLowerCase().replace(/\s+/g, "-");
+                const slug = getCreatorSlug(creator);
+                const handle = getDisplayHandle(creator);
+                const bannerSrc = getFullMediaUrl(creator.bannerImage);
+                const avatarSrc = getFullMediaUrl(creator.avatar);
+
                 return (
-                  <Card
+                  <Link
                     key={creator.id}
-                    className="group cursor-pointer overflow-hidden rounded-3xl border border-white/15 bg-background/80 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_30px_80px_-50px_rgba(249,38,114,0.6)] relative"
-                    onClick={() => handleCreatorClick(creator)}
+                    href={`/creators/${slug}`}
+                    className="group relative block overflow-hidden rounded-3xl border border-white/15 bg-background/80 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_30px_80px_-50px_rgba(249,38,114,0.6)]"
+                    prefetch
                   >
-                    {/* Rank Badge */}
-                    <div className="absolute top-4 left-4 z-10 w-10 h-10 rounded-full bg-gradient-to-r from-orange-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                      {index + 1}
-                    </div>
-
-                    {/* Banner */}
-                    <div className="relative h-32 bg-gradient-to-br from-[#F92672]/80 via-[#AE81FF]/80 to-[#66D9EF]/80">
-                      {creator.bannerImage && (
-                        <img src={creator.bannerImage} alt="" className="w-full h-full object-cover" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                    </div>
-
-                    {/* Avatar */}
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2">
-                      {creator.avatar ? (
-                        <img
-                          src={creator.avatar}
-                          alt={creator.name}
-                          className="w-20 h-20 rounded-full border-4 border-white shadow-xl object-cover"
-                        />
-                      ) : (
-                        <div className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg bg-gradient-to-br from-[#F92672]/90 to-[#FD971F]/80 flex items-center justify-center text-3xl font-bold text-white">
-                          {creator.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-
-                    <CardContent className="pt-14 pb-6 px-6 text-center">
-                      <h3 className="text-xl font-bold mb-1 text-foreground group-hover:text-gradient-monokai transition-colors">
-                        {creator.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-3">@{username}</p>
-
-                      {creator.creatorBio && (
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
-                          {creator.creatorBio}
-                        </p>
-                      )}
-
-                      <div className="flex justify-center gap-6 mb-4">
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-[#AE81FF]">
-                            {creator._count?.subscribers || 0}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Subscribers</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-[#66D9EF]">
-                            {creator._count?.posts || 0}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Posts</div>
-                        </div>
+                    <Card className="pointer-events-none border-0 shadow-none">
+                      {/* Rank Badge */}
+                      <div className="absolute left-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-pink-500 text-lg font-bold text-white shadow-lg">
+                        {index + 1}
                       </div>
 
-                      <Button variant="gradient" className="w-full">
-                        View Profile
-                      </Button>
-                    </CardContent>
-                  </Card>
+                      {/* Banner */}
+                      <div className="relative h-32 bg-gradient-to-br from-[#F92672]/80 via-[#AE81FF]/80 to-[#66D9EF]/80">
+                        {bannerSrc && (
+                          <Image
+                            src={bannerSrc}
+                            alt=""
+                            fill
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      </div>
+
+                      {/* Avatar */}
+                      <div className="absolute left-1/2 top-20 -translate-x-1/2">
+                        {avatarSrc ? (
+                          <Image
+                            src={avatarSrc}
+                            alt={creator.name}
+                            width={80}
+                            height={80}
+                            className="h-20 w-20 rounded-full border-4 border-white object-cover shadow-xl"
+                          />
+                        ) : (
+                          <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-background bg-gradient-to-br from-[#F92672]/90 to-[#FD971F]/80 text-3xl font-bold text-white shadow-lg">
+                            {creator.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+
+                      <CardContent className="px-6 pb-6 pt-14 text-center">
+                        <h3 className="mb-1 text-xl font-bold text-foreground transition-colors group-hover:text-gradient-monokai">
+                          {creator.name}
+                        </h3>
+                        <p className="mb-3 text-sm text-muted-foreground">@{handle}</p>
+
+                        {creator.creatorBio && (
+                          <p className="mb-4 min-h-[40px] text-sm text-muted-foreground line-clamp-2">
+                            {creator.creatorBio}
+                          </p>
+                        )}
+
+                        <div className="mb-4 flex justify-center gap-6">
+                          <div className="text-center">
+                            <div className="text-xl font-bold text-[#AE81FF]">
+                              {creator._count?.subscribers || 0}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Subscribers</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xl font-bold text-[#66D9EF]">
+                              {creator._count?.posts || 0}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Posts</div>
+                          </div>
+                        </div>
+
+                        <Button variant="gradient" className="w-full" size="sm">
+                          View Profile
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 );
               })}
             </div>
@@ -312,61 +339,76 @@ export default function CreatorsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               {newCreators.map((creator) => {
-                const username = creator.username || creator.name.toLowerCase().replace(/\s+/g, "-");
+                const slug = getCreatorSlug(creator);
+                const handle = getDisplayHandle(creator);
+                const bannerSrc = getFullMediaUrl(creator.bannerImage);
+                const avatarSrc = getFullMediaUrl(creator.avatar);
+
                 return (
-                  <Card
+                  <Link
                     key={creator.id}
-                    className="group cursor-pointer overflow-hidden rounded-3xl border border-white/12 bg-background/80 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_30px_80px_-50px_rgba(102,217,239,0.55)]"
-                    onClick={() => handleCreatorClick(creator)}
+                    href={`/creators/${slug}`}
+                    className="group relative block overflow-hidden rounded-3xl border border-white/12 bg-background/80 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_30px_80px_-50px_rgba(102,217,239,0.55)]"
+                    prefetch
                   >
-                    {/* New Badge */}
-                    <div className="absolute top-4 right-4 z-10 px-3 py-1 rounded-full bg-gradient-to-r from-[#66D9EF] to-[#A6E22E] text-white text-xs font-bold shadow-lg flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      NEW
-                    </div>
-
-                    <div className="relative h-24 bg-gradient-to-br from-[#66D9EF]/80 via-[#A6E22E]/70 to-[#AE81FF]/70">
-                      {creator.bannerImage && (
-                        <img src={creator.bannerImage} alt="" className="w-full h-full object-cover" />
-                      )}
-                    </div>
-
-                    <CardContent className="pt-4 pb-5 px-5 text-center">
-                      {creator.avatar ? (
-                        <img
-                          src={creator.avatar}
-                          alt={creator.name}
-                          className="w-16 h-16 rounded-full border-4 border-white shadow-lg object-cover mx-auto -mt-12 mb-3"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-2xl border-4 border-background shadow-lg bg-gradient-to-br from-[#66D9EF]/90 to-[#AE81FF]/80 flex items-center justify-center text-2xl font-bold text-white mx-auto -mt-12 mb-3">
-                          {creator.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-
-                      <h3 className="text-lg font-bold mb-1 text-foreground group-hover:text-gradient-monokai transition-colors">
-                        {creator.name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mb-3">@{username}</p>
-
-                      <div className="flex justify-center gap-4 text-sm mb-3">
-                        <div className="text-center">
-                          <div className="font-bold text-[#AE81FF]">{creator._count?.subscribers || 0}</div>
-                          <div className="text-xs text-muted-foreground">Subs</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-bold text-[#66D9EF]">{creator._count?.posts || 0}</div>
-                          <div className="text-xs text-muted-foreground">Posts</div>
-                        </div>
+                    <Card className="pointer-events-none border-0 shadow-none">
+                      {/* New Badge */}
+                      <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-full bg-gradient-to-r from-[#66D9EF] to-[#A6E22E] px-3 py-1 text-xs font-bold text-white shadow-lg">
+                        <Sparkles className="h-3 w-3" />
+                        NEW
                       </div>
 
-                      <Button size="sm" variant="glass" className="w-full text-foreground">
-                        View Profile
-                      </Button>
-                    </CardContent>
-                  </Card>
+                      <div className="relative h-24 bg-gradient-to-br from-[#66D9EF]/80 via-[#A6E22E]/70 to-[#AE81FF]/70">
+                        {bannerSrc && (
+                          <Image
+                            src={bannerSrc}
+                            alt=""
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        )}
+                      </div>
+
+                      <CardContent className="px-5 pb-5 pt-4 text-center">
+                        {avatarSrc ? (
+                          <Image
+                            src={avatarSrc}
+                            alt={creator.name}
+                            width={64}
+                            height={64}
+                            className="mx-auto -mt-12 mb-3 h-16 w-16 rounded-full border-4 border-white object-cover shadow-lg"
+                          />
+                        ) : (
+                          <div className="mx-auto -mt-12 mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-background bg-gradient-to-br from-[#66D9EF]/90 to-[#AE81FF]/80 text-2xl font-bold text-white shadow-lg">
+                            {creator.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+
+                        <h3 className="mb-1 text-lg font-bold text-foreground transition-colors group-hover:text-gradient-monokai">
+                          {creator.name}
+                        </h3>
+                        <p className="mb-3 text-xs text-muted-foreground">@{handle}</p>
+
+                        <div className="mb-3 flex justify-center gap-4 text-sm">
+                          <div className="text-center">
+                            <div className="font-bold text-[#AE81FF]">{creator._count?.subscribers || 0}</div>
+                            <div className="text-xs text-muted-foreground">Subs</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-bold text-[#66D9EF]">{creator._count?.posts || 0}</div>
+                            <div className="text-xs text-muted-foreground">Posts</div>
+                          </div>
+                        </div>
+
+                        <Button size="sm" variant="glass" className="w-full text-foreground">
+                          View Profile
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 );
               })}
             </div>
@@ -453,74 +495,101 @@ export default function CreatorsPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredCreators.map((creator) => {
-                const username = creator.username || creator.name.toLowerCase().replace(/\s+/g, "-");
+                const slug = getCreatorSlug(creator);
+                const handle = getDisplayHandle(creator);
+                const bannerSrc = getFullMediaUrl(creator.bannerImage);
+                const avatarSrc = getFullMediaUrl(creator.avatar);
 
                 return (
-                  <Card
+                  <Link
                     key={creator.id}
-                    className="group cursor-pointer overflow-hidden rounded-3xl border border-white/12 bg-background/80 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_25px_75px_-45px_rgba(174,129,255,0.55)]"
-                    onClick={() => handleCreatorClick(creator)}
+                    href={`/creators/${slug}`}
+                    className="group block overflow-hidden rounded-3xl border border-white/12 bg-background/80 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_25px_75px_-45px_rgba(174,129,255,0.55)]"
+                    prefetch
                   >
-                    {/* Banner/Header */}
-                    <div className="relative h-28 bg-gradient-to-br from-[#F92672]/75 via-[#AE81FF]/80 to-[#66D9EF]/75">
-                      {creator.bannerImage && (
-                        <img src={creator.bannerImage} alt="" className="w-full h-full object-cover" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
-                    </div>
-
-                    {/* Avatar */}
-                    <div className="relative px-5 -mt-10">
-                      {creator.avatar ? (
-                        <img
-                          src={creator.avatar}
-                          alt={creator.name}
-                          className="w-20 h-20 rounded-full border-4 border-white shadow-lg object-cover"
-                        />
-                      ) : (
-                        <div className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg bg-gradient-to-br from-[#F92672]/85 to-[#AE81FF]/80 flex items-center justify-center text-2xl font-bold text-white">
-                          {creator.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-
-                    <CardContent className="pt-3 pb-5 px-5">
-                      <h3 className="text-lg font-bold mb-1 text-foreground group-hover:text-gradient-monokai transition-colors truncate">
-                        {creator.name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mb-3 truncate">@{username}</p>
-
-                      {creator.creatorBio && (
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
-                          {creator.creatorBio}
-                        </p>
-                      )}
-
-                      {/* Stats */}
-                      <div className="flex justify-between gap-4 mb-4 pt-3 border-t border-white/10">
-                        <div className="text-center flex-1">
-                          <div className="text-lg font-bold text-[#AE81FF]">
-                            {creator._count?.subscribers || 0}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Subs</div>
-                        </div>
-                        <div className="w-px bg-white/10"></div>
-                        <div className="text-center flex-1">
-                          <div className="text-lg font-bold text-[#66D9EF]">
-                            {creator._count?.posts || 0}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Posts</div>
-                        </div>
+                    <Card className="pointer-events-none border-0 shadow-none">
+                      <div className="relative h-28 bg-gradient-to-br from-[#F92672]/75 via-[#AE81FF]/80 to-[#66D9EF]/75">
+                        {bannerSrc && (
+                          <Image
+                            src={bannerSrc}
+                            alt=""
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1440px) 33vw, 25vw"
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                       </div>
 
-                      <Button size="sm" variant="glass" className="w-full flex items-center justify-between text-foreground">
-                        View Profile
-                        <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                      </Button>
-                    </CardContent>
-                  </Card>
+                      <div className="relative -mt-10 px-5">
+                        {avatarSrc ? (
+                          <Image
+                            src={avatarSrc}
+                            alt={creator.name}
+                            width={80}
+                            height={80}
+                            className="h-20 w-20 rounded-full border-4 border-white object-cover shadow-lg"
+                          />
+                        ) : (
+                          <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-background bg-gradient-to-br from-[#F92672]/85 to-[#AE81FF]/80 text-2xl font-bold text-white shadow-lg">
+                            {creator.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+
+                      <CardContent className="px-5 pb-5 pt-3">
+                        <h3 className="mb-1 truncate text-lg font-bold text-foreground transition-colors group-hover:text-gradient-monokai">
+                          {creator.name}
+                        </h3>
+                        <p className="mb-3 truncate text-xs text-muted-foreground">@{handle}</p>
+
+                        {creator.creatorBio && (
+                          <p className="mb-4 min-h-[40px] text-sm text-muted-foreground line-clamp-2">
+                            {creator.creatorBio}
+                          </p>
+                        )}
+
+                        <div className="mb-4 flex justify-between gap-4 border-t border-white/10 pt-3 text-xs text-muted-foreground">
+                          <div className="flex-1 text-center">
+                            <div className="text-lg font-bold text-[#AE81FF]">
+                              {creator._count?.subscribers || 0}
+                            </div>
+                            <div>Subs</div>
+                          </div>
+                          <div className="h-8 w-px bg-white/10" />
+                          <div className="flex-1 text-center">
+                            <div className="text-lg font-bold text-[#66D9EF]">
+                              {creator._count?.posts || 0}
+                            </div>
+                            <div>Posts</div>
+                          </div>
+                          <div className="h-8 w-px bg-white/10" />
+                          <div className="flex-1 text-center">
+                            <div className="text-lg font-bold text-[#F92672]">
+                              {creator.createdAt
+                                ? new Date(creator.createdAt).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                : "—"}
+                            </div>
+                            <div>Joined</div>
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="glass"
+                          className="flex w-full items-center justify-between text-foreground"
+                        >
+                          View Profile
+                          <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 );
               })}
             </div>
@@ -544,19 +613,21 @@ export default function CreatorsPage() {
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Button
                       size="lg"
-                      className="bg-white text-purple-600 hover:bg-gray-100 shadow-xl text-lg px-8"
-                      onClick={() => router.push("/creator-dashboard")}
+                      className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 shadow-xl"
+                      asChild
                     >
-                      Start Creating
-                      <ChevronRight className="w-5 h-5 ml-2" />
+                      <Link href="/creator-dashboard">
+                        Start Creating
+                        <ChevronRight className="ml-2 h-5 w-5" />
+                      </Link>
                     </Button>
                     <Button
                       size="lg"
                       variant="outline"
-                      className="border-2 border-white text-white hover:bg-white/10 text-lg px-8"
-                      onClick={() => router.push("/about")}
+                      className="border-2 border-white text-lg text-white hover:bg-white/10 px-8"
+                      asChild
                     >
-                      Learn More
+                      <Link href="/about">Learn More</Link>
                     </Button>
                   </div>
                 </div>

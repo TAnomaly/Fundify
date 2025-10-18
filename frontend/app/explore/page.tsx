@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CampaignCard } from "@/components/ui/card";
+import Link from "next/link";
+import Image from "next/image";
+import { CampaignCard } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -11,23 +12,18 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Input } from "@/components/ui/input";
 import {
-  TrendingUp,
   Flame,
-  Star,
   Users,
-  Zap,
-  Award,
-  Clock,
   Heart,
   Search
 } from "lucide-react";
+import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
 
 // Interfaces (assuming these are defined elsewhere, but including for context)
 interface Creator { id: string; name: string; username?: string; email: string; avatar?: string; bannerImage?: string; creatorBio?: string; isCreator: boolean; _count?: { subscribers: number; posts: number; }; }
 interface Campaign { id: string; title: string; slug: string; description: string; goal: number; currentAmount: number; category: string; imageUrl: string; endDate: string; backers?: number; featured?: boolean; }
 
 export default function ExplorePage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [creators, setCreators] = useState<Creator[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -216,71 +212,83 @@ export default function ExplorePage() {
 
 // A new, improved Creator Card component
 function CreatorCard({ creator }: { creator: Creator }) {
-  const router = useRouter();
   const getCreatorSlug = (creator: Creator) => {
     if (creator.username) return creator.username;
     if (creator.name) {
       return creator.name
         .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)+/g, '');
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "");
     }
     return creator.id;
   };
   const profileSlug = getCreatorSlug(creator);
   const displayHandle =
     creator.username || (creator.name ? profileSlug : `user${creator.id.slice(0, 6)}`);
+  const bannerSrc = getFullMediaUrl(creator.bannerImage);
+  const avatarSrc = getFullMediaUrl(creator.avatar);
+
   return (
-    <div
-      className="group relative overflow-hidden rounded-3xl border border-white/15 bg-white/80 dark:bg-[#1b1b1b]/85 backdrop-blur-xl shadow-[0_25px_70px_-40px_rgba(249,38,114,0.45)] transition-transform hover:-translate-y-2 cursor-pointer h-full flex flex-col"
-      onClick={() => router.push(`/creators/${profileSlug}`)}
+    <Link
+      href={`/creators/${profileSlug}`}
+      className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-white/15 bg-white/80 shadow-[0_25px_70px_-40px_rgba(249,38,114,0.45)] transition-transform hover:-translate-y-2 dark:bg-[#1b1b1b]/85"
+      prefetch
     >
       <div className="relative h-36 overflow-hidden">
-        <img
-          src={creator.bannerImage || `https://source.unsplash.com/random/400x200?creative&${creator.id}`}
-          alt={`${creator.name}'s banner`}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
+        {bannerSrc ? (
+          <Image
+            src={bannerSrc}
+            alt={`${creator.name}'s banner`}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            priority={false}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-r from-[#F92672]/40 via-[#AE81FF]/40 to-[#66D9EF]/40" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/25 to-transparent" />
       </div>
 
-      <div className="relative px-6 -mt-14 flex-1 flex flex-col pb-6">
-        <div className="w-24 h-24 rounded-2xl border-4 border-background/80 bg-background/80 flex items-center justify-center text-foreground font-semibold text-3xl shadow-[0_12px_30px_-16px_rgba(249,38,114,0.5)] overflow-hidden mb-4">
-          {creator.avatar ? (
-            <img src={creator.avatar} alt={creator.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+      <div className="relative flex flex-1 flex-col px-6 pb-6 pt-0">
+        <div className="mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border-4 border-background/80 bg-background/80 text-3xl font-semibold text-foreground shadow-[0_12px_30px_-16px_rgba(249,38,114,0.5)]">
+          {avatarSrc ? (
+            <Image
+              src={avatarSrc}
+              alt={creator.name}
+              width={96}
+              height={96}
+              className="h-full w-full object-cover"
+            />
           ) : (
             creator.name?.charAt(0).toUpperCase()
           )}
         </div>
 
-        <h3 className="text-xl font-semibold mb-1 truncate">{creator.name}</h3>
-        <p className="text-sm text-muted-foreground mb-3">
-          @{displayHandle}
-        </p>
+        <h3 className="mb-1 truncate text-xl font-semibold">{creator.name}</h3>
+        <p className="mb-3 text-sm text-muted-foreground">@{displayHandle}</p>
 
         {creator.creatorBio && (
-          <p className="text-sm text-muted-foreground/90 mb-4 line-clamp-3 flex-grow leading-relaxed">
+          <p className="mb-4 line-clamp-3 flex-grow text-sm leading-relaxed text-muted-foreground/90">
             {creator.creatorBio}
           </p>
         )}
 
-        <div className="flex items-center justify-between text-sm mt-auto pt-4 border-t border-white/10">
-          <div className="flex items-center gap-2 text-muted-foreground/90">
-            <Users className="w-4 h-4 text-[#A6E22E]" />
+        <div className="mt-auto flex items-center justify-between border-t border-white/10 pt-4 text-sm text-muted-foreground/90">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-[#A6E22E]" />
             <span className="font-semibold text-foreground">{creator._count?.subscribers || 0}</span>
             <span>supporters</span>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground/90">
-            <Heart className="w-4 h-4 text-[#F92672]" />
+          <div className="flex items-center gap-2">
+            <Heart className="h-4 w-4 text-[#F92672]" />
             <span className="font-semibold text-foreground">{creator._count?.posts || 0}</span>
             <span>posts</span>
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

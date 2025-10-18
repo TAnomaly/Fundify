@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -257,35 +258,54 @@ export default function CreatorProfilePage() {
 
   const { user, tiers } = profile;
   const isOwnProfile = currentUserId === user.id;
+  const bannerSrc = getFullMediaUrl(user.bannerImage);
+  const avatarSrc = getFullMediaUrl(user.avatar);
 
   return (
     <div className="bg-background min-h-screen">
       {/* Hero Section */}
       <BlurFade delay={0.25} inView>
-        <div className="h-80 relative w-full overflow-hidden">
-          <motion.img
-            src={getFullMediaUrl(user.bannerImage) || `https://source.unsplash.com/random/1600x900?abstract&${user.id}`}
-            alt={`${user.name}'s banner`}
-            className="w-full h-full object-cover"
-            style={{ scale: bannerScale, opacity: bannerOpacity }}
-          />
+        <div className="relative h-80 w-full overflow-hidden">
+          <motion.div className="absolute inset-0" style={{ scale: bannerScale, opacity: bannerOpacity }}>
+            {bannerSrc ? (
+              <Image
+                src={bannerSrc}
+                alt={`${user.name}'s banner`}
+                fill
+                priority
+                sizes="100vw"
+                className="object-cover"
+              />
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-[#F92672]/40 via-[#AE81FF]/40 to-[#66D9EF]/40" />
+            )}
+          </motion.div>
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
         </div>
 
         <div className="container mx-auto max-w-6xl px-4 -mt-24 relative z-10">
-          <div className="flex flex-col md:flex-row items-start md:items-end gap-4">
+          <div className="flex flex-col items-start gap-4 md:flex-row md:items-end">
             <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}>
-              <img
-                src={getFullMediaUrl(user.avatar) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-                alt={user.name}
-                className="w-32 h-32 rounded-full border-4 border-background bg-muted shadow-lg"
-              />
+              {avatarSrc ? (
+                <Image
+                  src={avatarSrc}
+                  alt={user.name}
+                  width={128}
+                  height={128}
+                  className="h-32 w-32 rounded-full border-4 border-background bg-muted object-cover shadow-lg"
+                  priority
+                />
+              ) : (
+                <div className="flex h-32 w-32 items-center justify-center rounded-full border-4 border-background bg-gradient-to-br from-[#F92672]/70 via-[#AE81FF]/70 to-[#66D9EF]/70 text-4xl font-bold text-white shadow-lg">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
             </motion.div>
             <div className="flex-1 py-4">
               <h1 className="text-4xl font-bold tracking-tight">{user.name}</h1>
               <p className="text-muted-foreground mt-1">@{user.username}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {!isOwnProfile && (
                 <Button
                   variant={isFollowing ? "outline" : "secondary"}
@@ -352,10 +372,14 @@ export default function CreatorProfilePage() {
           <div className="lg:col-span-2">
             <BlurFade delay={0.5} inView>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="border-b-0 p-0 h-auto bg-transparent">
+                <TabsList className="flex h-auto flex-nowrap gap-2 overflow-x-auto border-b-0 bg-transparent p-0">
                   {tabs.map(tab => (
-                    <TabsTrigger key={tab.id} value={tab.id} className="data-[state=active]:bg-muted data-[state=active]:shadow-none -mb-px border-b-2 border-transparent data-[state=active]:border-primary rounded-none py-3 px-4 font-semibold">
-                      <tab.icon className="w-4 h-4 mr-2" /> {tab.label}
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      className="data-[state=active]:bg-muted data-[state=active]:shadow-none -mb-px whitespace-nowrap rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-semibold data-[state=active]:border-primary"
+                    >
+                      <tab.icon className="mr-2 h-4 w-4" /> {tab.label}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -496,6 +520,10 @@ const PostCard = ({ post, onEngagementUpdate }: PostCardProps) => {
     setCommentCount(post.commentCount ?? 0);
   }, [post.commentCount]);
 
+  const authorAvatar =
+    getFullMediaUrl(post.author.avatar) ||
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(post.author.name)}`;
+
   const redirectToLogin = () => {
     const currentPath = typeof window !== "undefined" ? window.location.pathname : "/";
     router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
@@ -620,7 +648,13 @@ const PostCard = ({ post, onEngagementUpdate }: PostCardProps) => {
     <Card className="bg-card/50 border-border/30 overflow-hidden dark:bg-gray-800/50 dark:border-gray-700/30">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <img src={getFullMediaUrl(post.author.avatar) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.name}`} alt={post.author.name} className="w-10 h-10 rounded-full bg-muted" />
+          <Image
+            src={authorAvatar}
+            alt={post.author.name}
+            width={40}
+            height={40}
+            className="h-10 w-10 rounded-full bg-muted object-cover"
+          />
           <div>
             <p className="font-semibold text-foreground dark:text-gray-100">{post.author.name}</p>
             <p className="text-xs text-muted-foreground dark:text-gray-400">{new Date(post.publishedAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}</p>
@@ -637,9 +671,24 @@ const PostCard = ({ post, onEngagementUpdate }: PostCardProps) => {
           </div>
           {post.images && post.images.length > 0 && (
             <div className="grid grid-cols-2 gap-2 pt-2">
-              {post.images.slice(0, 4).map((img, i) => (
-                <img key={i} src={getFullMediaUrl(img)} className={`rounded-lg object-cover aspect-video ${post.images.length > 2 && i === 0 ? 'col-span-2' : ''}`} alt="Post image" />
-              ))}
+              {post.images.slice(0, 4).map((img, i) => {
+                const imageSrc = getFullMediaUrl(img) || img;
+                const isHero = post.images.length > 2 && i === 0;
+                return (
+                  <div
+                    key={i}
+                    className={`relative overflow-hidden rounded-lg ${isHero ? 'col-span-2 aspect-[16/9]' : 'aspect-video'}`}
+                  >
+                    <Image
+                      src={imageSrc}
+                      alt={`Post image ${i + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes={isHero ? "(max-width: 768px) 100vw, (max-width: 1024px) 66vw, 50vw" : "(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"}
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
           {post.videoUrl && <video controls src={getFullMediaUrl(post.videoUrl)} className="w-full rounded-lg bg-muted" />}
@@ -703,11 +752,16 @@ const PostCard = ({ post, onEngagementUpdate }: PostCardProps) => {
               <div className="space-y-4">
                 {comments.map((comment) => (
                   <div key={comment.id} className="flex items-start gap-2 text-sm">
-                    <div className="w-8 h-8 rounded-full bg-muted overflow-hidden flex-shrink-0">
-                      <img
-                        src={getFullMediaUrl(comment.user.avatar) || `https://api.dicebear.com/7.x/initials/svg?seed=${comment.user.name}`}
+                    <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full bg-muted">
+                      <Image
+                        src={
+                          getFullMediaUrl(comment.user.avatar) ||
+                          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(comment.user.name)}`
+                        }
                         alt={comment.user.name}
-                        className="w-full h-full object-cover"
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 object-cover"
                       />
                     </div>
                     <div>

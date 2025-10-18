@@ -1,5 +1,8 @@
 import * as React from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
 
 const Card = React.forwardRef<
   HTMLDivElement,
@@ -106,6 +109,7 @@ const CampaignCard = React.forwardRef<HTMLDivElement, CampaignCardProps>(
     ref
   ) => {
     const percentage = Math.min(Math.round((currentAmount / goal) * 100), 100);
+    const campaignImage = getFullMediaUrl(imageUrl) || imageUrl;
 
     return (
       <Card
@@ -115,15 +119,18 @@ const CampaignCard = React.forwardRef<HTMLDivElement, CampaignCardProps>(
           className
         )}
       >
-        <a href={`/campaigns/${slug}`} className="block">
+        <Link href={`/campaigns/${slug}`} className="block" prefetch>
           <div className="relative h-48 overflow-hidden">
-            <img
-              src={imageUrl}
-              alt={title}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-            />
+            {campaignImage && (
+              <Image
+                src={campaignImage}
+                alt={title}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-110"
+                priority={false}
+              />
+            )}
             <div className="absolute top-4 left-4">
               <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-xs font-semibold rounded-full text-purple-700 capitalize">
                 {category}
@@ -197,7 +204,7 @@ const CampaignCard = React.forwardRef<HTMLDivElement, CampaignCardProps>(
               </div>
             </div>
           </CardContent>
-        </a>
+        </Link>
       </Card>
     );
   }
