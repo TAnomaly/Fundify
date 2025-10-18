@@ -112,6 +112,8 @@ export function Navbar() {
     removeToken();
     setIsLoggedIn(false);
     setUser(null);
+    setShowDropdown(false);
+    setIsMobileMenuOpen(false);
     router.push("/");
   };
 
@@ -445,6 +447,37 @@ export function Navbar() {
                         </Link>
                       </DialogClose>
                     </div>
+
+                    {isLoggedIn && (
+                      <div className="pt-4 space-y-1 text-sm font-medium">
+                        <p className="px-3 py-2 text-xs uppercase tracking-wide text-muted-foreground">
+                          Account
+                        </p>
+                        <DialogClose asChild>
+                          <Link
+                            href="/dashboard"
+                            className="block rounded-lg px-3 py-3 hover:bg-muted"
+                          >
+                            Dashboard
+                          </Link>
+                        </DialogClose>
+                        <DialogClose asChild>
+                          <Link
+                            href="/creator-dashboard"
+                            className="block rounded-lg px-3 py-3 hover:bg-muted"
+                          >
+                            Creator Hub
+                          </Link>
+                        </DialogClose>
+                        <button
+                          onClick={handleLogout}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-3 text-left font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
+                        >
+                          Logout
+                          <LogOut className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
 
                     {!isLoggedIn && (
                       <div className="pt-2">
