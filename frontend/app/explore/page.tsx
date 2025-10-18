@@ -217,10 +217,25 @@ export default function ExplorePage() {
 // A new, improved Creator Card component
 function CreatorCard({ creator }: { creator: Creator }) {
   const router = useRouter();
+  const getCreatorSlug = (creator: Creator) => {
+    if (creator.username) return creator.username;
+    if (creator.name) {
+      return creator.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '');
+    }
+    return creator.id;
+  };
+  const profileSlug = getCreatorSlug(creator);
+  const displayHandle =
+    creator.username || (creator.name ? profileSlug : `user${creator.id.slice(0, 6)}`);
   return (
     <div
       className="group relative overflow-hidden rounded-3xl border border-white/15 bg-white/80 dark:bg-[#1b1b1b]/85 backdrop-blur-xl shadow-[0_25px_70px_-40px_rgba(249,38,114,0.45)] transition-transform hover:-translate-y-2 cursor-pointer h-full flex flex-col"
-      onClick={() => router.push(`/creators/${creator.username || creator.id}`)}
+      onClick={() => router.push(`/creators/${profileSlug}`)}
     >
       <div className="relative h-36 overflow-hidden">
         <img
@@ -244,7 +259,7 @@ function CreatorCard({ creator }: { creator: Creator }) {
 
         <h3 className="text-xl font-semibold mb-1 truncate">{creator.name}</h3>
         <p className="text-sm text-muted-foreground mb-3">
-          @{creator.username || `user${creator.id.slice(0, 6)}`}
+          @{displayHandle}
         </p>
 
         {creator.creatorBio && (
