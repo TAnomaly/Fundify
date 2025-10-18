@@ -11,6 +11,11 @@ import {
   Update,
   Comment,
   FeedItem,
+  FeedFilter,
+  FeedSort,
+  FeedResponseData,
+  FeedContentType,
+  FeedBookmark,
 } from "./types";
 
 // Create axios instance with default config
@@ -317,16 +322,33 @@ export const notificationApi = {
 };
 
 export const feedApi = {
-  get: async (params?: { cursor?: string; limit?: number }): Promise<{
-    success: boolean;
-    data: {
-      items: FeedItem[];
-      nextCursor: string | null;
-      hasMore: boolean;
-    };
-    message?: string;
-  }> => {
-    const { data } = await api.get('/feed', { params });
+  get: async (params?: {
+    cursor?: string;
+    limit?: number;
+    filter?: FeedFilter;
+    sort?: FeedSort;
+    period?: string;
+  }): Promise<{ success: boolean; data: FeedResponseData; message?: string }> => {
+    const query: Record<string, string | number> = {};
+    if (params?.cursor) query.cursor = params.cursor;
+    if (params?.limit) query.limit = params.limit;
+    if (params?.filter && params.filter !== 'all') query.type = params.filter;
+    if (params?.sort && params.sort !== 'recent') query.sort = params.sort;
+    if (params?.period) query.period = params.period;
+
+    const { data } = await api.get('/feed', { params: query });
+    return data;
+  },
+  listBookmarks: async (): Promise<{ success: boolean; data: FeedBookmark[] }> => {
+    const { data } = await api.get('/feed/bookmarks');
+    return data;
+  },
+  addBookmark: async (payload: { contentType: FeedContentType; contentId: string }): Promise<{ success: boolean }> => {
+    const { data } = await api.post('/feed/bookmarks', payload);
+    return data;
+  },
+  removeBookmark: async (payload: { contentType: FeedContentType; contentId: string }): Promise<{ success: boolean }> => {
+    const { data } = await api.delete('/feed/bookmarks', { data: payload });
     return data;
   },
 };

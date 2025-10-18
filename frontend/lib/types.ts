@@ -192,6 +192,9 @@ export interface NotificationItem {
 }
 
 export type FeedItemType = 'post' | 'article' | 'event';
+export type FeedFilter = 'all' | 'posts' | 'articles' | 'events' | 'highlights';
+export type FeedSort = 'recent' | 'popular';
+export type FeedContentType = 'POST' | 'ARTICLE' | 'EVENT';
 
 export interface FeedItemCreator {
   id: string;
@@ -199,10 +202,25 @@ export interface FeedItemCreator {
   username?: string | null;
   avatar?: string | null;
   slug?: string;
+  followerCount?: number;
+}
+
+export interface FeedItemMeta {
+  likes?: number;
+  comments?: number;
+  readTime?: number | null;
+  rsvps?: number;
+  startTime?: string;
+  endTime?: string;
+  location?: string | null;
+  price?: number | null;
+  visibility?: 'public' | 'supporters';
+  periodStart?: string | null;
 }
 
 export interface FeedItem {
   id: string;
+  sourceId: string;
   type: FeedItemType;
   title: string;
   summary?: string | null;
@@ -211,25 +229,54 @@ export interface FeedItem {
   publishedAt: string;
   link: string;
   creator: FeedItemCreator;
-  meta?: {
-    likes?: number;
-    comments?: number;
-    readTime?: number | null;
-    rsvps?: number;
-    startTime?: string;
-    endTime?: string;
-    location?: string | null;
-    price?: number | null;
-    visibility?: 'public' | 'supporters';
+  popularityScore: number;
+  isHighlight: boolean;
+  isNew: boolean;
+  isSaved: boolean;
+  badges: string[];
+  meta: FeedItemMeta;
+}
+
+export interface FeedBookmark {
+  id: string;
+  userId: string;
+  contentType: FeedContentType;
+  contentId: string;
+  createdAt: string;
+}
+
+export interface FeedRecommendedCreator {
+  id: string;
+  name: string;
+  username?: string | null;
+  avatar?: string | null;
+  creatorBio?: string | null;
+  followerCount: number;
+  isFollowed: boolean;
+  slug: string;
+}
+
+export interface FeedResponseData {
+  items: FeedItem[];
+  highlights: FeedItem[];
+  recommendedContent: FeedItem[];
+  recommendedCreators: FeedRecommendedCreator[];
+  filters: {
+    filter: FeedFilter;
+    sort: FeedSort;
+    period: number;
   };
+  summary: {
+    totalItems: number;
+    highlightCount: number;
+    recommendationsCount: number;
+  };
+  nextCursor: string | null;
+  hasMore: boolean;
 }
 
 export interface FeedResponse {
   success: boolean;
-  data: {
-    items: FeedItem[];
-    nextCursor: string | null;
-    hasMore: boolean;
-  };
+  data: FeedResponseData;
   message?: string;
 }
