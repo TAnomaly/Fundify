@@ -1,8 +1,7 @@
 # Railway.toml - Fundify Rust Backend Deployment Configuration
 
 [build]
-builder = "dockerfile"
-dockerfilePath = "Dockerfile"
+builder = "nixpacks"
 
 [deploy]
 startCommand = "backend-rs"

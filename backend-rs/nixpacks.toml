@@ -1,0 +1,15 @@
+[phases.setup]
+nixPkgs = ['openssl', 'pkg-config', 'postgresql']
+
+[phases.build]
+cmds = ['cargo build --release']
+
+[phases.install]
+cmds = ['mkdir -p /app/bin', 'cp target/release/backend-rs /app/bin/']
+
+[start]
+cmd = '/app/bin/backend-rs'
+
+[variables]
+SQLX_OFFLINE = 'true'
+RUST_LOG = 'info'
