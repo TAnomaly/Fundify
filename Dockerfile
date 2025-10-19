@@ -1,5 +1,4 @@
 # Railway Dockerfile - Build from backend-rs directory
-# Build ID: 2025-10-19-01-17-railway-fix-v4
 FROM rust:1.77-slim-bullseye AS builder
 
 # Install dependencies
@@ -7,9 +6,6 @@ RUN apt-get update && apt-get install -y libssl-dev pkg-config
 
 # Set working directory
 WORKDIR /app
-
-# Force cache invalidation
-RUN echo "Build started at: $(date)" && echo "Build ID: 2025-10-19-01-17-railway-fix-v4"
 
 # Copy backend-rs files
 COPY backend-rs/Cargo.toml ./
