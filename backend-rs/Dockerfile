@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Force cache bust for cargo registry - 2025-10-20-10-NIGHTLY
-RUN echo "Cache bust: 2025-10-20-10-NIGHTLY" > /tmp/cache-bust
+# Force cache bust for cargo registry - 2025-10-20-11-DEBUG
+RUN echo "Cache bust: 2025-10-20-11-DEBUG" > /tmp/cache-bust
 
 # Copy dependency manifests first for better caching
 COPY Cargo.toml ./
@@ -81,8 +81,8 @@ USER appuser
 # Expose application port (Railway will override with PORT env)
 EXPOSE 8080
 
-# Default environment variables
-ENV RUST_LOG=info \
+# Default environment variables (Railway will override)
+ENV RUST_LOG=debug \
     HOST=0.0.0.0 \
     PORT=8080
 
@@ -90,5 +90,5 @@ ENV RUST_LOG=info \
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Run the application
-CMD ["backend-rs"]
+# Run the application with explicit error output
+CMD ["/usr/local/bin/backend-rs"]
