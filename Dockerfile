@@ -1,5 +1,5 @@
-# Simple Dockerfile for Railway deployment (fixed) - v4
-FROM rustlang/rust:nightly-slim as builder
+# Simple Dockerfile for Railway deployment (fixed) - v5
+FROM rust:1.77-slim as builder
 
 
 RUN apt-get update && apt-get install -y \
@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 COPY . .
+
+# Set DATABASE_URL for SQLx compile-time checks
+ENV DATABASE_URL=postgresql://localhost:5432/fundify
 
 RUN cargo build --release
 
