@@ -1,5 +1,6 @@
 # Simple Dockerfile for Railway deployment (fixed)
-FROM rust:1.80-slim
+FROM rustlang/rust:nightly-slim as builder
+
 
 RUN apt-get update && apt-get install -y \
     pkg-config libssl-dev libpq-dev \
