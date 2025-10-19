@@ -1,4 +1,4 @@
-# Multi-stage build for Rust backend
+# Railway-specific Dockerfile
 FROM rust:1.75-alpine AS builder
 
 # Install build dependencies
@@ -6,11 +6,8 @@ RUN apk add --no-cache musl-dev pkgconfig openssl-dev
 
 WORKDIR /app
 
-# Copy the entire backend-rs directory
+# Copy everything from backend-rs
 COPY backend-rs/ ./
-
-# Force cache invalidation
-RUN echo "Build timestamp: $(date)" > /tmp/build_info.txt
 
 # Build the application
 RUN cargo build --release
