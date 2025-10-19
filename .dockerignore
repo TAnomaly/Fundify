@@ -27,6 +27,10 @@ logs/
 # Node modules (if any)
 node_modules/
 
+# Frontend (if any)
+frontend/
+next/
+
 # Keep only backend-rs
 !backend-rs/
 backend-rs/target/

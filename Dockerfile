@@ -6,18 +6,8 @@ RUN apk add --no-cache musl-dev pkgconfig openssl-dev
 
 WORKDIR /app
 
-# Copy Cargo files
-COPY backend-rs/Cargo.toml backend-rs/Cargo.lock ./
-
-# Create a dummy main.rs to cache dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-
-# Build dependencies (this layer will be cached)
-RUN cargo build --release
-RUN rm -rf src
-
-# Copy source code
-COPY backend-rs/src ./src
+# Copy the entire backend-rs directory
+COPY backend-rs/ ./
 
 # Build the application
 RUN cargo build --release
