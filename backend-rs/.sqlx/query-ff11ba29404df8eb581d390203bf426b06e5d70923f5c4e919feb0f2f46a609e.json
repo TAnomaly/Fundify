@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO post_likes (id, user_id, post_id, created_at)\n            VALUES ($1, $2, $3, NOW())\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ff11ba29404df8eb581d390203bf426b06e5d70923f5c4e919feb0f2f46a609e"
+}

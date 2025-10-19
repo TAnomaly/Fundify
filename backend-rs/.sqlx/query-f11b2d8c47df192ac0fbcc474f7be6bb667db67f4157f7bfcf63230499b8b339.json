@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            cp.id,\n            cp.title,\n            cp.excerpt,\n            cp.content,\n            cp.images,\n            cp.published_at,\n            cp.created_at,\n            cp.is_public,\n            cp.like_count,\n            cp.comment_count,\n            u.id as author_id,\n            u.name as author_name,\n            u.username as author_username,\n            u.avatar as author_avatar\n        FROM creator_posts cp\n        JOIN users u ON cp.author_id = u.id\n        WHERE cp.author_id = ANY($1) AND cp.published = true\n        ORDER BY cp.published_at DESC\n        LIMIT $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "excerpt",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "images",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "like_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "comment_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "author_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "author_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "author_username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "author_avatar",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "f11b2d8c47df192ac0fbcc474f7be6bb667db67f4157f7bfcf63230499b8b339"
+}

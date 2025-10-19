@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE creator_posts SET comment_count = GREATEST(comment_count - 1, 0) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8605fc67bb4e56e42afb93d34dce386f5add6e2b533106e7ae7016fcd3f7d2e0"
+}

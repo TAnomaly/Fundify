@@ -1,0 +1,148 @@
+# Fundify Rust Backend - Justfile
+# Quick commands for development and deployment
+
+# Default recipe - show available commands
+default:
+    @just --list
+
+# ==================
+# Development
+# ==================
+
+# Install dependencies and setup
+setup:
+    cargo fetch
+    cargo install sqlx-cli --no-default-features --features postgres
+    @echo "✓ Dependencies installed"
+
+# Run the application in development mode
+dev:
+    cargo watch -x run
+
+# Build the application
+build:
+    cargo build --release
+
+# Run tests
+test:
+    cargo test
+
+# Check code without building
+check:
+    cargo check
+
+# Format code
+fmt:
+    cargo fmt
+
+# Run clippy linter
+lint:
+    cargo clippy -- -D warnings
+
+# ==================
+# Database
+# ==================
+
+# Create database
+db-create:
+    sqlx database create
+
+# Drop database
+db-drop:
+    sqlx database drop
+
+# Run migrations
+db-migrate:
+    sqlx migrate run
+
+# Revert last migration
+db-revert:
+    sqlx migrate revert
+
+# Reset database (drop, create, migrate)
+db-reset:
+    sqlx database drop -y || true
+    sqlx database create
+    sqlx migrate run
+    @echo "✓ Database reset complete"
+
+# Prepare SQLx offline query cache
+db-prepare:
+    cargo sqlx prepare
+
+# ==================
+# Docker
+# ==================
+
+# Start all services with Docker Compose
+docker-up:
+    docker-compose up -d
+
+# Stop all services
+docker-down:
+    docker-compose down
+
+# Rebuild and restart services
+docker-rebuild:
+    docker-compose down
+    docker-compose up -d --build
+
+# View logs
+docker-logs:
+    docker-compose logs -f backend
+
+# View database logs
+docker-logs-db:
+    docker-compose logs -f postgres
+
+# Clean Docker volumes (⚠️  deletes all data)
+docker-clean:
+    docker-compose down -v
+    @echo "✓ Docker volumes cleaned"
+
+# ==================
+# Railway Deployment
+# ==================
+
+# Deploy to Railway
+deploy:
+    railway up
+
+# View Railway logs
+railway-logs:
+    railway logs
+
+# Open Railway dashboard
+railway-open:
+    railway open
+
+# Link to Railway project
+railway-link:
+    railway link
+
+# ==================
+# Utilities
+# ==================
+
+# Clean build artifacts
+clean:
+    cargo clean
+    rm -rf target/
+
+# Full clean (including dependencies)
+clean-all: clean
+    rm -rf ~/.cargo/registry/cache/
+    @echo "✓ Full clean complete"
+
+# Generate API documentation
+docs:
+    cargo doc --open
+
+# Run security audit
+audit:
+    cargo audit
+
+# Update dependencies
+update:
+    cargo update
+    @echo "✓ Dependencies updated"

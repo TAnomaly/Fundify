@@ -1,0 +1,91 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT m.*, \n               s.name as sender_name, s.avatar as sender_avatar,\n               r.name as recipient_name, r.avatar as recipient_avatar\n        FROM messages m\n        JOIN users s ON m.sender_id = s.id\n        LEFT JOIN users r ON m.recipient_id = r.id\n        WHERE (m.sender_id = $1 AND m.recipient_id = $2) \n           OR (m.sender_id = $2 AND m.recipient_id = $1)\n        ORDER BY m.created_at DESC\n        LIMIT $3 OFFSET $4\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "sender_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "recipient_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "creator_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "message_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_read",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "sender_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "sender_avatar",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "recipient_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "recipient_avatar",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "35f27da5e153f91154f506298adf35981e84756ad7fc53d23e4b20f8648bd9a5"
+}

@@ -1,11 +1,25 @@
-target/
-.git/
+# Git
+.git
 .gitignore
-README.md
-.env
+
+# Dependencies
+target/
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment (keep .env for build if needed, but exclude in production)
 .env.local
-.env.production
-.env.staging
+
+# Documentation
+docs/
+
+# Docker
+docker-compose.yml
+
+# Misc
 *.log
-.DS_Store
-Thumbs.db
+tmp/
+temp/

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE creator_posts SET like_count = GREATEST(like_count - 1, 0) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7f1a2e40a3dce738e1e2f6ab07647278d4f487d2d857bf06cf6c2221ddf3f1da"
+}

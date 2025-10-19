@@ -1,6 +1,8 @@
+# Railway.toml - Fundify Rust Backend Deployment Configuration
+
 [build]
 builder = "dockerfile"
-dockerfilePath = "backend-rs/Dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 startCommand = "backend-rs"
@@ -8,7 +10,10 @@ healthcheckPath = "/health"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
+numReplicas = 1
+
+# Railway will automatically inject DATABASE_URL if Postgres addon is attached
+# Railway will automatically set PORT environment variable
 
 [env]
 RUST_LOG = "info"
-PORT = "3000"

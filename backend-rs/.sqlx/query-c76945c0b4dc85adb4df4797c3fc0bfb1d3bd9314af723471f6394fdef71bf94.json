@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH conversation_partners AS (\n            SELECT DISTINCT \n                CASE \n                    WHEN sender_id = $1 THEN recipient_id \n                    ELSE sender_id \n                END as other_user_id,\n                MAX(created_at) as last_message_time\n            FROM messages \n            WHERE sender_id = $1 OR recipient_id = $1\n            GROUP BY other_user_id\n        )\n        SELECT \n            u.id as other_user_id,\n            u.name as other_user_name,\n            u.avatar as other_user_avatar,\n            cp.last_message_time,\n            COUNT(CASE WHEN m.recipient_id = $1 AND m.is_read = false THEN 1 END) as unread_count\n        FROM conversation_partners cp\n        JOIN users u ON cp.other_user_id = u.id\n        LEFT JOIN messages m ON (m.sender_id = cp.other_user_id AND m.recipient_id = $1)\n        GROUP BY u.id, u.name, u.avatar, cp.last_message_time\n        ORDER BY cp.last_message_time DESC\n        LIMIT $2 OFFSET $3\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "other_user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "other_user_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "other_user_avatar",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_message_time",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "unread_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "c76945c0b4dc85adb4df4797c3fc0bfb1d3bd9314af723471f6394fdef71bf94"
+}

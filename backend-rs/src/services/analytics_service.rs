@@ -13,7 +13,7 @@ pub struct AnalyticsResponse {
     pub revenue_chart: Vec<RevenueData>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct TierAnalytics {
     pub tier_id: Uuid,
     pub tier_name: String,
@@ -21,7 +21,7 @@ pub struct TierAnalytics {
     pub monthly_revenue: f64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct SubscriberAnalytics {
     pub user_id: Uuid,
     pub user_name: String,
@@ -31,7 +31,7 @@ pub struct SubscriberAnalytics {
     pub monthly_amount: f64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct RevenueData {
     pub month: String,
     pub revenue: f64,
@@ -71,74 +71,58 @@ pub async fn get_analytics(
     creator_id: Uuid,
 ) -> Result<AnalyticsResponse, AppError> {
     // Get total subscribers
-    let total_subscribers = sqlx::query!(
-        "SELECT COUNT(*) as count FROM subscriptions WHERE creator_id = $1 AND status = 'ACTIVE'",
-        creator_id
+    let total_subscribers: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM subscriptions WHERE creator_id = $1 AND status = 'ACTIVE'"
     )
+    .bind(creator_id)
     .fetch_one(&state.db_pool)
-    .await?
-    .count
-    .unwrap_or(0);
+    .await?;
 
     // Get total revenue
-    let total_revenue = sqlx::query!(
-        "SELECT COALESCE(SUM(amount), 0) as total FROM subscriptions WHERE creator_id = $1",
-        creator_id
+    let total_revenue: f64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(amount), 0)::FLOAT8 FROM subscriptions WHERE creator_id = $1"
     )
+    .bind(creator_id)
     .fetch_one(&state.db_pool)
-    .await?
-    .total
-    .unwrap_or(0.0);
+    .await?;
 
     // Get monthly revenue (current month)
-    let monthly_revenue = sqlx::query!(
+    let monthly_revenue: f64 = sqlx::query_scalar(
         r#"
-        SELECT COALESCE(SUM(amount), 0) as total 
-        FROM subscriptions 
-        WHERE creator_id = $1 
+        SELECT COALESCE(SUM(amount), 0)::FLOAT8
+        FROM subscriptions
+        WHERE creator_id = $1
         AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', NOW())
-        "#,
-        creator_id
+        "#
     )
+    .bind(creator_id)
     .fetch_one(&state.db_pool)
-    .await?
-    .total
-    .unwrap_or(0.0);
+    .await?;
 
     // Get top tiers
-    let top_tiers = sqlx::query!(
+    let tier_analytics = sqlx::query_as::<_, TierAnalytics>(
         r#"
-        SELECT 
+        SELECT
             mt.id as tier_id,
             mt.name as tier_name,
-            COUNT(s.id) as subscriber_count,
-            COALESCE(SUM(s.amount), 0) as monthly_revenue
+            COUNT(s.id)::BIGINT as subscriber_count,
+            COALESCE(SUM(s.amount), 0)::FLOAT8 as monthly_revenue
         FROM membership_tiers mt
         LEFT JOIN subscriptions s ON mt.id = s.tier_id AND s.status = 'ACTIVE'
         WHERE mt.creator_id = $1
         GROUP BY mt.id, mt.name
         ORDER BY subscriber_count DESC
         LIMIT 5
-        "#,
-        creator_id
+        "#
     )
+    .bind(creator_id)
     .fetch_all(&state.db_pool)
     .await?;
 
-    let tier_analytics = top_tiers
-        .into_iter()
-        .map(|tier| TierAnalytics {
-            tier_id: tier.tier_id,
-            tier_name: tier.tier_name,
-            subscriber_count: tier.subscriber_count.unwrap_or(0),
-            monthly_revenue: tier.monthly_revenue.unwrap_or(0.0),
-        })
-        .collect();
-
     // Get recent subscribers
-    let recent_subscribers = sqlx::query!(
+    let subscriber_analytics = sqlx::query_as::<_, SubscriberAnalytics>(
         r#"
-        SELECT 
+        SELECT
             s.user_id,
             u.name as user_name,
             u.avatar as user_avatar,
@@ -151,48 +135,28 @@ pub async fn get_analytics(
         WHERE s.creator_id = $1 AND s.status = 'ACTIVE'
         ORDER BY s.created_at DESC
         LIMIT 10
-        "#,
-        creator_id
+        "#
     )
+    .bind(creator_id)
     .fetch_all(&state.db_pool)
     .await?;
 
-    let subscriber_analytics = recent_subscribers
-        .into_iter()
-        .map(|sub| SubscriberAnalytics {
-            user_id: sub.user_id,
-            user_name: sub.user_name,
-            user_avatar: sub.user_avatar,
-            tier_name: sub.tier_name,
-            subscribed_at: sub.subscribed_at,
-            monthly_amount: sub.monthly_amount,
-        })
-        .collect();
-
     // Get revenue chart (last 12 months)
-    let revenue_chart = sqlx::query!(
+    let revenue_data = sqlx::query_as::<_, RevenueData>(
         r#"
-        SELECT 
+        SELECT
             TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as month,
-            COALESCE(SUM(amount), 0) as revenue
+            COALESCE(SUM(amount), 0)::FLOAT8 as revenue
         FROM subscriptions
         WHERE creator_id = $1
         AND created_at >= NOW() - INTERVAL '12 months'
         GROUP BY DATE_TRUNC('month', created_at)
         ORDER BY month
-        "#,
-        creator_id
+        "#
     )
+    .bind(creator_id)
     .fetch_all(&state.db_pool)
     .await?;
-
-    let revenue_data = revenue_chart
-        .into_iter()
-        .map(|data| RevenueData {
-            month: data.month,
-            revenue: data.revenue.unwrap_or(0.0),
-        })
-        .collect();
 
     Ok(AnalyticsResponse {
         total_subscribers,
@@ -288,33 +252,33 @@ pub async fn send_bulk_message(
     let where_clause = where_conditions.join(" AND ");
 
     // For now, use a simple query without dynamic WHERE clause
-    let target_users = sqlx::query!(
+    let target_users: Vec<(Uuid,)> = sqlx::query_as(
         r#"
         SELECT DISTINCT s.user_id
         FROM subscriptions s
         WHERE s.creator_id = $1 AND s.status = 'ACTIVE'
-        "#,
-        input.creator_id
+        "#
     )
+    .bind(input.creator_id)
     .fetch_all(&state.db_pool)
     .await?;
 
     // Send broadcast message to each user
-    for user in target_users {
-        sqlx::query!(
+    for (user_id,) in target_users {
+        sqlx::query(
             r#"
             INSERT INTO messages (
-                id, content, sender_id, recipient_id, creator_id, 
+                id, content, sender_id, recipient_id, creator_id,
                 message_type, is_read, created_at
             )
             VALUES ($1, $2, $3, $4, $5, 'BROADCAST', false, NOW())
-            "#,
-            uuid::Uuid::new_v4(),
-            input.content,
-            input.creator_id,
-            user.user_id,
-            input.creator_id
+            "#
         )
+        .bind(uuid::Uuid::new_v4())
+        .bind(&input.content)
+        .bind(input.creator_id)
+        .bind(user_id)
+        .bind(input.creator_id)
         .execute(&state.db_pool)
         .await?;
     }
