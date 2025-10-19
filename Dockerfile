@@ -1,5 +1,5 @@
 # Simple Dockerfile for Railway deployment
-FROM rust:nightly-slim
+FROM rust:nightly
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
