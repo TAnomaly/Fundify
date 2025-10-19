@@ -12,11 +12,11 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy manifests
-COPY backend-rs/Cargo.toml backend-rs/Cargo.lock ./
+COPY Cargo.toml Cargo.lock ./
 
 # Copy source code
-COPY backend-rs/src ./src
-COPY backend-rs/migrations ./migrations
+COPY src ./src
+COPY migrations ./migrations
 
 # Build the application
 RUN cargo build --release
