@@ -1,5 +1,5 @@
-# Fresh Dockerfile for Railway - No Cache Issues
-# Build ID: 2025-10-19-01-15-railway-fix-v2
+# Railway Dockerfile - Build from backend-rs directory
+# Build ID: 2025-10-19-01-16-railway-fix-v3
 FROM rust:1.77-slim-bullseye AS builder
 
 # Install dependencies
@@ -9,9 +9,9 @@ RUN apt-get update && apt-get install -y libssl-dev pkg-config
 WORKDIR /app
 
 # Force cache invalidation
-RUN echo "Build started at: $(date)" && echo "Build ID: 2025-10-19-01-15-railway-fix-v2"
+RUN echo "Build started at: $(date)" && echo "Build ID: 2025-10-19-01-16-railway-fix-v3"
 
-# Copy backend-rs files with explicit paths
+# Copy backend-rs files
 COPY backend-rs/Cargo.toml ./
 COPY backend-rs/Cargo.lock ./
 COPY backend-rs/src ./src
