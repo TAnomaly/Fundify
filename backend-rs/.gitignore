@@ -2,7 +2,7 @@
 /target/
 **/*.rs.bk
 *.pdb
-Cargo.lock
+# Cargo.lock (keep for applications)
 
 # SQLx offline cache (include in git for Docker builds)
 # .sqlx/
