@@ -11,8 +11,21 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy everything
-COPY . .
+# Copy Cargo files first for better caching
+COPY Cargo.toml Cargo.lock ./
+
+# Create a dummy main.rs to build dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+
+# Build dependencies
+RUN cargo build --release
+
+# Remove dummy main.rs
+RUN rm src/main.rs
+
+# Copy source code
+COPY src ./src
+COPY migrations ./migrations
 
 # Build the application
 RUN cargo build --release
