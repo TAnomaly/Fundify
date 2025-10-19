@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Force cache bust for cargo registry - 2025-10-20-11-DEBUG
-RUN echo "Cache bust: 2025-10-20-11-DEBUG" > /tmp/cache-bust
+# Force cache bust for cargo registry - 2025-10-20-12-NO-HEALTHCHECK
+RUN echo "Cache bust: 2025-10-20-12-NO-HEALTHCHECK" > /tmp/cache-bust
 
 # Copy dependency manifests first for better caching
 COPY Cargo.toml ./
@@ -86,9 +86,9 @@ ENV RUST_LOG=debug \
     HOST=0.0.0.0 \
     PORT=8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+# Health check - disabled temporarily for Railway debugging
+# HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+#     CMD curl -f http://localhost:${PORT}/health || exit 1
 
 # Run the application with explicit error output
 CMD ["/usr/local/bin/backend-rs"]
