@@ -6,7 +6,7 @@
 # -----------------------------
 # Stage 1: Builder
 # -----------------------------
-FROM rust:1.83-slim as builder
+FROM rust:1.75-slim as builder
 
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Force cache bust for cargo registry - 2025-10-20-02
-RUN echo "Cache bust: 2025-10-20-02" > /tmp/cache-bust
+# Force cache bust for cargo registry - 2025-10-20-03
+RUN echo "Cache bust: 2025-10-20-03" > /tmp/cache-bust
 
 # Copy dependency manifests first for better caching
 COPY Cargo.toml Cargo.lock ./
