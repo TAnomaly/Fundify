@@ -8,7 +8,6 @@ pub struct AppConfig {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub jwt: JwtConfig,
-    pub supabase: SupabaseConfig,
 }
 
 impl AppConfig {
@@ -16,13 +15,10 @@ impl AppConfig {
         let server = ServerConfig::from_env()?;
         let database = DatabaseConfig::from_env()?;
         let jwt = JwtConfig::from_env()?;
-        let supabase = SupabaseConfig::from_env();
-
         Ok(Self {
             server,
             database,
             jwt,
-            supabase,
         })
     }
 }
@@ -110,28 +106,3 @@ impl JwtConfig {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct SupabaseConfig {
-    pub url: Option<String>,
-    pub service_role_key: Option<String>,
-}
-
-impl SupabaseConfig {
-    fn from_env() -> Self {
-        let url = env::var("SUPABASE_URL")
-            .ok()
-            .filter(|value| !value.is_empty());
-        let service_role_key = env::var("SUPABASE_SERVICE_ROLE_KEY")
-            .ok()
-            .filter(|value| !value.is_empty());
-
-        Self {
-            url,
-            service_role_key,
-        }
-    }
-
-    pub fn is_configured(&self) -> bool {
-        self.url.is_some() && self.service_role_key.is_some()
-    }
-}
