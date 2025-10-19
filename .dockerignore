@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+DEPLOYMENT.md
+
+# Environment files
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Node modules (if any)
+node_modules/
+
+# Frontend (if any)
+frontend/
+next/
+
+# Keep only backend-rs
+!backend-rs/
+backend-rs/target/
+backend-rs/.gitignore
+
+# Force fresh build - no cache
+*.cache
+.cache/
