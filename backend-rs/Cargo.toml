@@ -38,5 +38,6 @@ tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 uuid = { version = "1.18.1", features = ["serde", "v4"] }
 validator = { version = "0.18.1", features = ["derive"] }
 
-# Force cruet to use older version to avoid edition2024 requirement
+# Force older versions to avoid edition2024 requirement
 cruet = "=0.14.0"
+base64ct = "=1.6.0"  # 1.8.0 requires edition2024
