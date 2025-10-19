@@ -1,4 +1,4 @@
-# Simple Dockerfile for Railway deployment (fixed) - v3
+# Simple Dockerfile for Railway deployment (fixed) - v4
 FROM rustlang/rust:nightly-slim as builder
 
 
