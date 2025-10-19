@@ -27,7 +27,7 @@ serde_json = "1.0.145"
 sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-native-tls", "postgres", "uuid", "chrono", "macros", "bigdecimal"], default-features = false }
 stripe = { package = "async-stripe", version = "0.38.0", default-features = false, features = ["runtime-tokio-hyper-rustls"] }
-supabase_rs = "0.4.16"
+# supabase_rs = "0.4.16"  # Removed: uses cruet which requires edition2024
 thiserror = "1.0.69"
 tokio = { version = "1.48.0", features = ["full"] }
 tower = "0.4.13"
@@ -37,7 +37,3 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 uuid = { version = "1.18.1", features = ["serde", "v4"] }
 validator = { version = "0.18.1", features = ["derive"] }
-
-# Force older versions to avoid edition2024 requirement
-cruet = "=0.14.0"
-base64ct = "=1.6.0"  # 1.8.0 requires edition2024

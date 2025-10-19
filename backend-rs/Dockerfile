@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Force cache bust for cargo registry - 2025-10-20-07
-RUN echo "Cache bust: 2025-10-20-07" > /tmp/cache-bust
+# Force cache bust for cargo registry - 2025-10-20-08
+RUN echo "Cache bust: 2025-10-20-08" > /tmp/cache-bust
 
 # Copy dependency manifests first for better caching
 COPY Cargo.toml ./
