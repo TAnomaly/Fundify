@@ -11,12 +11,8 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy manifests
-COPY Cargo.toml Cargo.lock ./
-
-# Copy source code
-COPY src ./src
-COPY migrations ./migrations
+# Copy everything
+COPY . .
 
 # Build the application
 RUN cargo build --release
