@@ -35,3 +35,7 @@ next/
 !backend-rs/
 backend-rs/target/
 backend-rs/.gitignore
+
+# Force fresh build - no cache
+*.cache
+.cache/

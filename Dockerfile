@@ -1,4 +1,5 @@
-# Railway-specific Dockerfile
+# Fresh Dockerfile for Railway - No Cache Issues
+# Build ID: 2025-10-19-01-10-railway-fix
 FROM rust:1.75-alpine AS builder
 
 # Install build dependencies
@@ -6,8 +7,11 @@ RUN apk add --no-cache musl-dev pkgconfig openssl-dev
 
 WORKDIR /app
 
-# Copy everything from backend-rs
+# Copy the entire backend-rs directory
 COPY backend-rs/ ./
+
+# Force cache invalidation with unique timestamp
+RUN echo "Build started at: $(date)" && echo "Build ID: 2025-10-19-01-10-railway-fix"
 
 # Build the application
 RUN cargo build --release
