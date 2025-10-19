@@ -18,11 +18,14 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Force cache bust for cargo registry - 2025-10-20-03
-RUN echo "Cache bust: 2025-10-20-03" > /tmp/cache-bust
+# Force cache bust for cargo registry - 2025-10-20-04
+RUN echo "Cache bust: 2025-10-20-04" > /tmp/cache-bust
 
 # Copy dependency manifests first for better caching
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml ./
+
+# Regenerate Cargo.lock with Rust 1.75 (version 3 format)
+RUN cargo generate-lockfile
 
 # Create a dummy main.rs to build dependencies
 RUN mkdir src && \
