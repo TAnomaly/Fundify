@@ -14,7 +14,7 @@ WORKDIR /app
 # Copy everything
 COPY . .
 
-# Build the application
+# Build the application (Cargo.lock will be generated automatically)
 RUN cargo build --release
 
 # Expose port
