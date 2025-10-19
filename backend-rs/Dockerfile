@@ -18,14 +18,19 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Force cache bust for cargo registry - 2025-10-20-06
-RUN echo "Cache bust: 2025-10-20-06" > /tmp/cache-bust
+# Force cache bust for cargo registry - 2025-10-20-07
+RUN echo "Cache bust: 2025-10-20-07" > /tmp/cache-bust
 
 # Copy dependency manifests first for better caching
 COPY Cargo.toml ./
 
 # Create dummy src/main.rs (needed for cargo generate-lockfile to work)
 RUN mkdir src && echo "fn main() {}" > src/main.rs
+
+# Clear cargo cache and update index to ensure clean dependency resolution
+RUN rm -rf /usr/local/cargo/registry/cache/* \
+    && rm -rf /usr/local/cargo/registry/src/* \
+    && cargo update --dry-run
 
 # Regenerate Cargo.lock with Rust 1.75 (version 3 format)
 RUN cargo generate-lockfile
