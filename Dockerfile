@@ -23,6 +23,7 @@ EXPOSE 3000
 # Set environment variables
 ENV RUST_LOG=info
 ENV PORT=3000
+# Railway deployment ready
 
 # Run the application
 CMD ["./target/release/backend-rs"]
