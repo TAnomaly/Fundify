@@ -6,7 +6,7 @@
 # -----------------------------
 # Stage 1: Builder
 # -----------------------------
-FROM rust:1.81-slim as builder
+FROM rustlang/rust:nightly-slim as builder
 
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Force cache bust for cargo registry - 2025-10-20-09-RUST-1.81
-RUN echo "Cache bust: 2025-10-20-09-RUST-1.81" > /tmp/cache-bust
+# Force cache bust for cargo registry - 2025-10-20-10-NIGHTLY
+RUN echo "Cache bust: 2025-10-20-10-NIGHTLY" > /tmp/cache-bust
 
 # Copy dependency manifests first for better caching
 COPY Cargo.toml ./
