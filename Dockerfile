@@ -1,5 +1,5 @@
 # Simple Dockerfile for Railway deployment (fixed) - v5
-FROM rust:1.70-slim as builder
+FROM rust:1.65-slim as builder
 
 
 RUN apt-get update && apt-get install -y \
