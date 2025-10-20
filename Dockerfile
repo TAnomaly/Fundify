@@ -10,6 +10,9 @@
 # -----------------------------
 FROM rust:1.83-slim-bookworm as builder
 
+# Force cache invalidation - Railway deploy 20251020-2055
+ARG CACHEBUST=20251020-2055
+
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
     pkg-config \
