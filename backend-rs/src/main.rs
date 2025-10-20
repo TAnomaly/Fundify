@@ -35,16 +35,39 @@ async fn main() -> Result<()> {
     tracing::info!("Configuration loaded successfully");
 
     tracing::info!("Connecting to database: {}", &config.database.url.split('@').last().unwrap_or("unknown"));
-    let pool = PgPoolOptions::new()
-        .max_connections(config.database.max_connections)
-        .acquire_timeout(config.database.acquire_timeout)
-        .connect(&config.database.url)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to connect to database: {}", e);
-            e
-        })?;
-    tracing::info!("Database connected successfully");
+
+    // Retry database connection with exponential backoff
+    let max_retries = 10;
+    let mut retry_count = 0;
+    let pool = loop {
+        match PgPoolOptions::new()
+            .max_connections(config.database.max_connections)
+            .acquire_timeout(config.database.acquire_timeout)
+            .connect(&config.database.url)
+            .await
+        {
+            Ok(pool) => {
+                tracing::info!("✓ Database connected successfully");
+                break pool;
+            }
+            Err(e) => {
+                retry_count += 1;
+                if retry_count >= max_retries {
+                    tracing::error!("Failed to connect to database after {} attempts: {}", max_retries, e);
+                    return Err(e.into());
+                }
+                let wait_secs = std::cmp::min(2_u64.pow(retry_count), 30);
+                tracing::warn!(
+                    "Database connection failed (attempt {}/{}): {}. Retrying in {}s...",
+                    retry_count,
+                    max_retries,
+                    e,
+                    wait_secs
+                );
+                tokio::time::sleep(tokio::time::Duration::from_secs(wait_secs)).await;
+            }
+        }
+    };
 
     tracing::info!("Initializing application state");
     let state = Arc::new(AppState::try_new(config.clone(), pool)?);

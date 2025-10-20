@@ -12,6 +12,7 @@ struct HealthResponse {
     timestamp: DateTime<Utc>,
     supabase_enabled: bool,
     database_max_connections: u32,
+    database_connected: bool,
     jwt_issuer: String,
 }
 
@@ -20,6 +21,16 @@ pub fn router() -> Router<SharedState> {
 }
 
 async fn health_check(State(state): State<SharedState>) -> Json<HealthResponse> {
+    // Check database connectivity
+    let database_connected = sqlx::query_scalar::<_, i64>("SELECT 1")
+        .fetch_one(&state.db_pool)
+        .await
+        .is_ok();
+
+    if !database_connected {
+        tracing::warn!("Health check: database connectivity check failed");
+    }
+
     let response = HealthResponse {
         status: "ok",
         service: "fundify-backend-rs",
@@ -27,16 +38,9 @@ async fn health_check(State(state): State<SharedState>) -> Json<HealthResponse> 
         timestamp: Utc::now(),
         supabase_enabled: state.config.supabase.is_configured(),
         database_max_connections: state.config.database.max_connections,
+        database_connected,
         jwt_issuer: state.jwt.issuer.clone(),
     };
-
-    // Optionally ensure DB connectivity by ping
-    if let Err(error) = sqlx::query_scalar::<_, i64>("SELECT 1")
-        .fetch_one(&state.db_pool)
-        .await
-    {
-        tracing::warn!("Database connectivity check failed: {error:?}");
-    }
 
     Json(response)
 }
