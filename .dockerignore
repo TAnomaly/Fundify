@@ -1,5 +1,5 @@
 # Keep minimal for Railway builds
-# Cache bust: 2025-10-20 16:06:30 UTC
+# Cache bust: 2025-10-20 20:50:00 UTC - Force rebuild after binary name fix
 .git
 node_modules
 .vscode

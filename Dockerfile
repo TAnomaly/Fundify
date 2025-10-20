@@ -1,7 +1,8 @@
 # ====================
 # Multi-stage build for Fundify Rust Backend
-# Railway Deploy: 2025-10-20 16:10 UTC - STABLE BUILD
+# Railway Deploy: 2025-10-20 20:50 UTC - BINARY NAME FIX
 # Using Rust 1.83 stable with base64ct=1.6.0 pinned
+# Binary name: backend_rs (explicit via Cargo.toml [[bin]] section)
 # ====================
 
 # -----------------------------
