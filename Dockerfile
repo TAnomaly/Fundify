@@ -84,14 +84,14 @@ RUN chown -R appuser:appuser /app && \
     ls -la /usr/local/bin/backend-rs && \
     echo "Binary successfully copied and verified"
 
-# Switch to non-root user
-USER appuser
+# Switch to non-root user (temporarily disabled for debugging)
+# USER appuser
 
 # Expose application port (Railway will override with PORT env)
 EXPOSE 8080
 
 # Default environment variables (Railway will override)
-ENV RUST_LOG=info \
+ENV RUST_LOG=debug \
     HOST=0.0.0.0 \
     PORT=8080
 
