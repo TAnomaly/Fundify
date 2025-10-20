@@ -1,13 +1,13 @@
 # ====================
 # Multi-stage build for Fundify Rust Backend
-# Railway Deploy: 2025-10-20 15:58 UTC - NIGHTLY BUILD
-# Using Rust nightly for edition2024 support (base64ct requirement)
+# Railway Deploy: 2025-10-20 16:10 UTC - STABLE BUILD
+# Using Rust 1.83 stable with base64ct=1.6.0 pinned
 # ====================
 
 # -----------------------------
-# Stage 1: Builder - Rust Nightly
+# Stage 1: Builder - Rust Stable
 # -----------------------------
-FROM rustlang/rust:nightly-slim as builder
+FROM rust:1.83-slim-bookworm as builder
 
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Verify Rust nightly is being used
+# Verify Rust version
 RUN rustc --version && cargo --version
 
 # Copy dependency manifests first for better caching
@@ -43,7 +43,9 @@ ENV DATABASE_URL=${DATABASE_URL}
 RUN if [ -z "$DATABASE_URL" ]; then \
         echo "WARNING: DATABASE_URL not set. SQLx queries will not be verified at build time."; \
     fi && \
-    cargo build --release
+    cargo build --release && \
+    echo "Build completed. Listing binaries:" && \
+    ls -la /app/target/release/ | grep -E "backend|^-"
 
 # -----------------------------
 # Stage 2: Runtime
@@ -62,9 +64,6 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -r -u 1001 -s /bin/false appuser
 
 WORKDIR /app
-
-# List built binaries for debugging
-RUN ls -la /app/target/release/ | grep backend || echo "No backend binary found!"
 
 # Copy binary from builder (Rust converts hyphens to underscores in binary names)
 COPY --from=builder /app/target/release/backend_rs /usr/local/bin/backend-rs
