@@ -95,11 +95,5 @@ ENV RUST_LOG=info \
     HOST=0.0.0.0 \
     PORT=8080
 
-# Run the application with startup logging
-CMD ["sh", "-c", "echo '=== Fundify Backend Starting ===' && \
-     echo 'Binary:' && ls -lh /usr/local/bin/backend-rs && \
-     echo 'DATABASE_URL:' $([ -n \"$DATABASE_URL\" ] && echo 'SET' || echo 'MISSING') && \
-     echo 'JWT_SECRET:' $([ -n \"$JWT_SECRET\" ] && echo 'SET' || echo 'MISSING') && \
-     echo 'PORT:' $PORT && \
-     echo '=== Executing backend ===' && \
-     exec /usr/local/bin/backend-rs"]
+# Run the application directly (no shell wrapper)
+CMD ["/usr/local/bin/backend-rs"]
