@@ -129,7 +129,9 @@ pub async fn list_campaigns(
         param_index += 2;
     }
 
-    query.push_str(r#" GROUP BY c.id, u.id, u.name, u.avatar
+    query.push_str(r#" GROUP BY c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
+           c."goalAmount", c."currentAmount", c."coverImage", c."createdAt",
+           u.id, u.name, u.avatar
         ORDER BY c."createdAt" DESC
         LIMIT $"#);
     query.push_str(&param_index.to_string());

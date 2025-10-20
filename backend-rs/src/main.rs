@@ -55,8 +55,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Application state
     let state = AppState::new(pool);
 
-    // Build CORS layer
-    let cors = CorsLayer::permissive();
+    // Build CORS layer - explicitly allow Authorization header
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(vec![
+            axum::http::header::AUTHORIZATION,
+            axum::http::header::CONTENT_TYPE,
+            axum::http::header::ACCEPT,
+        ])
+        .allow_credentials(true);
 
     // Build application router
     let app = Router::new()
