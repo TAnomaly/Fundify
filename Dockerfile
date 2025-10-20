@@ -1,6 +1,7 @@
 # ====================
 # Multi-stage build for Fundify Rust Backend
-# Railway Deploy: 2025-10-20 - Build context: backend-rs/
+# Railway Deploy: 2025-10-20 15:54 - Build context: backend-rs/
+# Force rebuild: rust:1-slim (avoiding Docker Hub 500 errors)
 # ====================
 
 # -----------------------------
