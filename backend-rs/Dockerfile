@@ -83,7 +83,6 @@ COPY --from=builder /app/migrations /app/migrations
 RUN chown -R appuser:appuser /app && \
     chmod +x /usr/local/bin/backend-rs && \
     ls -la /usr/local/bin/backend-rs && \
-    file /usr/local/bin/backend-rs && \
     echo "Binary successfully copied and verified"
 
 # Switch to non-root user
