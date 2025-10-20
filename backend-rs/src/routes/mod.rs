@@ -28,13 +28,22 @@ pub mod welcome_messages;
 pub mod withdrawals;
 
 use axum::Router;
+use tower_http::cors::{CorsLayer, Any};
 
 use crate::state::SharedState;
 
 pub fn create_router(state: SharedState) -> Router {
+    // Configure CORS to allow all origins (production should restrict this)
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any)
+        .allow_credentials(false);
+
     Router::new()
         .merge(health::router())
         .nest("/api/v1", api_router())
+        .layer(cors)
         .with_state(state)
 }
 
