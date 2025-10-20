@@ -42,13 +42,17 @@ RUN cargo build --release && rm -rf src
 COPY backend-rs/src ./src
 COPY backend-rs/migrations ./migrations
 
-# Copy .sqlx directory for offline SQLx query compilation
-# This is required for SQLX_OFFLINE=true mode
-COPY backend-rs/.sqlx ./.sqlx
+# Build the actual application
+# NOTE: Removed SQLX_OFFLINE mode due to Railway build context limitations
+# SQLx will connect to DATABASE_URL during build time to verify queries
+# This requires DATABASE_URL to be available as a build-time environment variable
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
 
-# Build the actual application with offline SQLx
-ENV SQLX_OFFLINE=true
-RUN cargo build --release
+RUN if [ -z "$DATABASE_URL" ]; then \
+        echo "WARNING: DATABASE_URL not set. If build fails, set it in Railway build environment."; \
+    fi && \
+    cargo build --release
 
 # -----------------------------
 # Stage 2: Runtime
