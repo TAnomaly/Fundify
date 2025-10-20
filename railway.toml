@@ -4,7 +4,8 @@ dockerfilePath = "Dockerfile"
 watchPaths = ["backend-rs/**"]
 
 [deploy]
-startCommand = "/usr/local/bin/backend-rs"
+# Remove startCommand to use Dockerfile CMD with debug logging
+# startCommand = "/usr/local/bin/backend-rs"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "on_failure"
