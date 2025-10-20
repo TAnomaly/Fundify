@@ -67,6 +67,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/auth/login", post(handlers::auth::login))
         .route("/api/auth/me", get(handlers::auth::get_me))
         // User routes
+        .route("/api/users/creators", get(handlers::users::get_creators))
+        .route("/api/users/creators/:username", get(handlers::users::get_creator_by_username))
         .route("/api/users/:id", get(handlers::users::get_user))
         .route("/api/users/:id", post(handlers::users::update_user))
         // Campaign routes
