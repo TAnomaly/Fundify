@@ -1,11 +1,11 @@
 # ====================
 # Multi-stage build for Fundify Rust Backend
-# Railway Deploy: 2025-10-20 15:54 - Build context: backend-rs/
-# Force rebuild: rust:1-slim (avoiding Docker Hub 500 errors)
+# Railway Deploy: 2025-10-20 15:58 UTC - NIGHTLY BUILD
+# Using Rust nightly for edition2024 support (base64ct requirement)
 # ====================
 
 # -----------------------------
-# Stage 1: Builder
+# Stage 1: Builder - Rust Nightly
 # -----------------------------
 FROM rustlang/rust:nightly-slim as builder
 
@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Verify Rust nightly is being used
+RUN rustc --version && cargo --version
 
 # Copy dependency manifests first for better caching
 COPY backend-rs/Cargo.toml backend-rs/Cargo.lock* ./
