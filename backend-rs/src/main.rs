@@ -17,13 +17,20 @@ use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Debug: Print to stdout BEFORE any other initialization
+    println!("=== FUNDIFY BACKEND STARTING ===");
+    println!("Rust binary is executing...");
+
     dotenvy::dotenv().ok();
+    println!("Dotenv loaded");
 
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .with_target(false)
         .compact()
         .init();
+
+    println!("Tracing initialized");
 
     tracing::info!("Starting Fundify Rust Backend");
 
