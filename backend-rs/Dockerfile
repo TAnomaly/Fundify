@@ -1,12 +1,12 @@
 # ====================
 # Multi-stage build for Fundify Rust Backend
-# Railway Deploy: 2025-10-20 - Force cache clear
+# Railway Deploy: 2025-10-20 - Optimized with stable base images
 # ====================
 
 # -----------------------------
 # Stage 1: Builder
 # -----------------------------
-FROM rustlang/rust:nightly-slim as builder
+FROM rust:1.83-slim-bookworm as builder
 
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
@@ -51,7 +51,7 @@ RUN cargo build --release
 # -----------------------------
 # Stage 2: Runtime
 # -----------------------------
-FROM debian:bookworm-slim
+FROM ubuntu:22.04
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
