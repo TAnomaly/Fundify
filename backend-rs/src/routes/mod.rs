@@ -42,7 +42,9 @@ pub fn create_router(state: SharedState) -> Router {
 
     Router::new()
         .merge(health::router())
+        // Support both /api and /api/v1 for backward compatibility
         .nest("/api/v1", api_router())
+        .nest("/api", api_router())
         .layer(cors)
         .with_state(state)
 }
