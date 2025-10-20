@@ -7,7 +7,7 @@
 # -----------------------------
 # Stage 1: Builder
 # -----------------------------
-FROM rust:1-slim as builder
+FROM rustlang/rust:nightly-slim as builder
 
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
