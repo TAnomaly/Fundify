@@ -40,3 +40,7 @@ validator = { version = "0.18.1", features = ["derive"] }
 
 # Force base64ct to use older version without edition2024 requirement
 base64ct = "=1.6.0"
+
+[[bin]]
+name = "backend_rs"
+path = "src/main.rs"
