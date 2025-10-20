@@ -1,0 +1,10 @@
+# Keep minimal for Railway builds
+.git
+node_modules
+.vscode
+.idea
+*.log
+
+# Include backend-rs files (especially .sqlx for SQLx offline mode)
+!backend-rs/
+!backend-rs/.sqlx/

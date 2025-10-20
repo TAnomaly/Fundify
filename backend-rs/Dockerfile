@@ -41,10 +41,12 @@ RUN cargo build --release && rm -rf src
 # Now copy actual source code
 COPY backend-rs/src ./src
 COPY backend-rs/migrations ./migrations
+
+# Copy .sqlx directory for offline SQLx query compilation
+# This is required for SQLX_OFFLINE=true mode
 COPY backend-rs/.sqlx ./.sqlx
 
 # Build the actual application with offline SQLx
-# This requires .sqlx/ directory for query caching
 ENV SQLX_OFFLINE=true
 RUN cargo build --release
 
