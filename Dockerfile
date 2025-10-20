@@ -1,17 +1,17 @@
 # ====================
 # Multi-stage build for Fundify Rust Backend
-# Railway Deploy: 2025-10-20 20:50 UTC - BINARY NAME FIX
-# Using Rust 1.83 stable with base64ct=1.6.0 pinned
+# Railway Deploy: 2025-10-20 21:05 UTC - BINARY NAME FIX
+# Build context: backend-rs/
 # Binary name: backend_rs (explicit via Cargo.toml [[bin]] section)
 # ====================
 
 # -----------------------------
-# Stage 1: Builder - Rust Stable
+# Stage 1: Builder
 # -----------------------------
 FROM rust:1.83-slim-bookworm as builder
 
-# Force cache invalidation - Railway deploy 20251020-2055
-ARG CACHEBUST=20251020-2055
+# Force cache invalidation
+ARG CACHEBUST=20251020-2145
 
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
@@ -22,9 +22,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-# Verify Rust version
-RUN rustc --version && cargo --version
 
 # Copy dependency manifests first for better caching
 COPY backend-rs/Cargo.toml backend-rs/Cargo.lock* ./
@@ -39,17 +36,22 @@ RUN cargo build --release && rm -rf src
 COPY backend-rs/src ./src
 COPY backend-rs/migrations ./migrations
 
-# Build the actual application
-# SQLx will connect to DATABASE_URL during build time to verify queries
-ARG DATABASE_URL
-ENV DATABASE_URL=${DATABASE_URL}
+# Copy SQLx offline data for compile-time query checking (no DB connection needed)
+COPY backend-rs/.sqlx ./.sqlx
 
-RUN if [ -z "$DATABASE_URL" ]; then \
-        echo "WARNING: DATABASE_URL not set. SQLx queries will not be verified at build time."; \
-    fi && \
-    cargo build --release && \
-    echo "Build completed. Listing binaries:" && \
-    ls -la /app/target/release/ | grep -E "backend|^-"
+# Build the actual application with SQLx offline mode
+# This avoids connecting to database during build (migrations run at startup instead)
+ENV SQLX_OFFLINE=true
+
+RUN cargo build --release && \
+    echo "========================================" && \
+    echo "BUILD COMPLETED - Listing ALL files in target/release:" && \
+    echo "========================================" && \
+    ls -lah /app/target/release/ && \
+    echo "========================================" && \
+    echo "Looking for executables:" && \
+    find /app/target/release -maxdepth 1 -type f -executable && \
+    echo "========================================"
 
 # -----------------------------
 # Stage 2: Runtime
@@ -70,6 +72,7 @@ RUN useradd -r -u 1001 -s /bin/false appuser
 WORKDIR /app
 
 # Copy binary from builder (Rust converts hyphens to underscores in binary names)
+# The binary should be named backend_rs based on Cargo.toml [[bin]] section
 COPY --from=builder /app/target/release/backend_rs /usr/local/bin/backend-rs
 
 # Copy migrations for runtime database setup
@@ -79,7 +82,7 @@ COPY --from=builder /app/migrations /app/migrations
 RUN chown -R appuser:appuser /app && \
     chmod +x /usr/local/bin/backend-rs && \
     ls -la /usr/local/bin/backend-rs && \
-    file /usr/local/bin/backend-rs
+    echo "Binary successfully copied and verified"
 
 # Switch to non-root user
 USER appuser

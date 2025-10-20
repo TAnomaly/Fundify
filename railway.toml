@@ -1,7 +1,7 @@
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
-watchPaths = ["./**"]
+watchPaths = ["backend-rs/**"]
 
 [deploy]
 startCommand = "/usr/local/bin/backend-rs"
