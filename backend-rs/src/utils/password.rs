@@ -1,16 +1,13 @@
-use anyhow::Result;
 use bcrypt::{hash, verify, DEFAULT_COST};
 
-pub fn hash_password(password: &str) -> Result<String> {
-    let password = password.trim();
-    if password.len() < 8 {
-        anyhow::bail!("Password must be at least 8 characters long");
-    }
+use crate::utils::error::{AppError, AppResult};
 
-    let hashed = hash(password, DEFAULT_COST)?;
-    Ok(hashed)
+pub fn hash_password(password: &str) -> AppResult<String> {
+    hash(password, DEFAULT_COST)
+        .map_err(|e| AppError::Internal(format!("Failed to hash password: {}", e)))
 }
 
-pub fn verify_password(candidate: &str, hashed: &str) -> Result<bool> {
-    Ok(verify(candidate, hashed)?)
+pub fn verify_password(password: &str, hash: &str) -> AppResult<bool> {
+    verify(password, hash)
+        .map_err(|e| AppError::Internal(format!("Failed to verify password: {}", e)))
 }

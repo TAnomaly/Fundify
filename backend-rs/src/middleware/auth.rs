@@ -1,98 +1,54 @@
-use axum::async_trait;
-use axum::extract::FromRequestParts;
-use axum::http::{header, request::Parts};
-use sqlx::Row;
+use axum::{
+    extract::Request,
+    http::header::AUTHORIZATION,
+    middleware::Next,
+    response::Response,
+};
 use uuid::Uuid;
 
-use crate::error::AppError;
-use crate::state::SharedState;
-use crate::utils::jwt;
+use crate::utils::{
+    error::{AppError, AppResult},
+    jwt::{verify_token, Claims},
+};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AuthUser {
     pub id: Uuid,
+    pub email: String,
     pub role: String,
 }
 
-#[async_trait]
-impl FromRequestParts<SharedState> for AuthUser {
-    type Rejection = AppError;
-
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &SharedState,
-    ) -> Result<Self, Self::Rejection> {
-        let auth_header = parts
-            .headers
-            .get(header::AUTHORIZATION)
-            .and_then(|value| value.to_str().ok())
-            .ok_or(AppError::Unauthorized)?;
-
-        authenticate_from_header(state, auth_header).await
+impl From<Claims> for AuthUser {
+    fn from(claims: Claims) -> Self {
+        Self {
+            id: Uuid::parse_str(&claims.sub).unwrap(),
+            email: claims.email,
+            role: claims.role,
+        }
     }
 }
 
-fn extract_bearer_token(header_value: &str) -> Option<&str> {
-    let mut parts = header_value.splitn(2, ' ');
-    match (parts.next(), parts.next()) {
-        (Some(scheme), Some(token)) if scheme.eq_ignore_ascii_case("bearer") => {
-            let token = token.trim();
-            if token.is_empty() {
-                None
+pub async fn auth_middleware(
+    mut req: Request,
+    next: Next,
+) -> AppResult<Response> {
+    let token = req
+        .headers()
+        .get(AUTHORIZATION)
+        .and_then(|header| header.to_str().ok())
+        .and_then(|header| {
+            if header.starts_with("Bearer ") {
+                Some(&header[7..])
             } else {
-                Some(token)
+                None
             }
-        }
-        _ => None,
-    }
-}
+        })
+        .ok_or_else(|| AppError::Unauthorized("Missing authorization token".to_string()))?;
 
-async fn authenticate_from_header(
-    state: &SharedState,
-    header_value: &str,
-) -> Result<AuthUser, AppError> {
-    let token = extract_bearer_token(header_value).ok_or(AppError::Unauthorized)?;
+    let claims = verify_token(token)?;
+    let auth_user = AuthUser::from(claims);
 
-    let claims = jwt::decode_token(&state.jwt, token)?;
-    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| AppError::Unauthorized)?;
+    req.extensions_mut().insert(auth_user);
 
-    let found = sqlx::query("SELECT id, role FROM users WHERE id = $1")
-        .bind(user_id)
-        .fetch_optional(&state.db_pool)
-        .await?;
-
-    let Some(record) = found else {
-        return Err(AppError::Unauthorized);
-    };
-
-    Ok(AuthUser {
-        id: record.get("id"),
-        role: record
-            .get::<Option<String>, _>("role")
-            .unwrap_or_else(|| "USER".to_string()),
-    })
-}
-
-#[derive(Debug, Clone)]
-pub struct OptionalAuthUser(pub Option<AuthUser>);
-
-#[async_trait]
-impl FromRequestParts<SharedState> for OptionalAuthUser {
-    type Rejection = AppError;
-
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &SharedState,
-    ) -> Result<Self, Self::Rejection> {
-        match parts
-            .headers
-            .get(header::AUTHORIZATION)
-            .and_then(|value| value.to_str().ok())
-        {
-            None => Ok(OptionalAuthUser(None)),
-            Some(header_value) => authenticate_from_header(state, header_value)
-                .await
-                .map(|user| OptionalAuthUser(Some(user))),
-        }
-    }
+    Ok(next.run(req).await)
 }

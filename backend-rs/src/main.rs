@@ -1,109 +1,142 @@
-mod config;
-mod error;
+mod handlers;
 mod middleware;
 mod models;
-mod routes;
 mod services;
-mod state;
 mod utils;
 
-use crate::config::AppConfig;
-use crate::state::AppState;
-use anyhow::Result;
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
-use std::sync::Arc;
-use tokio::net::TcpListener;
-use tracing_subscriber::EnvFilter;
+use std::env;
+use std::net::SocketAddr;
+use tower_http::{
+    compression::CompressionLayer,
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+use crate::utils::app_state::AppState;
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    // Debug: Print to stdout BEFORE any other initialization
-    println!("=== FUNDIFY BACKEND STARTING ===");
-    println!("Rust binary is executing...");
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load environment variables
+    dotenv().ok();
 
-    dotenvy::dotenv().ok();
-    println!("Dotenv loaded");
-
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .with_target(false)
-        .compact()
+    // Initialize tracing
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "fundify_backend=debug,tower_http=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
         .init();
 
-    println!("Tracing initialized");
+    tracing::info!("Starting Fundify Backend (Rust + Axum)");
 
-    tracing::info!("Starting Fundify Rust Backend");
+    // Database connection
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    tracing::info!("Loading configuration from environment");
-    let config = AppConfig::from_env().map_err(|e| {
-        tracing::error!("Failed to load configuration: {}", e);
-        e
-    })?;
-    tracing::info!("Configuration loaded successfully");
+    tracing::info!("Connecting to database...");
+    let pool = PgPoolOptions::new()
+        .max_connections(50)
+        .connect(&database_url)
+        .await?;
 
-    tracing::info!("Connecting to database: {}", &config.database.url.split('@').last().unwrap_or("unknown"));
+//     tracing::info!("Running database migrations...");
+//     sqlx::migrate!("./migrations")
+//         .run(&pool)
 
-    // Retry database connection with exponential backoff
-    // Railway health check timeout is ~100s, so we keep retries under that
-    let max_retries = 8;
-    let mut retry_count = 0;
-    let pool = loop {
-        match PgPoolOptions::new()
-            .max_connections(config.database.max_connections)
-            .acquire_timeout(config.database.acquire_timeout)
-            .connect(&config.database.url)
-            .await
-        {
-            Ok(pool) => {
-                tracing::info!("✓ Database connected successfully on attempt {}", retry_count + 1);
-                break pool;
-            }
-            Err(e) => {
-                retry_count += 1;
-                if retry_count >= max_retries {
-                    tracing::error!("Failed to connect to database after {} attempts: {}", max_retries, e);
-                    tracing::error!("Database URL host: {}", config.database.url.split('@').last().unwrap_or("unknown"));
-                    return Err(e.into());
-                }
-                // Shorter waits: 1s, 2s, 4s, 8s, 10s, 10s, 10s (total ~55s max)
-                let wait_secs = std::cmp::min(2_u64.pow(retry_count - 1), 10);
-                tracing::warn!(
-                    "Database connection attempt {}/{} failed: {}. Retrying in {}s...",
-                    retry_count,
-                    max_retries,
-                    e,
-                    wait_secs
-                );
-                tokio::time::sleep(tokio::time::Duration::from_secs(wait_secs)).await;
-            }
-        }
-    };
+    tracing::info!("Database ready!");
 
-    // Run database migrations
-    tracing::info!("Running database migrations...");
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to run migrations: {}", e);
-            e
-        })?;
-    tracing::info!("✓ Database migrations completed successfully");
+    // Application state
+    let state = AppState::new(pool);
 
-    tracing::info!("Initializing application state");
-    let state = Arc::new(AppState::try_new(config.clone(), pool)?);
-    let app = routes::create_router(state.clone());
+    // Build CORS layer
+    let cors = CorsLayer::permissive();
 
-    let bind_address = config.server.bind_address();
-    tracing::info!("Binding to {}", bind_address);
-    let listener = TcpListener::bind(&bind_address).await.map_err(|e| {
-        tracing::error!("Failed to bind to {}: {}", bind_address, e);
-        e
-    })?;
-    tracing::info!("✓ Backend API listening on {}", bind_address);
-    tracing::info!("✓ Health check available at http://{}/health", bind_address);
+    // Build application router
+    let app = Router::new()
+        .route("/health", get(health_check))
+        .route("/api/health", get(health_check))
+        // Auth routes
+        .route("/api/auth/register", post(handlers::auth::register))
+        .route("/api/auth/login", post(handlers::auth::login))
+        .route("/api/auth/me", get(handlers::auth::get_me))
+        // User routes
+        .route("/api/users/:id", get(handlers::users::get_user))
+        .route("/api/users/:id", post(handlers::users::update_user))
+        // Campaign routes
+        .route("/api/campaigns", get(handlers::campaigns::list_campaigns))
+        .route("/api/campaigns", post(handlers::campaigns::create_campaign))
+        .route("/api/campaigns/:id", get(handlers::campaigns::get_campaign))
+        .route("/api/campaigns/:id", post(handlers::campaigns::update_campaign))
+        // Donation routes
+        .route("/api/donations", post(handlers::donations::create_donation))
+        .route("/api/campaigns/:id/donations", get(handlers::donations::list_donations))
+        // Comment routes
+        .route("/api/campaigns/:id/comments", get(handlers::comments::list_comments))
+        .route("/api/campaigns/:id/comments", post(handlers::comments::create_comment))
+        // Subscription routes
+        .route("/api/subscriptions", post(handlers::subscriptions::create_subscription))
+        .route("/api/subscriptions/:id", get(handlers::subscriptions::get_subscription))
+        .route("/api/subscriptions/:id/cancel", post(handlers::subscriptions::cancel_subscription))
+        // Membership Tier routes
+        .route("/api/memberships", get(handlers::memberships::list_tiers))
+        .route("/api/memberships", post(handlers::memberships::create_tier))
+        // Creator Post routes
+        .route("/api/posts", get(handlers::posts::list_posts))
+        .route("/api/posts", post(handlers::posts::create_post))
+        .route("/api/posts/:id", get(handlers::posts::get_post))
+        // Article routes
+        .route("/api/articles", get(handlers::articles::list_articles))
+        .route("/api/articles", post(handlers::articles::create_article))
+        .route("/api/articles/:slug", get(handlers::articles::get_article))
+        // Event routes
+        .route("/api/events", get(handlers::events::list_events))
+        .route("/api/events", post(handlers::events::create_event))
+        .route("/api/events/:id", get(handlers::events::get_event))
+        .route("/api/events/:id/rsvp", post(handlers::events::rsvp_event))
+        // Poll routes
+        .route("/api/polls", get(handlers::polls::list_polls))
+        .route("/api/polls", post(handlers::polls::create_poll))
+        .route("/api/polls/:id/vote", post(handlers::polls::vote_poll))
+        // Stripe routes
+        .route("/api/stripe/create-checkout-session", post(handlers::stripe::create_checkout_session))
+        .route("/api/stripe/create-connect-account", post(handlers::stripe::create_connect_account))
+        .route("/api/webhooks/stripe", post(handlers::stripe::webhook))
+        // Notification routes
+        .route("/api/notifications", get(handlers::notifications::list_notifications))
+        .route("/api/notifications/:id/read", post(handlers::notifications::mark_read))
+        // Message routes
+        .route("/api/messages", get(handlers::messages::list_messages))
+        .route("/api/messages", post(handlers::messages::send_message))
+        // Feed routes
+        .route("/api/feed", get(handlers::feed::get_feed))
+        .layer(cors)
+        .layer(CompressionLayer::new())
+        .layer(TraceLayer::new_for_http())
+        .with_state(state);
 
-    axum::serve(listener, app.into_make_service()).await?;
+    // Start server
+    let port = env::var("PORT")
+        .unwrap_or_else(|_| "4000".to_string())
+        .parse::<u16>()
+        .unwrap_or(4000);
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+
+    tracing::info!("Server listening on http://{}", addr);
+
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+async fn health_check() -> &'static str {
+    "OK"
 }

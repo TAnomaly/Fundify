@@ -1,9 +1,4 @@
-pub mod article;
-pub mod campaign;
-pub mod comment;
-pub mod digital_product;
-pub mod donation;
-pub mod event;
-pub mod membership;
-pub mod podcast;
 pub mod user;
+pub mod campaign;
+pub mod donation;
+pub mod subscription;

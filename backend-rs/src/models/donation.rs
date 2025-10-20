@@ -1,53 +1,51 @@
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "DonationStatus", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum DonationStatus {
+    Pending,
+    Completed,
+    Failed,
+    Refunded,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Donation {
     pub id: Uuid,
-    pub campaign_id: Uuid,
-    pub donor_id: Uuid,
-    pub amount: f64,
+    pub amount: BigDecimal,
     pub message: Option<String>,
     pub anonymous: bool,
-    pub status: String,
+    pub status: DonationStatus,
+
+    #[serde(rename = "paymentMethod")]
     pub payment_method: Option<String>,
+    #[serde(rename = "transactionId")]
     pub transaction_id: Option<String>,
+
+    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
+    #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
+
+    #[serde(rename = "donorId")]
+    pub donor_id: Uuid,
+    #[serde(rename = "campaignId")]
+    pub campaign_id: Uuid,
+    #[serde(rename = "rewardId")]
+    pub reward_id: Option<Uuid>,
 }
 
-#[derive(Debug, FromRow)]
-pub struct DonationRow {
-    pub id: Uuid,
+#[derive(Debug, Deserialize)]
+pub struct CreateDonationRequest {
+    #[serde(rename = "campaignId")]
     pub campaign_id: Uuid,
-    pub donor_id: Uuid,
     pub amount: f64,
     pub message: Option<String>,
-    pub anonymous: bool,
-    pub status: String,
-    pub payment_method: Option<String>,
-    pub transaction_id: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
-impl From<DonationRow> for Donation {
-    fn from(row: DonationRow) -> Self {
-        Self {
-            id: row.id,
-            campaign_id: row.campaign_id,
-            donor_id: row.donor_id,
-            amount: row.amount,
-            message: row.message,
-            anonymous: row.anonymous,
-            status: row.status,
-            payment_method: row.payment_method,
-            transaction_id: row.transaction_id,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-        }
-    }
+    pub anonymous: Option<bool>,
+    #[serde(rename = "rewardId")]
+    pub reward_id: Option<Uuid>,
 }

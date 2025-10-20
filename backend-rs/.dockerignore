@@ -4,22 +4,30 @@
 
 # Dependencies
 target/
-node_modules/
+.cargo/
+
+# Environment
+.env
+.env.local
+.env.*.local
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# Environment (keep .env for build if needed, but exclude in production)
-.env.local
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
 
 # Documentation
+README.md
 docs/
 
-# Docker
-docker-compose.yml
-
-# Misc
-*.log
-tmp/
-temp/
+# Tests
+tests/

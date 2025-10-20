@@ -1,185 +1,93 @@
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreatorSummary {
-    pub id: Uuid,
-    pub name: String,
-    pub username: Option<String>,
-    pub avatar: Option<String>,
-    pub creator_bio: Option<String>,
-    pub is_creator: bool,
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "CampaignStatus", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CampaignStatus {
+    Draft,
+    Active,
+    Paused,
+    Completed,
+    Cancelled,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CampaignSummary {
-    pub id: Uuid,
-    pub slug: String,
-    pub title: String,
-    pub description: String,
-    pub goal_amount: f64,
-    pub current_amount: f64,
-    pub currency: String,
-    pub status: String,
-    pub campaign_type: String,
-    pub cover_image: String,
-    pub start_date: Option<DateTime<Utc>>,
-    pub end_date: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub donation_total: f64,
-    pub donation_count: i64,
-    pub creator: CreatorSummary,
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "CampaignType", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CampaignType {
+    Project,
+    Creator,
+    Charity,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CampaignDetail {
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "CampaignCategory", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CampaignCategory {
+    Technology,
+    Creative,
+    Community,
+    Business,
+    Education,
+    Health,
+    Environment,
+    Other,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Campaign {
     pub id: Uuid,
     pub slug: String,
     pub title: String,
     pub description: String,
     pub story: String,
-    pub goal_amount: f64,
-    pub current_amount: f64,
+    #[serde(rename = "type")]
+    pub campaign_type: CampaignType,
+    pub category: CampaignCategory,
+    #[serde(rename = "goalAmount")]
+    pub goal_amount: BigDecimal,
+    #[serde(rename = "currentAmount")]
+    pub current_amount: BigDecimal,
     pub currency: String,
-    pub status: String,
-    pub campaign_type: String,
-    pub category: String,
+    pub status: CampaignStatus,
+
+    #[serde(rename = "coverImage")]
     pub cover_image: String,
     pub images: Vec<String>,
+    #[serde(rename = "videoUrl")]
     pub video_url: Option<String>,
-    pub start_date: Option<DateTime<Utc>>,
-    pub end_date: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub donation_total: f64,
-    pub donation_count: i64,
-    pub creator: CreatorSummary,
-}
 
-#[derive(Debug, FromRow)]
-pub struct CampaignSummaryRow {
-    pub id: Uuid,
-    pub slug: String,
-    pub title: String,
-    pub description: String,
-    pub goal_amount: f64,
-    pub current_amount: f64,
-    pub currency: String,
-    pub status: String,
-    pub campaign_type: String,
-    pub cover_image: String,
+    #[serde(rename = "startDate")]
     pub start_date: Option<DateTime<Utc>>,
+    #[serde(rename = "endDate")]
     pub end_date: Option<DateTime<Utc>>,
+    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
+    #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
-    pub donation_total: f64,
-    pub donation_count: i64,
+
+    #[serde(rename = "creatorId")]
     pub creator_id: Uuid,
-    pub creator_name: String,
-    pub creator_username: Option<String>,
-    pub creator_avatar: Option<String>,
-    pub creator_creator_bio: Option<String>,
-    pub creator_is_creator: bool,
 }
 
-impl From<CampaignSummaryRow> for CampaignSummary {
-    fn from(row: CampaignSummaryRow) -> Self {
-        Self {
-            id: row.id,
-            slug: row.slug,
-            title: row.title,
-            description: row.description,
-            goal_amount: row.goal_amount,
-            current_amount: row.current_amount,
-            currency: row.currency,
-            status: row.status,
-            campaign_type: row.campaign_type,
-            cover_image: row.cover_image,
-            start_date: row.start_date,
-            end_date: row.end_date,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-            donation_total: row.donation_total,
-            donation_count: row.donation_count,
-            creator: CreatorSummary {
-                id: row.creator_id,
-                name: row.creator_name,
-                username: row.creator_username,
-                avatar: row.creator_avatar,
-                creator_bio: row.creator_creator_bio,
-                is_creator: row.creator_is_creator,
-            },
-        }
-    }
-}
-
-#[derive(Debug, FromRow)]
-pub struct CampaignDetailRow {
-    pub id: Uuid,
-    pub slug: String,
+#[derive(Debug, Deserialize)]
+pub struct CreateCampaignRequest {
     pub title: String,
     pub description: String,
     pub story: String,
+    #[serde(rename = "type")]
+    pub campaign_type: Option<CampaignType>,
+    pub category: CampaignCategory,
+    #[serde(rename = "goalAmount")]
     pub goal_amount: f64,
-    pub current_amount: f64,
-    pub currency: String,
-    pub status: String,
-    pub campaign_type: String,
-    pub category: String,
+    #[serde(rename = "coverImage")]
     pub cover_image: String,
-    pub images: Vec<String>,
+    pub images: Option<Vec<String>>,
+    #[serde(rename = "videoUrl")]
     pub video_url: Option<String>,
+    #[serde(rename = "startDate")]
     pub start_date: Option<DateTime<Utc>>,
+    #[serde(rename = "endDate")]
     pub end_date: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub donation_total: f64,
-    pub donation_count: i64,
-    pub creator_id: Uuid,
-    pub creator_name: String,
-    pub creator_username: Option<String>,
-    pub creator_avatar: Option<String>,
-    pub creator_creator_bio: Option<String>,
-    pub creator_is_creator: bool,
-}
-
-impl From<CampaignDetailRow> for CampaignDetail {
-    fn from(row: CampaignDetailRow) -> Self {
-        Self {
-            id: row.id,
-            slug: row.slug,
-            title: row.title,
-            description: row.description,
-            story: row.story,
-            goal_amount: row.goal_amount,
-            current_amount: row.current_amount,
-            currency: row.currency,
-            status: row.status,
-            campaign_type: row.campaign_type,
-            category: row.category,
-            cover_image: row.cover_image,
-            images: row.images,
-            video_url: row.video_url,
-            start_date: row.start_date,
-            end_date: row.end_date,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-            donation_total: row.donation_total,
-            donation_count: row.donation_count,
-            creator: CreatorSummary {
-                id: row.creator_id,
-                name: row.creator_name,
-                username: row.creator_username,
-                avatar: row.creator_avatar,
-                creator_bio: row.creator_creator_bio,
-                is_creator: row.creator_is_creator,
-            },
-        }
-    }
 }
