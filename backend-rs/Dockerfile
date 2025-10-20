@@ -22,7 +22,7 @@ WORKDIR /app
 RUN echo "Cache bust: 2025-10-20-13-PORT-FIX" > /tmp/cache-bust
 
 # Copy dependency manifests first for better caching
-COPY Cargo.toml ./
+COPY backend-rs/Cargo.toml ./
 
 # Create dummy src/main.rs (needed for cargo generate-lockfile to work)
 RUN mkdir src && echo "fn main() {}" > src/main.rs
@@ -39,11 +39,12 @@ RUN cargo generate-lockfile
 RUN cargo build --release && rm -rf src
 
 # Now copy actual source code
-COPY src ./src
-COPY migrations ./migrations
+COPY backend-rs/src ./src
+COPY backend-rs/migrations ./migrations
+COPY backend-rs/.sqlx ./.sqlx
 
 # Build the actual application with offline SQLx
-# This requires sqlx-data.json for query caching
+# This requires .sqlx/ directory for query caching
 ENV SQLX_OFFLINE=true
 RUN cargo build --release
 

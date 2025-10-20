@@ -1,6 +1,6 @@
 [build]
 builder = "dockerfile"
-dockerfilePath = "Dockerfile"
+dockerfilePath = "backend-rs/Dockerfile"
 
 [deploy]
 startCommand = "/usr/local/bin/backend-rs"
