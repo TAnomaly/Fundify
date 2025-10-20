@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy dependency manifests first for better caching
-COPY Cargo.toml Cargo.lock* ./
+COPY backend-rs/Cargo.toml backend-rs/Cargo.lock* ./
 
 # Create dummy src/main.rs for dependency caching
 RUN mkdir src && echo "fn main() {}" > src/main.rs
@@ -28,8 +28,8 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs
 RUN cargo build --release && rm -rf src
 
 # Now copy actual source code
-COPY src ./src
-COPY migrations ./migrations
+COPY backend-rs/src ./src
+COPY backend-rs/migrations ./migrations
 
 # Build the actual application
 # SQLx will connect to DATABASE_URL during build time to verify queries
