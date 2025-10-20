@@ -11,7 +11,7 @@
 FROM rust:1.83-slim-bookworm as builder
 
 # Force cache invalidation
-ARG CACHEBUST=20251020-2105
+ARG CACHEBUST=20251020-2110
 
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
@@ -45,8 +45,14 @@ RUN if [ -z "$DATABASE_URL" ]; then \
         echo "WARNING: DATABASE_URL not set. SQLx queries will not be verified at build time."; \
     fi && \
     cargo build --release && \
-    echo "Build completed. Listing binaries:" && \
-    ls -la /app/target/release/ | grep -E "backend|^-"
+    echo "========================================" && \
+    echo "BUILD COMPLETED - Listing ALL files in target/release:" && \
+    echo "========================================" && \
+    ls -lah /app/target/release/ && \
+    echo "========================================" && \
+    echo "Looking for executables:" && \
+    find /app/target/release -maxdepth 1 -type f -executable && \
+    echo "========================================"
 
 # -----------------------------
 # Stage 2: Runtime
@@ -67,14 +73,18 @@ RUN useradd -r -u 1001 -s /bin/false appuser
 WORKDIR /app
 
 # Copy binary from builder (Rust converts hyphens to underscores in binary names)
+# The binary should be named backend_rs based on Cargo.toml [[bin]] section
 COPY --from=builder /app/target/release/backend_rs /usr/local/bin/backend-rs
 
 # Copy migrations for runtime database setup
 COPY --from=builder /app/migrations /app/migrations
 
-# Set proper permissions
+# Set proper permissions and verify binary exists
 RUN chown -R appuser:appuser /app && \
-    chmod +x /usr/local/bin/backend-rs
+    chmod +x /usr/local/bin/backend-rs && \
+    ls -la /usr/local/bin/backend-rs && \
+    file /usr/local/bin/backend-rs && \
+    echo "Binary successfully copied and verified"
 
 # Switch to non-root user
 USER appuser
