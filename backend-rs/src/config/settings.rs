@@ -75,7 +75,7 @@ impl DatabaseConfig {
             .ok()
             .and_then(|value| value.parse::<u64>().ok())
             .map(StdDuration::from_secs)
-            .unwrap_or_else(|| StdDuration::from_secs(5));
+            .unwrap_or_else(|| StdDuration::from_secs(3));
 
         Ok(Self {
             url,

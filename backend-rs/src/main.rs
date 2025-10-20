@@ -37,7 +37,8 @@ async fn main() -> Result<()> {
     tracing::info!("Connecting to database: {}", &config.database.url.split('@').last().unwrap_or("unknown"));
 
     // Retry database connection with exponential backoff
-    let max_retries = 10;
+    // Railway health check timeout is ~100s, so we keep retries under that
+    let max_retries = 8;
     let mut retry_count = 0;
     let pool = loop {
         match PgPoolOptions::new()
@@ -47,18 +48,20 @@ async fn main() -> Result<()> {
             .await
         {
             Ok(pool) => {
-                tracing::info!("✓ Database connected successfully");
+                tracing::info!("✓ Database connected successfully on attempt {}", retry_count + 1);
                 break pool;
             }
             Err(e) => {
                 retry_count += 1;
                 if retry_count >= max_retries {
                     tracing::error!("Failed to connect to database after {} attempts: {}", max_retries, e);
+                    tracing::error!("Database URL host: {}", config.database.url.split('@').last().unwrap_or("unknown"));
                     return Err(e.into());
                 }
-                let wait_secs = std::cmp::min(2_u64.pow(retry_count), 30);
+                // Shorter waits: 1s, 2s, 4s, 8s, 10s, 10s, 10s (total ~55s max)
+                let wait_secs = std::cmp::min(2_u64.pow(retry_count - 1), 10);
                 tracing::warn!(
-                    "Database connection failed (attempt {}/{}): {}. Retrying in {}s...",
+                    "Database connection attempt {}/{} failed: {}. Retrying in {}s...",
                     retry_count,
                     max_retries,
                     e,
