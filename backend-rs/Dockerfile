@@ -1,12 +1,17 @@
 # ====================
 # Multi-stage build for Fundify Rust Backend
-# Railway Deploy: 2025-10-20 - Build context: backend-rs/
+# Railway Deploy: 2025-10-20 21:05 UTC - BINARY NAME FIX
+# Build context: backend-rs/
+# Binary name: backend_rs (explicit via Cargo.toml [[bin]] section)
 # ====================
 
 # -----------------------------
 # Stage 1: Builder
 # -----------------------------
 FROM rust:1.83-slim-bookworm as builder
+
+# Force cache invalidation
+ARG CACHEBUST=20251020-2105
 
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
@@ -39,7 +44,9 @@ ENV DATABASE_URL=${DATABASE_URL}
 RUN if [ -z "$DATABASE_URL" ]; then \
         echo "WARNING: DATABASE_URL not set. SQLx queries will not be verified at build time."; \
     fi && \
-    cargo build --release
+    cargo build --release && \
+    echo "Build completed. Listing binaries:" && \
+    ls -la /app/target/release/ | grep -E "backend|^-"
 
 # -----------------------------
 # Stage 2: Runtime
@@ -59,8 +66,8 @@ RUN useradd -r -u 1001 -s /bin/false appuser
 
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/target/release/backend-rs /usr/local/bin/backend-rs
+# Copy binary from builder (Rust converts hyphens to underscores in binary names)
+COPY --from=builder /app/target/release/backend_rs /usr/local/bin/backend-rs
 
 # Copy migrations for runtime database setup
 COPY --from=builder /app/migrations /app/migrations
