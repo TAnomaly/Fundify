@@ -63,15 +63,20 @@ RUN useradd -r -u 1001 -s /bin/false appuser
 
 WORKDIR /app
 
+# List built binaries for debugging
+RUN ls -la /app/target/release/ | grep backend || echo "No backend binary found!"
+
 # Copy binary from builder (Rust converts hyphens to underscores in binary names)
 COPY --from=builder /app/target/release/backend_rs /usr/local/bin/backend-rs
 
 # Copy migrations for runtime database setup
 COPY --from=builder /app/migrations /app/migrations
 
-# Set proper permissions
+# Set proper permissions and verify binary exists
 RUN chown -R appuser:appuser /app && \
-    chmod +x /usr/local/bin/backend-rs
+    chmod +x /usr/local/bin/backend-rs && \
+    ls -la /usr/local/bin/backend-rs && \
+    file /usr/local/bin/backend-rs
 
 # Switch to non-root user
 USER appuser
