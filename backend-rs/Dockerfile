@@ -11,7 +11,7 @@
 FROM rust:1.83-slim-bookworm as builder
 
 # Force cache invalidation
-ARG CACHEBUST=20251020-2110
+ARG CACHEBUST=20251020-2125
 
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
@@ -36,15 +36,14 @@ RUN cargo build --release && rm -rf src
 COPY src ./src
 COPY migrations ./migrations
 
-# Build the actual application
-# SQLx will connect to DATABASE_URL during build time to verify queries
-ARG DATABASE_URL
-ENV DATABASE_URL=${DATABASE_URL}
+# Copy SQLx offline data for compile-time query checking (no DB connection needed)
+COPY .sqlx ./.sqlx
 
-RUN if [ -z "$DATABASE_URL" ]; then \
-        echo "WARNING: DATABASE_URL not set. SQLx queries will not be verified at build time."; \
-    fi && \
-    cargo build --release && \
+# Build the actual application with SQLx offline mode
+# This avoids connecting to database during build (migrations run at startup instead)
+ENV SQLX_OFFLINE=true
+
+RUN cargo build --release && \
     echo "========================================" && \
     echo "BUILD COMPLETED - Listing ALL files in target/release:" && \
     echo "========================================" && \

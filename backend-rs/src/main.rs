@@ -72,6 +72,17 @@ async fn main() -> Result<()> {
         }
     };
 
+    // Run database migrations
+    tracing::info!("Running database migrations...");
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to run migrations: {}", e);
+            e
+        })?;
+    tracing::info!("✓ Database migrations completed successfully");
+
     tracing::info!("Initializing application state");
     let state = Arc::new(AppState::try_new(config.clone(), pool)?);
     let app = routes::create_router(state.clone());
