@@ -63,8 +63,8 @@ RUN useradd -r -u 1001 -s /bin/false appuser
 
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/target/release/backend-rs /usr/local/bin/backend-rs
+# Copy binary from builder (Rust converts hyphens to underscores in binary names)
+COPY --from=builder /app/target/release/backend_rs /usr/local/bin/backend-rs
 
 # Copy migrations for runtime database setup
 COPY --from=builder /app/migrations /app/migrations
