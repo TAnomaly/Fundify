@@ -104,7 +104,7 @@ pub async fn list_products(
             dp.description,
             dp.price,
             'USD' as currency,
-            dp."productType" as category,
+            dp."productType"::text as category,
             dp."creatorId" as creator_id,
             u.name as creator_name,
             u.username as creator_username,
@@ -195,7 +195,7 @@ pub async fn get_meta(
     let total_products: i64 = total_products_row.get("total");
 
     // Get categories
-    let category_rows = sqlx::query("SELECT DISTINCT \"productType\" FROM \"DigitalProduct\" WHERE \"isActive\" = true AND \"productType\" IS NOT NULL")
+    let category_rows = sqlx::query("SELECT DISTINCT \"productType\"::text FROM \"DigitalProduct\" WHERE \"isActive\" = true AND \"productType\" IS NOT NULL")
         .fetch_all(&state.db)
         .await?;
     let categories: Vec<String> = category_rows
