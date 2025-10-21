@@ -154,11 +154,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::info!("Using database URL: {}", database_url.replace("://", "://***"));
 
-    // Skip database connection for Railway deployment
-    tracing::info!("Skipping database connection for Railway deployment");
-    
-    // Create dummy state without database
-    let state = AppState::new_dummy();
+    tracing::info!("Connecting to database...");
+    let pool = PgPoolOptions::new()
+        .max_connections(50)
+        .connect(&database_url)
+        .await?;
+
+    //     tracing::info!("Running database migrations...");
+    //     sqlx::migrate!("./migrations")
+    //         .run(&pool)
+
+    tracing::info!("Database ready!");
+
+    // Application state
+    let state = AppState::new(pool);
 
     // CORS is now handled by custom middleware below
 

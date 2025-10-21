@@ -2,16 +2,44 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Extension;
+use bigdecimal::ToPrimitive;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::middleware::auth::AuthUser;
-use crate::models::campaign::Campaign;
+use crate::models::campaign::{Campaign, CampaignCategory, CampaignStatus, CampaignType};
 use crate::utils::{
     app_state::AppState,
     error::{AppError, AppResult},
     response::ApiResponse,
 };
+
+#[derive(sqlx::FromRow)]
+struct CampaignWithUserInfo {
+    // Campaign fields
+    id: Uuid,
+    title: String,
+    slug: String,
+    description: String,
+    story: String,
+    category: CampaignCategory,
+    campaign_type: CampaignType,
+    status: CampaignStatus,
+    goal_amount: bigdecimal::BigDecimal,
+    current_amount: bigdecimal::BigDecimal,
+    cover_image: String,
+    created_at: DateTime<Utc>,
+    
+    // User fields
+    creator_id: Uuid,
+    creator_name: String,
+    creator_avatar: Option<String>,
+    
+    // Aggregated counts
+    donation_count: i64,
+    comment_count: i64,
+}
 
 #[derive(Deserialize)]
 pub struct ListCampaignsQuery {
@@ -89,85 +117,205 @@ fn generate_slug(title: &str) -> String {
 }
 
 pub async fn list_campaigns(
-    State(_state): State<AppState>,
-    Query(_params): Query<ListCampaignsQuery>,
+    State(state): State<AppState>,
+    Query(params): Query<ListCampaignsQuery>,
 ) -> AppResult<impl IntoResponse> {
-    // Temporary fallback for Railway deployment without DATABASE_URL
-    let campaigns = vec![
-        serde_json::json!({
-            "id": "1",
-            "title": "Help Build a School in Kenya",
-            "slug": "help-build-school-kenya",
-            "description": "We're raising funds to build a new school in rural Kenya to provide education for 200+ children.",
-            "story": "Education is the key to breaking the cycle of poverty. In rural Kenya, many children walk miles to reach the nearest school, and often the schools are overcrowded and under-resourced. We want to change this by building a new, modern school that will serve 200+ children in the community.",
-            "category": "EDUCATION",
-            "type": "PROJECT",
-            "status": "ACTIVE",
-            "goalAmount": 50000.0,
-            "currentAmount": 12500.0,
-            "coverImage": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800",
-            "createdAt": "2024-10-15T10:30:00.000Z",
-            "creator": {
-                "id": "1",
-                "name": "Sarah Johnson",
-                "avatar": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100"
-            },
-            "donationCount": 45,
-            "commentCount": 12
-        }),
-        serde_json::json!({
-            "id": "2",
-            "title": "Clean Water for 1000 Families",
-            "slug": "clean-water-1000-families",
-            "description": "Installing water filtration systems to provide clean drinking water for 1000 families in Bangladesh.",
-            "story": "Access to clean water is a fundamental human right. In rural Bangladesh, many families rely on contaminated water sources, leading to waterborne diseases. This project will install advanced filtration systems to provide safe drinking water for 1000 families.",
-            "category": "HEALTH",
-            "type": "PROJECT",
-            "status": "ACTIVE",
-            "goalAmount": 25000.0,
-            "currentAmount": 8750.0,
-            "coverImage": "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=800",
-            "createdAt": "2024-10-10T14:20:00.000Z",
-            "creator": {
-                "id": "2",
-                "name": "Ahmed Hassan",
-                "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100"
-            },
-            "donationCount": 78,
-            "commentCount": 23
-        }),
-        serde_json::json!({
-            "id": "3",
-            "title": "Tech Education for Refugees",
-            "slug": "tech-education-refugees",
-            "description": "Providing coding and digital skills training for refugee youth to help them build new careers.",
-            "story": "Refugees often face barriers to employment and education. This program provides comprehensive tech education including coding, digital marketing, and entrepreneurship skills to help refugee youth build sustainable careers in the digital economy.",
-            "category": "TECHNOLOGY",
-            "type": "PROJECT",
-            "status": "ACTIVE",
-            "goalAmount": 30000.0,
-            "currentAmount": 18250.0,
-            "coverImage": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
-            "createdAt": "2024-10-05T09:15:00.000Z",
-            "creator": {
-                "id": "3",
-                "name": "Maria Rodriguez",
-                "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100"
-            },
-            "donationCount": 156,
-            "commentCount": 34
-        })
-    ];
+    // Store the search pattern to ensure it lives long enough
+    let search_pattern = params.search.as_ref().map(|s| format!("%{}%", s));
+    let count_search_pattern = params.search.as_ref().map(|s| format!("%{}%", s));
 
-    let response = serde_json::json!({
-        "campaigns": campaigns,
-        "pagination": {
-            "page": 1,
-            "limit": 12,
-            "total": 3,
-            "pages": 1
-        }
-    });
+    // Create a copy of the values to bind
+    let status_val = params.status.clone();
+    let category_val = params.category.clone();
+    let campaign_type_val = params.campaign_type.clone();
+
+    // Build the query with optional filters
+    let mut query = String::from(r#"
+        SELECT 
+            c.id, c.title, c.slug, c.description, c.story, c.category, c.type as "type: _", 
+            c.status as "status: _", c."goalAmount" as goal_amount, c."currentAmount" as current_amount,
+            c."coverImage" as cover_image, c."createdAt" as created_at,
+            u.id as creator_id, u.name as creator_name, u.avatar as creator_avatar,
+            COALESCE(donation_counts.donation_count, 0) as donation_count,
+            COALESCE(comment_counts.comment_count, 0) as comment_count
+        FROM "Campaign" c
+        JOIN "User" u ON c."creatorId" = u.id
+        LEFT JOIN (
+            SELECT "campaignId", COUNT(*) as donation_count
+            FROM "Donation"
+            GROUP BY "campaignId"
+        ) donation_counts ON c.id = donation_counts."campaignId"
+        LEFT JOIN (
+            SELECT "campaignId", COUNT(*) as comment_count
+            FROM "Comment"
+            GROUP BY "campaignId"
+        ) comment_counts ON c.id = comment_counts."campaignId"
+        WHERE 1=1
+    "#);
+    
+    // Add optional filters
+    if params.status.is_some() {
+        query.push_str(" AND c.status = $1");
+    } else {
+        // Default to only active campaigns unless specified otherwise
+        query.push_str(" AND c.status = 'ACTIVE'");
+    }
+    
+    if params.category.is_some() {
+        let param_position = if params.status.is_some() { 2 } else { 1 };
+        query.push_str(&format!(" AND c.category = ${}", param_position));
+    }
+    
+    if params.search.is_some() {
+        let param_position = if params.status.is_some() { 1 } else { 0 } 
+            + if params.category.is_some() { 1 } else { 0 } 
+            + 1;
+        query.push_str(&format!(" AND (c.title ILIKE ${} OR c.description ILIKE ${})", param_position, param_position));
+    }
+    
+    if params.campaign_type.is_some() {
+        let param_position = if params.status.is_some() { 1 } else { 0 } 
+            + if params.category.is_some() { 1 } else { 0 } 
+            + if params.search.is_some() { 1 } else { 0 } 
+            + 1;
+        query.push_str(&format!(" AND c.type = ${}", param_position));
+    }
+    
+    // Add pagination
+    let page = params.page.unwrap_or(1).max(1);
+    let limit = params.limit.unwrap_or(12).max(1).min(100);
+    let offset = (page - 1) * limit;
+    
+    // Add ordering, limit and offset
+    let total_params_count = if params.status.is_some() { 1 } else { 0 } 
+        + if params.category.is_some() { 1 } else { 0 } 
+        + if params.search.is_some() { 1 } else { 0 } 
+        + if params.campaign_type.is_some() { 1 } else { 0 };
+    
+    query.push_str(" ORDER BY c.created_at DESC LIMIT $");
+    query.push_str(&(total_params_count + 1).to_string());
+    query.push_str(" OFFSET $");
+    query.push_str(&(total_params_count + 2).to_string());
+    
+    // Now create the query builder and bind parameters
+    let mut query_builder = sqlx::query_as::<_, CampaignWithUserInfo>(&query);
+    
+    // Bind parameters in the same order we added them to the query
+    if let Some(ref status) = status_val {
+        query_builder = query_builder.bind(status);
+    }
+    
+    if let Some(ref category) = category_val {
+        query_builder = query_builder.bind(category);
+    }
+    
+    if let Some(ref pattern) = search_pattern {
+        query_builder = query_builder.bind(pattern);
+    }
+    
+    if let Some(ref campaign_type) = campaign_type_val {
+        query_builder = query_builder.bind(campaign_type);
+    }
+    
+    query_builder = query_builder.bind(limit).bind(offset);
+    
+    let campaigns = query_builder.fetch_all(&state.db).await?;
+
+    // Convert to CampaignWithCreator format
+    let campaigns_with_creator: Vec<CampaignWithCreator> = campaigns
+        .into_iter()
+        .map(|campaign| {
+            CampaignWithCreator {
+                id: campaign.id.to_string(),
+                title: campaign.title,
+                slug: campaign.slug,
+                description: campaign.description,
+                story: Some(campaign.story),
+                category: format!("{:?}", campaign.category),
+                campaign_type: format!("{:?}", campaign.campaign_type),
+                status: format!("{:?}", campaign.status),
+                goal_amount: campaign.goal_amount.to_f64().unwrap_or(0.0),
+                current_amount: campaign.current_amount.to_f64().unwrap_or(0.0),
+                cover_image: Some(campaign.cover_image),
+                created_at: campaign.created_at.to_rfc3339(),
+                creator: CreatorInfo {
+                    id: campaign.creator_id.to_string(),
+                    name: campaign.creator_name,
+                    avatar: campaign.creator_avatar,
+                },
+                donation_count: campaign.donation_count,
+                comment_count: campaign.comment_count,
+            }
+        })
+        .collect();
+
+    // Get total count for pagination - using the same filter logic
+    let mut count_query = String::from(r#"SELECT COUNT(*) as total
+        FROM "Campaign" c
+        JOIN "User" u ON c."creatorId" = u.id
+        WHERE 1=1"#);
+    
+    // Apply same filters to count query
+    if params.status.is_some() {
+        count_query.push_str(" AND c.status = $1");
+    } else {
+        // Default to only active campaigns unless specified otherwise
+        count_query.push_str(" AND c.status = 'ACTIVE'");
+    }
+    
+    if params.category.is_some() {
+        let param_position = if params.status.is_some() { 2 } else { 1 };
+        count_query.push_str(&format!(" AND c.category = ${}", param_position));
+    }
+    
+    if params.search.is_some() {
+        let param_position = if params.status.is_some() { 1 } else { 0 } 
+            + if params.category.is_some() { 1 } else { 0 } 
+            + 1;
+        count_query.push_str(&format!(" AND (c.title ILIKE ${} OR c.description ILIKE ${})", param_position, param_position));
+    }
+    
+    if params.campaign_type.is_some() {
+        let param_position = if params.status.is_some() { 1 } else { 0 } 
+            + if params.category.is_some() { 1 } else { 0 } 
+            + if params.search.is_some() { 1 } else { 0 } 
+            + 1;
+        count_query.push_str(&format!(" AND c.type = ${}", param_position));
+    }
+    
+    // Build and execute count query
+    let mut count_query_builder = sqlx::query_as::<_, (i64,)>(&count_query);
+    
+    if let Some(ref status) = status_val {
+        count_query_builder = count_query_builder.bind(status);
+    }
+    
+    if let Some(ref category) = category_val {
+        count_query_builder = count_query_builder.bind(category);
+    }
+    
+    if let Some(ref pattern) = count_search_pattern {
+        count_query_builder = count_query_builder.bind(pattern);
+    }
+    
+    if let Some(ref campaign_type) = campaign_type_val {
+        count_query_builder = count_query_builder.bind(campaign_type);
+    }
+    
+    let total = count_query_builder.fetch_one(&state.db).await?.0;
+    let pages = ((total as f64) / (limit as f64)).ceil() as i32;
+
+    let pagination = PaginationInfo {
+        page,
+        limit,
+        total,
+        pages,
+    };
+
+    let response = CampaignsListResponse {
+        campaigns: campaigns_with_creator,
+        pagination,
+    };
 
     Ok(ApiResponse::success(response))
 }
