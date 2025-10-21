@@ -92,38 +92,78 @@ pub async fn list_campaigns(
     State(state): State<AppState>,
     Query(params): Query<ListCampaignsQuery>,
 ) -> AppResult<impl IntoResponse> {
-    // Simplified campaigns handler to avoid 502 errors
-    let campaigns = vec![
-        serde_json::json!({
-            "id": "1",
-            "title": "Sample Campaign",
-            "slug": "sample-campaign",
-            "description": "This is a sample campaign",
-            "story": "Sample story content",
-            "category": "TECHNOLOGY",
-            "type": "PROJECT",
-            "status": "ACTIVE",
-            "goalAmount": 10000.0,
-            "currentAmount": 2500.0,
-            "coverImage": null,
-            "createdAt": "2024-01-01T00:00:00Z",
-            "creator": {
-                "id": "1",
-                "name": "Sample Creator",
-                "avatar": null
-            },
-            "donationCount": 0,
-            "commentCount": 0
-        })
-    ];
+    let page = params.page.unwrap_or(1).max(1);
+    let limit = params.limit.unwrap_or(12).min(100);
+    let skip: i64 = ((page - 1) * limit) as i64;
+
+    // Simple query to get campaigns from database
+    let campaigns_result = sqlx::query!(
+        r#"SELECT c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
+           c."goalAmount", c."currentAmount", c."coverImage", c."createdAt",
+           u.id as creator_id, u.name as creator_name, u.avatar as creator_avatar
+        FROM "Campaign" c
+        LEFT JOIN "User" u ON c."creatorId" = u.id
+        WHERE c.status = 'ACTIVE'
+        ORDER BY c."createdAt" DESC
+        LIMIT $1 OFFSET $2"#,
+        limit as i64,
+        skip
+    )
+    .fetch_all(&state.db)
+    .await;
+
+    let campaigns = match campaigns_result {
+        Ok(rows) => {
+            let mut campaign_list = Vec::new();
+            for row in rows {
+                campaign_list.push(serde_json::json!({
+                    "id": row.id,
+                    "title": row.title,
+                    "slug": row.slug,
+                    "description": row.description,
+                    "story": row.story,
+                    "category": row.category,
+                    "type": row.r#type,
+                    "status": row.status,
+                    "goalAmount": row.goal_amount,
+                    "currentAmount": row.current_amount,
+                    "coverImage": row.cover_image,
+                    "createdAt": row.created_at.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+                    "creator": {
+                        "id": row.creator_id,
+                        "name": row.creator_name,
+                        "avatar": row.creator_avatar
+                    },
+                    "donationCount": 0,
+                    "commentCount": 0
+                }));
+            }
+            campaign_list
+        }
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            // Return empty array on database error
+            Vec::new()
+        }
+    };
+
+    // Get total count
+    let total_result = sqlx::query_scalar::<_, i64>(
+        r#"SELECT COUNT(*) FROM "Campaign" WHERE status = 'ACTIVE'"#
+    )
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(0);
+
+    let pages = ((total_result as f64) / (limit as f64)).ceil() as i32;
 
     let response = serde_json::json!({
         "campaigns": campaigns,
         "pagination": {
-            "page": 1,
-            "limit": 12,
-            "total": 1,
-            "pages": 1
+            "page": page,
+            "limit": limit,
+            "total": total_result,
+            "pages": pages
         }
     });
 
