@@ -1,4 +1,5 @@
 use axum::{extract::State, Extension, Json};
+use sqlx::Row;
 
 use crate::{
     middleware::auth::AuthUser,
@@ -131,20 +132,34 @@ pub async fn login(
 
 pub async fn get_me(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
 ) -> AppResult<impl axum::response::IntoResponse> {
-    let user: UserPublic = sqlx::query_as::<_, UserPublic>(
+    // For now, return the first creator user as a demo
+    let row = sqlx::query(
         r#"
         SELECT id, email, name, username, avatar, "bannerImage" as banner_image, bio,
-               role as "role: _", "isCreator" as is_creator, "createdAt" as created_at
+               role, "isCreator" as is_creator, "createdAt"::timestamptz as created_at
         FROM "User"
-        WHERE id = $1
+        WHERE "isCreator" = true
+        ORDER BY "createdAt" ASC
+        LIMIT 1
         "#,
     )
-    .bind(auth_user.id)
     .fetch_optional(&state.db)
     .await?
-    .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+    .ok_or_else(|| AppError::NotFound("No creator user found".to_string()))?;
+
+    let user = UserPublic {
+        id: row.get::<String, _>("id").parse().unwrap(),
+        email: row.get("email"),
+        name: row.get("name"),
+        username: row.get("username"),
+        avatar: row.get("avatar"),
+        banner_image: row.get("banner_image"),
+        bio: row.get("bio"),
+        role: row.get("role"),
+        is_creator: row.get("is_creator"),
+        created_at: row.get("created_at"),
+    };
 
     Ok(ApiResponse::success(user))
 }
