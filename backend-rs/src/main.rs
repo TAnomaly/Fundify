@@ -34,6 +34,9 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
         "https://perfect-happiness-production.up.railway.app",
         "https://fundify-frontend.vercel.app",
         "https://fundify-app.vercel.app",
+        "https://fundify.vercel.app",
+        "https://fundify-app.vercel.app",
+        "https://fundify-frontend.vercel.app",
     ];
 
     // Get environment origins
