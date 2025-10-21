@@ -5,7 +5,7 @@ mod services;
 mod utils;
 
 use axum::{
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Router,
 };
 use dotenvy::dotenv;
@@ -14,7 +14,7 @@ use std::env;
 use std::net::SocketAddr;
 use tower_http::{
     compression::CompressionLayer,
-    cors::{Any, CorsLayer},
+    cors::CorsLayer,
     trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -98,10 +98,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/campaigns/:id", post(handlers::campaigns::update_campaign))
         // Donation routes
         .route("/api/donations", post(handlers::donations::create_donation))
+        .route("/api/donations/me", get(handlers::donations::get_my_donations))
         .route("/api/campaigns/:id/donations", get(handlers::donations::list_donations))
         // Comment routes
-        .route("/api/campaigns/:id/comments", get(handlers::comments::list_comments))
-        .route("/api/campaigns/:id/comments", post(handlers::comments::create_comment))
+        .route("/api/campaigns/:id/comments", get(handlers::comments::get_comments_by_campaign))
+        .route("/api/comments", post(handlers::comments::create_comment))
+        .route("/api/comments/:id", put(handlers::comments::update_comment))
+        .route("/api/comments/:id", delete(handlers::comments::delete_comment))
         // Subscription routes
         .route("/api/subscriptions", post(handlers::subscriptions::create_subscription))
         .route("/api/subscriptions/:id", get(handlers::subscriptions::get_subscription))
@@ -133,6 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Notification routes
         .route("/api/notifications", get(handlers::notifications::list_notifications))
         .route("/api/notifications/:id/read", post(handlers::notifications::mark_read))
+        .route("/api/notifications/read-all", post(handlers::notifications::mark_all_read))
         // Message routes
         .route("/api/messages", get(handlers::messages::list_messages))
         .route("/api/messages", post(handlers::messages::send_message))
