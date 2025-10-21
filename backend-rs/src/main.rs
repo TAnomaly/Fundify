@@ -278,6 +278,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Feed routes
         .route("/api/feed", get(handlers::feed::get_feed))
         .route("/api/feed", options(|| async { "OK" }))
+        // Product routes
+        .route("/api/products", get(handlers::products::list_products))
+        .route("/api/products", options(|| async { "OK" }))
+        .route("/api/products/collections", get(handlers::products::get_collections))
+        .route("/api/products/collections", options(|| async { "OK" }))
+        .route("/api/products/meta", get(handlers::products::get_meta))
+        .route("/api/products/meta", options(|| async { "OK" }))
         .layer(from_fn(cors_middleware))
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http())

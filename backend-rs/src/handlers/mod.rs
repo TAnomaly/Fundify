@@ -10,6 +10,7 @@ pub mod messages;
 pub mod notifications;
 pub mod polls;
 pub mod posts;
+pub mod products;
 pub mod stripe;
 pub mod subscriptions;
 pub mod users;
