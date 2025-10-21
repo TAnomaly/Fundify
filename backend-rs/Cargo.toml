@@ -46,4 +46,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 
 [patch.crates-io]
-base64ct = "=1.7.0"
+base64ct = "=1.7.1"
