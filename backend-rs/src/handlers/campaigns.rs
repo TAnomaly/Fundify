@@ -99,20 +99,20 @@ pub async fn list_campaigns(
         LEFT JOIN "User" u ON c."creatorId" = u.id
         LEFT JOIN "Donation" d ON c.id = d."campaignId"
         LEFT JOIN "Comment" com ON c.id = com."campaignId"
-        WHERE c.status = $1"#,
+        WHERE c.status = $1::text"#,
     );
 
     let mut param_index = 2;
     let mut query_params: Vec<String> = vec![status_filter.to_string()];
 
     if let Some(category) = &params.category {
-        query.push_str(&format!(" AND c.category = ${}", param_index));
+        query.push_str(&format!(" AND c.category = ${}::text", param_index));
         query_params.push(category.clone());
         param_index += 1;
     }
 
     if let Some(campaign_type) = &params.campaign_type {
-        query.push_str(&format!(" AND c.type = ${}", param_index));
+        query.push_str(&format!(" AND c.type = ${}::text", param_index));
         query_params.push(campaign_type.clone());
         param_index += 1;
     }
