@@ -35,6 +35,9 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
         // Blog specific origins
         "https://funify.vercel.app/blog",
         "https://fundify.vercel.app/blog",
+        // Campaigns specific origins
+        "https://funify.vercel.app/campaigns",
+        "https://fundify.vercel.app/campaigns",
     ];
 
     // Get environment origins
