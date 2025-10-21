@@ -55,64 +55,36 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
 
     let mut response = next.run(request).await;
 
-    // Check if origin is allowed - more permissive for Railway
-    let is_allowed = if let Some(origin_header) = &origin {
-        let origin_str = origin_header.to_str().unwrap_or("");
-        let normalized = origin_str.trim().to_lowercase();
-
-        // Check static origins
-        let static_allowed = static_origins
-            .iter()
-            .any(|&allowed| allowed.trim().to_lowercase() == normalized);
-
-        // Check environment origins
-        let env_allowed = env_origins
-            .iter()
-            .any(|allowed| allowed.trim().to_lowercase() == normalized);
-
-        // Check wildcard patterns
-        let wildcard_allowed =
-            normalized.ends_with(".vercel.app") || 
-            normalized.ends_with(".railway.app") ||
-            normalized.ends_with(".up.railway.app");
-
-        static_allowed || env_allowed || wildcard_allowed
-    } else {
-        true // Allow requests without origin (like Postman, curl, etc.)
-    };
-
-    // Always add CORS headers for Railway deployment
-    if is_allowed {
-        if let Some(origin_header) = origin {
-            response
-                .headers_mut()
-                .insert("access-control-allow-origin", origin_header);
-        } else {
-            // Always allow all origins in production for Railway
-            response
-                .headers_mut()
-                .insert("access-control-allow-origin", HeaderValue::from_static("*"));
-        }
-
-        response.headers_mut().insert(
-            "access-control-allow-credentials",
-            HeaderValue::from_static("true"),
-        );
-
-        response.headers_mut().insert(
-            "access-control-allow-methods",
-            HeaderValue::from_static("GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"),
-        );
-
-        response.headers_mut().insert(
-            "access-control-allow-headers",
-            HeaderValue::from_static("Content-Type, Authorization, Cache-Control, X-Requested-With, Accept, Accept-Language")
-        );
-
+    // ALWAYS add CORS headers - no origin checking for Railway deployment
+    if let Some(origin_header) = origin {
         response
             .headers_mut()
-            .insert("vary", HeaderValue::from_static("Origin"));
+            .insert("access-control-allow-origin", origin_header);
+    } else {
+        // Always allow all origins - no restrictions
+        response
+            .headers_mut()
+            .insert("access-control-allow-origin", HeaderValue::from_static("*"));
     }
+
+    response.headers_mut().insert(
+        "access-control-allow-credentials",
+        HeaderValue::from_static("true"),
+    );
+
+    response.headers_mut().insert(
+        "access-control-allow-methods",
+        HeaderValue::from_static("GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"),
+    );
+
+    response.headers_mut().insert(
+        "access-control-allow-headers",
+        HeaderValue::from_static("Content-Type, Authorization, Cache-Control, X-Requested-With, Accept, Accept-Language, Origin")
+    );
+
+    response
+        .headers_mut()
+        .insert("vary", HeaderValue::from_static("Origin"));
 
     response
 }
