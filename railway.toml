@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "backend-rs/Dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 startCommand = "./fundify-backend"
