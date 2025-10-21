@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
+target/
+.cargo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Documentation
+README.md
+docs/
+
+# Tests
+tests/
