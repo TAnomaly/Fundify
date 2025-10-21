@@ -92,26 +92,111 @@ pub async fn list_campaigns(
     State(state): State<AppState>,
     Query(params): Query<ListCampaignsQuery>,
 ) -> AppResult<impl IntoResponse> {
-    // Use manual row parsing to avoid FromRow trait issues
-    let rows = sqlx::query(
-        r#"SELECT 
-            c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
-            c."goalAmount", c."currentAmount", c."coverImage", c."createdAt",
-            u.id as creator_id, u.name as creator_name, u.avatar as creator_avatar
+    let page = params.page.unwrap_or(1).max(1);
+    let limit = params.limit.unwrap_or(12).min(100);
+    let skip: i64 = ((page - 1) * limit) as i64;
+
+    let status_filter = params.status.as_deref().unwrap_or("ACTIVE");
+
+    // Build SQL query dynamically based on filters
+    let mut query = String::from(
+        r#"SELECT c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
+           c."goalAmount", c."currentAmount", c."coverImage", c."createdAt",
+           u.id as creator_id, u.name as creator_name, u.avatar as creator_avatar,
+           0 as donation_count,
+           0 as comment_count
         FROM "Campaign" c
         LEFT JOIN "User" u ON c."creatorId" = u.id
-        WHERE c.status = 'ACTIVE'
-        ORDER BY c."createdAt" DESC
-        LIMIT 12"#
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|e| {
-        tracing::error!("Database error in campaigns: {}", e);
-        AppError::Database(e)
-    })?;
+        WHERE c.status = $1::"CampaignStatus""#,
+    );
 
-    // Manually map rows to CampaignWithCreator
+    let mut param_index = 2;
+    let mut query_params: Vec<String> = vec![status_filter.to_string()];
+
+    if let Some(category) = &params.category {
+        query.push_str(&format!(" AND c.category = ${}::\"CampaignCategory\"", param_index));
+        query_params.push(category.clone());
+        param_index += 1;
+    }
+
+    if let Some(campaign_type) = &params.campaign_type {
+        query.push_str(&format!(" AND c.type = ${}::\"CampaignType\"", param_index));
+        query_params.push(campaign_type.clone());
+        param_index += 1;
+    }
+
+    if let Some(search) = &params.search {
+        query.push_str(&format!(
+            " AND (c.title ILIKE ${} OR c.description ILIKE ${})",
+            param_index,
+            param_index + 1
+        ));
+        let search_pattern = format!("%{}%", search);
+        query_params.push(search_pattern.clone());
+        query_params.push(search_pattern);
+        param_index += 2;
+    }
+
+    query.push_str(
+        r#" ORDER BY c."createdAt" DESC
+        LIMIT $"#,
+    );
+    query.push_str(&param_index.to_string());
+    param_index += 1;
+
+    query.push_str(" OFFSET $");
+    query.push_str(&param_index.to_string());
+
+    // Execute query - using sqlx::query with manual row parsing
+    let mut sql_query = sqlx::query(&query);
+
+    for param in &query_params {
+        sql_query = sql_query.bind(param);
+    }
+    
+    // Bind limit and offset as integers
+    sql_query = sql_query.bind(limit as i64);
+    sql_query = sql_query.bind(skip);
+
+    let rows = sql_query.fetch_all(&state.db).await?;
+
+    // Get total count
+    let mut count_query =
+        String::from(r#"SELECT COUNT(*) as total FROM "Campaign" WHERE status = $1::"CampaignStatus""#);
+    let mut count_params: Vec<String> = vec![status_filter.to_string()];
+    let mut count_param_index = 2;
+
+    if let Some(category) = &params.category {
+        count_query.push_str(&format!(" AND category = ${}::\"CampaignCategory\"", count_param_index));
+        count_params.push(category.clone());
+        count_param_index += 1;
+    }
+
+    if let Some(campaign_type) = &params.campaign_type {
+        count_query.push_str(&format!(" AND type = ${}::\"CampaignType\"", count_param_index));
+        count_params.push(campaign_type.clone());
+        count_param_index += 1;
+    }
+
+    if let Some(search) = &params.search {
+        count_query.push_str(&format!(
+            " AND (title ILIKE ${} OR description ILIKE ${})",
+            count_param_index,
+            count_param_index + 1
+        ));
+        let search_pattern = format!("%{}%", search);
+        count_params.push(search_pattern.clone());
+        count_params.push(search_pattern);
+    }
+
+    let mut count_sql = sqlx::query_as::<_, (i64,)>(&count_query);
+    for param in &count_params {
+        count_sql = count_sql.bind(param);
+    }
+
+    let (total,) = count_sql.fetch_one(&state.db).await?;
+
+    // Map to response format - manually extract from rows
     let mut campaigns: Vec<CampaignWithCreator> = Vec::new();
     for row in rows {
         use sqlx::Row;
@@ -136,19 +221,18 @@ pub async fn list_campaigns(
                 name: row.get("creator_name"),
                 avatar: row.get("creator_avatar"),
             },
-            donation_count: 0,
-            comment_count: 0,
+            donation_count: row.get("donation_count"),
+            comment_count: row.get("comment_count"),
         });
     }
 
-    let total = campaigns.len() as i64;
-    let pages = ((total as f64) / 12.0).ceil() as i32;
+    let pages = ((total as f64) / (limit as f64)).ceil() as i32;
 
     let response = CampaignsListResponse {
         campaigns,
         pagination: PaginationInfo {
-            page: 1,
-            limit: 12,
+            page,
+            limit,
             total,
             pages,
         },
