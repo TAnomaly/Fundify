@@ -13,7 +13,7 @@ use axum::{
     Router,
 };
 use dotenvy::dotenv;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, Row};
 use std::env;
 use std::net::SocketAddr;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
@@ -163,6 +163,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/health", get(health_check))
         .route("/api/test", get(test_endpoint))
         .route("/api/campaigns-simple", get(simple_campaigns))
+        .route("/api/debug-campaigns", get(debug_campaigns))
+        .route("/api/simple-campaigns-list", get(simple_campaigns_list))
+        .route("/api/test-campaigns", get(test_campaigns))
         // Auth routes
         .route("/api/auth/register", post(handlers::auth::register))
         .route("/api/auth/login", post(handlers::auth::login))
@@ -303,6 +306,52 @@ async fn simple_campaigns(State(state): State<AppState>) -> Result<String, Strin
         .await
     {
         Ok(count) => Ok(format!("Found {} campaigns", count)),
+        Err(e) => Err(format!("Database error: {}", e)),
+    }
+}
+
+async fn debug_campaigns(State(state): State<AppState>) -> Result<String, String> {
+    match sqlx::query("SELECT DISTINCT status FROM \"Campaign\" LIMIT 10")
+        .fetch_all(&state.db)
+        .await
+    {
+        Ok(rows) => {
+            let statuses: Vec<String> = rows.into_iter().map(|row| row.get::<String, _>("status")).collect();
+            Ok(format!("Campaign statuses: {:?}", statuses))
+        },
+        Err(e) => Err(format!("Database error: {}", e)),
+    }
+}
+
+async fn simple_campaigns_list(State(state): State<AppState>) -> Result<String, String> {
+    match sqlx::query("SELECT id, title, status FROM \"Campaign\" LIMIT 5")
+        .fetch_all(&state.db)
+        .await
+    {
+        Ok(rows) => {
+            let campaigns: Vec<String> = rows.into_iter()
+                .map(|row| {
+                    let id: String = row.get("id");
+                    let title: String = row.get("title");
+                    let status: String = row.get("status");
+                    format!("{}: {} ({})", id, title, status)
+                })
+                .collect();
+            Ok(format!("Campaigns: {:?}", campaigns))
+        },
+        Err(e) => Err(format!("Database error: {}", e)),
+    }
+}
+
+async fn test_campaigns(State(state): State<AppState>) -> Result<String, String> {
+    match sqlx::query("SELECT COUNT(*) FROM \"Campaign\"")
+        .fetch_one(&state.db)
+        .await
+    {
+        Ok(row) => {
+            let count: i64 = row.get(0);
+            Ok(format!("Found {} campaigns", count))
+        },
         Err(e) => Err(format!("Database error: {}", e)),
     }
 }
