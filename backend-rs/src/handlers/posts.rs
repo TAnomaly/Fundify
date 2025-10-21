@@ -270,29 +270,22 @@ pub async fn create_post(
     State(state): State<AppState>,
     Json(data): Json<CreatePostRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
-    // TODO: Get user from JWT token - for now use a test user
-    // In real implementation, extract userId from Authorization header
-    let author_id = "test-user-id"; // This should come from JWT middleware
-
-    // Verify user is a creator
-    let user: Option<(bool,)> = sqlx::query_as(
-        r#"SELECT "isCreator" FROM "User" WHERE id = $1"#
+    // TODO: Get user from JWT token
+    // For now, find first creator in database
+    let author: Option<(String,)> = sqlx::query_as(
+        r#"SELECT id FROM "User" WHERE "isCreator" = TRUE LIMIT 1"#
     )
-    .bind(author_id)
     .fetch_optional(&state.db)
     .await?;
 
-    match user {
-        Some((is_creator,)) if !is_creator => {
-            return Err(AppError::Forbidden(
-                "Only creators can publish posts. Please upgrade to a creator account.".to_string()
-            ));
-        },
+    let author_id = match author {
+        Some((id,)) => id,
         None => {
-            return Err(AppError::NotFound("User not found".to_string()));
-        },
-        _ => {}
-    }
+            return Err(AppError::NotFound(
+                "No creator found in database. Please create a creator account first.".to_string()
+            ));
+        }
+    };
 
     let post_id = Uuid::new_v4();
     let is_public = data.is_public.unwrap_or(false);

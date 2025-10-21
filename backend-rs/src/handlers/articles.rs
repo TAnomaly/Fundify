@@ -360,27 +360,21 @@ pub async fn create_article(
     Json(data): Json<CreateArticleRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
     // TODO: Get user from JWT token
-    let author_id = "test-user-id";
-
-    // Verify user is a creator
-    let user: Option<(bool,)> = sqlx::query_as(
-        r#"SELECT "isCreator" FROM "User" WHERE id = $1"#
+    // For now, find first creator in database
+    let author: Option<(String,)> = sqlx::query_as(
+        r#"SELECT id FROM "User" WHERE "isCreator" = TRUE LIMIT 1"#
     )
-    .bind(author_id)
     .fetch_optional(&state.db)
     .await?;
 
-    match user {
-        Some((is_creator,)) if !is_creator => {
-            return Err(AppError::Forbidden(
-                "Only creators can publish articles.".to_string()
-            ));
-        },
+    let author_id = match author {
+        Some((id,)) => id,
         None => {
-            return Err(AppError::NotFound("User not found".to_string()));
-        },
-        _ => {}
-    }
+            return Err(AppError::NotFound(
+                "No creator found in database. Please create a creator account first.".to_string()
+            ));
+        }
+    };
 
     let article_id = Uuid::new_v4();
     let slug = data.title

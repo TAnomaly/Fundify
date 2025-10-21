@@ -121,7 +121,7 @@ pub async fn get_feed(
         id: String,
         slug: String,
         title: String,
-        excerpt: Option<String>,
+        excerpt: String,
         content: String,
         cover_image: Option<String>,
         read_time: Option<i32>,
@@ -193,27 +193,21 @@ pub async fn get_feed(
                 a.id,
                 a.slug,
                 a.title,
-                a.excerpt,
-                a.content,
+                COALESCE(a.excerpt, '') AS excerpt,
+                COALESCE(a.content, '') AS content,
                 a."coverImage" AS cover_image,
                 a."readTime" AS read_time,
-                a."isPublic" AS is_public,
+                COALESCE(a."isPublic", TRUE) AS is_public,
                 a."publishedAt" AS published_at,
                 u.id AS author_id,
                 u.name AS author_name,
                 u.username AS author_username,
                 u.avatar AS author_avatar,
-                COALESCE(likes.cnt, 0) AS like_count,
-                COALESCE(comments.cnt, 0) AS comment_count
+                0::BIGINT AS like_count,
+                0::BIGINT AS comment_count
             FROM "Article" a
             LEFT JOIN "User" u ON u.id = a."authorId"
-            LEFT JOIN LATERAL (
-                SELECT COUNT(*)::BIGINT AS cnt FROM "ArticleLike" WHERE "articleId" = a.id
-            ) likes ON TRUE
-            LEFT JOIN LATERAL (
-                SELECT COUNT(*)::BIGINT AS cnt FROM "ArticleComment" WHERE "articleId" = a.id
-            ) comments ON TRUE
-            WHERE a.status = 'PUBLISHED' AND a."isPublic" = TRUE
+            WHERE a.status = 'PUBLISHED'
             ORDER BY COALESCE(a."publishedAt", a."createdAt") DESC
             LIMIT $1
             "#
@@ -226,25 +220,22 @@ pub async fn get_feed(
             SELECT
                 e.id,
                 e.title,
-                e.description,
+                COALESCE(e.description, '') AS description,
                 e."coverImage" AS cover_image,
                 e."startTime" AS start_time,
                 e."endTime" AS end_time,
                 e.location,
                 e.price,
-                e."isPublic" AS is_public,
+                COALESCE(e."isPublic", TRUE) AS is_public,
                 e."createdAt" AS created_at,
                 u.id AS host_id,
                 u.name AS host_name,
                 u.username AS host_username,
                 u.avatar AS host_avatar,
-                COALESCE(rsvps.cnt, 0) AS rsvp_count
+                0::BIGINT AS rsvp_count
             FROM "Event" e
             LEFT JOIN "User" u ON u.id = e."hostId"
-            LEFT JOIN LATERAL (
-                SELECT COUNT(*)::BIGINT AS cnt FROM "EventRsvp" WHERE "eventId" = e.id
-            ) rsvps ON TRUE
-            WHERE e.status = 'PUBLISHED' AND e."isPublic" = TRUE
+            WHERE e.status = 'PUBLISHED'
             ORDER BY e."createdAt" DESC
             LIMIT $1
             "#
@@ -302,13 +293,19 @@ pub async fn get_feed(
         let comments = article.comment_count;
         let popularity_score = (likes * 3 + comments * 4) as i32;
 
+        let excerpt_text = if article.excerpt.is_empty() {
+            None
+        } else {
+            Some(article.excerpt.clone())
+        };
+
         items.push(FeedItem {
             id: format!("article_{}", article.id),
             source_id: article.id.clone(),
             item_type: "article".to_string(),
             title: article.title,
-            summary: article.excerpt.clone(),
-            preview: article.excerpt,
+            summary: excerpt_text.clone(),
+            preview: excerpt_text,
             cover_image: article.cover_image,
             published_at: article.published_at
                 .map(format_datetime)

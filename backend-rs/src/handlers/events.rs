@@ -322,27 +322,21 @@ pub async fn create_event(
     Json(data): Json<CreateEventRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
     // TODO: Get user from JWT token
-    let host_id = "test-user-id";
-
-    // Verify user is a creator
-    let user: Option<(bool,)> = sqlx::query_as(
-        r#"SELECT "isCreator" FROM "User" WHERE id = $1"#
+    // For now, find first creator in database
+    let host: Option<(String,)> = sqlx::query_as(
+        r#"SELECT id FROM "User" WHERE "isCreator" = TRUE LIMIT 1"#
     )
-    .bind(host_id)
     .fetch_optional(&state.db)
     .await?;
 
-    match user {
-        Some((is_creator,)) if !is_creator => {
-            return Err(AppError::Forbidden(
-                "Only creators can create events.".to_string()
-            ));
-        },
+    let host_id = match host {
+        Some((id,)) => id,
         None => {
-            return Err(AppError::NotFound("User not found".to_string()));
-        },
-        _ => {}
-    }
+            return Err(AppError::NotFound(
+                "No creator found in database. Please create a creator account first.".to_string()
+            ));
+        }
+    };
 
     let event_id = Uuid::new_v4();
     let start_time = chrono::DateTime::parse_from_rfc3339(&data.start_time)
