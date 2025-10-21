@@ -44,3 +44,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Big decimal for money
 bigdecimal = { version = "0.4", features = ["serde"] }
+
+[patch.crates-io]
+base64ct = "=1.7.0"
