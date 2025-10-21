@@ -5,6 +5,10 @@ mod services;
 mod utils;
 
 use axum::{
+    extract::Request,
+    http::HeaderValue,
+    middleware::{Next, from_fn},
+    response::Response,
     routing::{delete, get, post, put},
     Router,
 };
@@ -14,12 +18,101 @@ use std::env;
 use std::net::SocketAddr;
 use tower_http::{
     compression::CompressionLayer,
-    cors::CorsLayer,
     trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::utils::app_state::AppState;
+
+// Custom CORS middleware for more sophisticated origin checking
+async fn cors_middleware(request: Request, next: Next) -> Response {
+    let origin = request.headers().get("origin").cloned();
+    
+    // Static allowed origins
+    let static_origins = vec![
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "https://funify.vercel.app",
+        "https://fundify.vercel.app",
+        "https://perfect-happiness-production.up.railway.app",
+    ];
+    
+    // Get environment origins
+    let env_origins: Vec<String> = [
+        env::var("CORS_ORIGIN").ok(),
+        env::var("FRONTEND_URL").ok(),
+        env::var("NEXT_PUBLIC_FRONTEND_URL").ok(),
+        env::var("NEXT_PUBLIC_SITE_URL").ok(),
+        env::var("ADMIN_DASHBOARD_ORIGIN").ok(),
+        env::var("ALLOWED_ORIGINS").ok(),
+        env::var("CORS_ORIGINS").ok(),
+    ]
+    .into_iter()
+    .flatten()
+    .flat_map(|s| s.split(',').map(|s| s.trim().to_string()).collect::<Vec<_>>())
+    .collect();
+    
+    let mut response = next.run(request).await;
+    
+    // Check if origin is allowed
+    let is_allowed = if let Some(origin_header) = &origin {
+        let origin_str = origin_header.to_str().unwrap_or("");
+        let normalized = origin_str.trim().to_lowercase();
+        
+        // Check static origins
+        let static_allowed = static_origins.iter().any(|&allowed| {
+            allowed.trim().to_lowercase() == normalized
+        });
+        
+        // Check environment origins
+        let env_allowed = env_origins.iter().any(|allowed| {
+            allowed.trim().to_lowercase() == normalized
+        });
+        
+        // Check wildcard patterns
+        let wildcard_allowed = normalized.ends_with(".vercel.app") || normalized.ends_with(".railway.app");
+        
+        static_allowed || env_allowed || wildcard_allowed
+    } else {
+        true // Allow requests without origin (like Postman, curl, etc.)
+    };
+    
+    if is_allowed {
+        if let Some(origin_header) = origin {
+            response.headers_mut().insert(
+                "access-control-allow-origin",
+                origin_header
+            );
+        } else if env::var("NODE_ENV").unwrap_or_default() != "production" {
+            response.headers_mut().insert(
+                "access-control-allow-origin",
+                HeaderValue::from_static("*")
+            );
+        }
+        
+        response.headers_mut().insert(
+            "access-control-allow-credentials",
+            HeaderValue::from_static("true")
+        );
+        
+        response.headers_mut().insert(
+            "access-control-allow-methods",
+            HeaderValue::from_static("GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD")
+        );
+        
+        response.headers_mut().insert(
+            "access-control-allow-headers",
+            HeaderValue::from_static("Content-Type, Authorization, Cache-Control, X-Requested-With, Accept, Accept-Language")
+        );
+        
+        response.headers_mut().insert(
+            "vary",
+            HeaderValue::from_static("Origin")
+        );
+    }
+    
+    response
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -55,28 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Application state
     let state = AppState::new(pool);
 
-    // Build CORS layer - explicitly allow Authorization header
-    let frontend_url = env::var("FRONTEND_URL")
-        .unwrap_or_else(|_| "https://funify.vercel.app".to_string());
-
-    let cors_origin = frontend_url.parse::<axum::http::HeaderValue>()
-        .expect("Invalid FRONTEND_URL");
-
-    let cors = CorsLayer::new()
-        .allow_origin(cors_origin)
-        .allow_methods(vec![
-            axum::http::Method::GET,
-            axum::http::Method::POST,
-            axum::http::Method::PUT,
-            axum::http::Method::DELETE,
-            axum::http::Method::OPTIONS,
-        ])
-        .allow_headers(vec![
-            axum::http::header::AUTHORIZATION,
-            axum::http::header::CONTENT_TYPE,
-            axum::http::header::ACCEPT,
-        ])
-        .allow_credentials(true);
+    // CORS is now handled by custom middleware below
 
     // Build application router
     let app = Router::new()
@@ -142,7 +214,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/messages", post(handlers::messages::send_message))
         // Feed routes
         .route("/api/feed", get(handlers::feed::get_feed))
-        .layer(cors)
+        .layer(from_fn(cors_middleware))
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http())
         .with_state(state);
