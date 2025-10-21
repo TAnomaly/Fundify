@@ -13,7 +13,10 @@ pub enum SubscriptionStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "SubscriptionInterval", rename_all = "SCREAMING_SNAKE_CASE")]
+#[sqlx(
+    type_name = "SubscriptionInterval",
+    rename_all = "SCREAMING_SNAKE_CASE"
+)]
 pub enum SubscriptionInterval {
     Monthly,
     Yearly,

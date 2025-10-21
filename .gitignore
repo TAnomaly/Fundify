@@ -93,6 +93,10 @@ secrets/
 .turbo/
 tsconfig.tsbuildinfo
 
+# Rust
+target/
+Cargo.lock
+
 # Misc
 *.bak
 *.tmp

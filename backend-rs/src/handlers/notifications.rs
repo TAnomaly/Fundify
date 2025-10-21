@@ -4,7 +4,11 @@ use axum::Extension;
 use serde::{Deserialize, Serialize};
 
 use crate::middleware::auth::AuthUser;
-use crate::utils::{app_state::AppState, error::{AppError, AppResult}, response::ApiResponse};
+use crate::utils::{
+    app_state::AppState,
+    error::{AppError, AppResult},
+    response::ApiResponse,
+};
 
 #[derive(Deserialize)]
 pub struct ListNotificationsQuery {
@@ -78,7 +82,7 @@ pub async fn list_notifications(
 
     // Get unread count
     let (unread_count,): (i64,) = sqlx::query_as(
-        r#"SELECT COUNT(*) FROM "Notification" WHERE "userId" = $1 AND "isRead" = false"#
+        r#"SELECT COUNT(*) FROM "Notification" WHERE "userId" = $1 AND "isRead" = false"#,
     )
     .bind(auth_user.id.to_string())
     .fetch_one(&state.db)
@@ -105,7 +109,10 @@ pub async fn list_notifications(
             link: row.get("link"),
             image_url: row.get("imageUrl"),
             is_read: row.get("isRead"),
-            created_at: row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+            created_at: row
+                .get::<chrono::NaiveDateTime, _>("createdAt")
+                .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+                .to_string(),
             actor: actor_info,
         });
     }
@@ -122,23 +129,21 @@ pub async fn mark_read(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     // Check notification exists and belongs to user
-    let notification: Option<(bool,)> = sqlx::query_as(
-        r#"SELECT "isRead" FROM "Notification" WHERE id = $1 AND "userId" = $2"#
-    )
-    .bind(&id)
-    .bind(auth_user.id.to_string())
-    .fetch_optional(&state.db)
-    .await?;
+    let notification: Option<(bool,)> =
+        sqlx::query_as(r#"SELECT "isRead" FROM "Notification" WHERE id = $1 AND "userId" = $2"#)
+            .bind(&id)
+            .bind(auth_user.id.to_string())
+            .fetch_optional(&state.db)
+            .await?;
 
-    let (is_read,) = notification.ok_or_else(|| AppError::NotFound("Notification not found".to_string()))?;
+    let (is_read,) =
+        notification.ok_or_else(|| AppError::NotFound("Notification not found".to_string()))?;
 
     if !is_read {
-        sqlx::query(
-            r#"UPDATE "Notification" SET "isRead" = true, "readAt" = NOW() WHERE id = $1"#
-        )
-        .bind(&id)
-        .execute(&state.db)
-        .await?;
+        sqlx::query(r#"UPDATE "Notification" SET "isRead" = true, "readAt" = NOW() WHERE id = $1"#)
+            .bind(&id)
+            .execute(&state.db)
+            .await?;
     }
 
     Ok(ApiResponse::success("Notification marked as read"))
@@ -150,7 +155,7 @@ pub async fn mark_all_read(
 ) -> AppResult<impl IntoResponse> {
     let result = sqlx::query(
         r#"UPDATE "Notification" SET "isRead" = true, "readAt" = NOW()
-        WHERE "userId" = $1 AND "isRead" = false"#
+        WHERE "userId" = $1 AND "isRead" = false"#,
     )
     .bind(auth_user.id.to_string())
     .execute(&state.db)

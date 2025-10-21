@@ -7,7 +7,11 @@ use uuid::Uuid;
 
 use crate::middleware::auth::AuthUser;
 use crate::models::campaign::Campaign;
-use crate::utils::{app_state::AppState, error::{AppError, AppResult}, response::ApiResponse};
+use crate::utils::{
+    app_state::AppState,
+    error::{AppError, AppResult},
+    response::ApiResponse,
+};
 
 #[derive(Deserialize)]
 pub struct ListCampaignsQuery {
@@ -71,7 +75,13 @@ fn generate_slug(title: &str) -> String {
     title
         .to_lowercase()
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == ' ' || c == '-' { c } else { ' ' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == ' ' || c == '-' {
+                c
+            } else {
+                ' '
+            }
+        })
         .collect::<String>()
         .split_whitespace()
         .collect::<Vec<&str>>()
@@ -129,11 +139,13 @@ pub async fn list_campaigns(
         param_index += 2;
     }
 
-    query.push_str(r#" GROUP BY c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
+    query.push_str(
+        r#" GROUP BY c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
            c."goalAmount", c."currentAmount", c."coverImage", c."createdAt",
            u.id, u.name, u.avatar
         ORDER BY c."createdAt" DESC
-        LIMIT $"#);
+        LIMIT $"#,
+    );
     query.push_str(&param_index.to_string());
     query_params.push(limit.to_string());
     param_index += 1;
@@ -152,7 +164,8 @@ pub async fn list_campaigns(
     let rows = sql_query.fetch_all(&state.db).await?;
 
     // Get total count
-    let mut count_query = String::from(r#"SELECT COUNT(*) as total FROM "Campaign" WHERE status = $1"#);
+    let mut count_query =
+        String::from(r#"SELECT COUNT(*) as total FROM "Campaign" WHERE status = $1"#);
     let mut count_params: Vec<String> = vec![status_filter.to_string()];
     let mut count_param_index = 2;
 
@@ -202,7 +215,10 @@ pub async fn list_campaigns(
             goal_amount: row.get("goalAmount"),
             current_amount: row.get("currentAmount"),
             cover_image: row.get("coverImage"),
-            created_at: row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+            created_at: row
+                .get::<chrono::NaiveDateTime, _>("createdAt")
+                .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+                .to_string(),
             creator: CreatorInfo {
                 id: row.get("creator_id"),
                 name: row.get("creator_name"),
@@ -290,12 +306,11 @@ pub async fn create_campaign(
     let mut counter = 1;
 
     loop {
-        let exists: Option<(String,)> = sqlx::query_as(
-            r#"SELECT id FROM "Campaign" WHERE slug = $1"#
-        )
-        .bind(&slug)
-        .fetch_optional(&state.db)
-        .await?;
+        let exists: Option<(String,)> =
+            sqlx::query_as(r#"SELECT id FROM "Campaign" WHERE slug = $1"#)
+                .bind(&slug)
+                .fetch_optional(&state.db)
+                .await?;
 
         if exists.is_none() {
             break;
@@ -312,7 +327,7 @@ pub async fn create_campaign(
         r#"INSERT INTO "Campaign"
         (id, title, slug, description, story, category, type, status, "goalAmount", "currentAmount",
          "coverImage", "startDate", "endDate", "creatorId", "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())"#
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())"#,
     )
     .bind(campaign_id.to_string())
     .bind(&req.title)
@@ -366,17 +381,19 @@ pub async fn update_campaign(
     axum::Json(req): axum::Json<UpdateCampaignRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Check if campaign exists and user is the creator
-    let existing: Option<(String, String)> = sqlx::query_as(
-        r#"SELECT id, "creatorId" FROM "Campaign" WHERE id = $1"#
-    )
-    .bind(&id)
-    .fetch_optional(&state.db)
-    .await?;
+    let existing: Option<(String, String)> =
+        sqlx::query_as(r#"SELECT id, "creatorId" FROM "Campaign" WHERE id = $1"#)
+            .bind(&id)
+            .fetch_optional(&state.db)
+            .await?;
 
-    let (_, creator_id) = existing.ok_or_else(|| AppError::NotFound("Campaign not found".to_string()))?;
+    let (_, creator_id) =
+        existing.ok_or_else(|| AppError::NotFound("Campaign not found".to_string()))?;
 
     if creator_id != auth_user.id.to_string() && auth_user.role != "ADMIN" {
-        return Err(AppError::Forbidden("You do not have permission to update this campaign".to_string()));
+        return Err(AppError::Forbidden(
+            "You do not have permission to update this campaign".to_string(),
+        ));
     }
 
     // Build dynamic update query

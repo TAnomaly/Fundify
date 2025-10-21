@@ -6,7 +6,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::middleware::auth::AuthUser;
-use crate::utils::{app_state::AppState, error::{AppError, AppResult}, response::ApiResponse};
+use crate::utils::{
+    app_state::AppState,
+    error::{AppError, AppResult},
+    response::ApiResponse,
+};
 
 #[derive(Deserialize)]
 pub struct CreateDonationRequest {
@@ -78,19 +82,22 @@ pub async fn create_donation(
     axum::Json(req): axum::Json<CreateDonationRequest>,
 ) -> AppResult<impl IntoResponse> {
     if req.amount <= 0.0 {
-        return Err(AppError::BadRequest("Donation amount must be positive".to_string()));
+        return Err(AppError::BadRequest(
+            "Donation amount must be positive".to_string(),
+        ));
     }
 
     // Check campaign exists and is active
-    let campaign: Option<(String,)> = sqlx::query_as(
-        r#"SELECT status FROM "Campaign" WHERE id = $1 AND status = 'ACTIVE'"#
-    )
-    .bind(&req.campaign_id)
-    .fetch_optional(&state.db)
-    .await?;
+    let campaign: Option<(String,)> =
+        sqlx::query_as(r#"SELECT status FROM "Campaign" WHERE id = $1 AND status = 'ACTIVE'"#)
+            .bind(&req.campaign_id)
+            .fetch_optional(&state.db)
+            .await?;
 
     if campaign.is_none() {
-        return Err(AppError::BadRequest("Campaign not found or not accepting donations".to_string()));
+        return Err(AppError::BadRequest(
+            "Campaign not found or not accepting donations".to_string(),
+        ));
     }
 
     let donation_id = Uuid::new_v4().to_string();
@@ -118,13 +125,11 @@ pub async fn create_donation(
     .await?;
 
     // Update campaign amount
-    sqlx::query(
-        r#"UPDATE "Campaign" SET "currentAmount" = "currentAmount" + $1 WHERE id = $2"#
-    )
-    .bind(req.amount)
-    .bind(&req.campaign_id)
-    .execute(&mut *tx)
-    .await?;
+    sqlx::query(r#"UPDATE "Campaign" SET "currentAmount" = "currentAmount" + $1 WHERE id = $2"#)
+        .bind(req.amount)
+        .bind(&req.campaign_id)
+        .execute(&mut *tx)
+        .await?;
 
     tx.commit().await?;
 
@@ -151,7 +156,10 @@ pub async fn create_donation(
         anonymous: is_anonymous,
         payment_method: row.get("paymentMethod"),
         status: row.get("status"),
-        created_at: row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+        created_at: row
+            .get::<chrono::NaiveDateTime, _>("createdAt")
+            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+            .to_string(),
         donor: if !is_anonymous {
             Some(DonorInfo {
                 id: row.get("donor_id"),
@@ -199,7 +207,7 @@ pub async fn list_donations(
     .await?;
 
     let (total,): (i64,) = sqlx::query_as(
-        r#"SELECT COUNT(*) FROM "Donation" WHERE "campaignId" = $1 AND status = 'COMPLETED'"#
+        r#"SELECT COUNT(*) FROM "Donation" WHERE "campaignId" = $1 AND status = 'COMPLETED'"#,
     )
     .bind(campaign_id.to_string())
     .fetch_one(&state.db)
@@ -216,7 +224,10 @@ pub async fn list_donations(
             anonymous: is_anonymous,
             payment_method: row.get("paymentMethod"),
             status: row.get("status"),
-            created_at: row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+            created_at: row
+                .get::<chrono::NaiveDateTime, _>("createdAt")
+                .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+                .to_string(),
             donor: if !is_anonymous {
                 Some(DonorInfo {
                     id: row.get("donor_id"),
@@ -277,7 +288,10 @@ pub async fn get_my_donations(
             anonymous: is_anonymous,
             payment_method: row.get("paymentMethod"),
             status: row.get("status"),
-            created_at: row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+            created_at: row
+                .get::<chrono::NaiveDateTime, _>("createdAt")
+                .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+                .to_string(),
             donor: if !is_anonymous {
                 Some(DonorInfo {
                     id: row.get("donor_id"),

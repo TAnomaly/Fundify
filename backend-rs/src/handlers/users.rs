@@ -6,7 +6,11 @@ use uuid::Uuid;
 
 use crate::middleware::auth::AuthUser;
 use crate::models::user::User;
-use crate::utils::{app_state::AppState, error::{AppError, AppResult}, response::ApiResponse};
+use crate::utils::{
+    app_state::AppState,
+    error::{AppError, AppResult},
+    response::ApiResponse,
+};
 
 #[derive(Serialize)]
 pub struct CreatorResponse {
@@ -97,7 +101,7 @@ pub async fn get_user(
            "stripeCustomerId" as stripe_customer_id, "stripeAccountId" as stripe_account_id,
            "stripeOnboardingComplete" as stripe_onboarding_complete,
            "createdAt" as created_at, "updatedAt" as updated_at
-        FROM "User" WHERE id = $1"#
+        FROM "User" WHERE id = $1"#,
     )
     .bind(id.to_string())
     .fetch_optional(&state.db)
@@ -115,9 +119,7 @@ pub async fn update_user(
     Ok(ApiResponse::success("User updated - TODO"))
 }
 
-pub async fn get_creators(
-    State(state): State<AppState>,
-) -> AppResult<impl IntoResponse> {
+pub async fn get_creators(State(state): State<AppState>) -> AppResult<impl IntoResponse> {
     let rows = sqlx::query(
         r#"SELECT u.id, u.name, u.username, u.email, u.avatar, u."creatorBio", u."isCreator",
            COUNT(DISTINCT s.id) as subscriber_count,
@@ -128,7 +130,7 @@ pub async fn get_creators(
         WHERE u."isCreator" = true
         GROUP BY u.id, u.name, u.username, u.email, u.avatar, u."creatorBio", u."isCreator"
         ORDER BY u."createdAt" DESC
-        LIMIT 50"#
+        LIMIT 50"#,
     )
     .fetch_all(&state.db)
     .await?;
@@ -196,7 +198,7 @@ pub async fn get_creator_by_username(
     let is_following = if let Some(ref vid) = viewer_id {
         if vid != &user_id {
             let follow: Option<(String,)> = sqlx::query_as(
-                r#"SELECT id FROM "Follow" WHERE "followerId" = $1 AND "followingId" = $2"#
+                r#"SELECT id FROM "Follow" WHERE "followerId" = $1 AND "followingId" = $2"#,
             )
             .bind(vid)
             .bind(&user_id)
@@ -216,7 +218,7 @@ pub async fn get_creator_by_username(
            "goalAmount", "currentAmount", "coverImage"
         FROM "Campaign"
         WHERE "creatorId" = $1 AND type = 'CREATOR'
-        LIMIT 1"#
+        LIMIT 1"#,
     )
     .bind(&user_id)
     .fetch_optional(&state.db)
@@ -238,7 +240,11 @@ pub async fn get_creator_by_username(
         })
     } else {
         // Auto-create campaign if it doesn't exist
-        let slug = format!("{}-creator-{}", user_name.to_lowercase().replace(' ', "-"), chrono::Utc::now().timestamp());
+        let slug = format!(
+            "{}-creator-{}",
+            user_name.to_lowercase().replace(' ', "-"),
+            chrono::Utc::now().timestamp()
+        );
         let campaign_id = Uuid::new_v4().to_string();
 
         sqlx::query(
@@ -288,7 +294,7 @@ pub async fn get_creator_by_username(
             LEFT JOIN "Subscription" s ON t.id = s."tierId"
             WHERE t."campaignId" = $1 AND t."isActive" = true
             GROUP BY t.id, t.name, t.description, t.price, t."isActive"
-            ORDER BY t.price ASC"#
+            ORDER BY t.price ASC"#,
         )
         .bind(&campaign.id)
         .fetch_all(&state.db)

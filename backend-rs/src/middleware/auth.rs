@@ -1,9 +1,4 @@
-use axum::{
-    extract::Request,
-    http::header::AUTHORIZATION,
-    middleware::Next,
-    response::Response,
-};
+use axum::{extract::Request, http::header::AUTHORIZATION, middleware::Next, response::Response};
 use uuid::Uuid;
 
 use crate::utils::{
@@ -28,10 +23,7 @@ impl From<Claims> for AuthUser {
     }
 }
 
-pub async fn auth_middleware(
-    mut req: Request,
-    next: Next,
-) -> AppResult<Response> {
+pub async fn auth_middleware(mut req: Request, next: Next) -> AppResult<Response> {
     let token = req
         .headers()
         .get(AUTHORIZATION)

@@ -49,7 +49,7 @@ pub async fn register(
         VALUES ($1, $2, $3, $4)
         RETURNING id, email, name, username, avatar, "bannerImage" as banner_image, bio,
                   role as "role: _", "isCreator" as is_creator, "createdAt" as created_at
-        "#
+        "#,
     )
     .bind(&req.email)
     .bind(&hashed_password)
@@ -139,7 +139,7 @@ pub async fn get_me(
                role as "role: _", "isCreator" as is_creator, "createdAt" as created_at
         FROM "User"
         WHERE id = $1
-        "#
+        "#,
     )
     .bind(auth_user.id)
     .fetch_optional(&state.db)

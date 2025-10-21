@@ -34,7 +34,16 @@ impl IntoResponse for AppError {
         let (status, message) = match self {
             AppError::Database(ref e) => {
                 tracing::error!("Database error: {}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Database error occurred".to_string())
+                let env = std::env::var("NODE_ENV").unwrap_or_default();
+                let detailed = env != "production";
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    if detailed {
+                        format!("Database error: {}", e)
+                    } else {
+                        "Database error occurred".to_string()
+                    },
+                )
             }
             AppError::NotFound(ref msg) => (StatusCode::NOT_FOUND, msg.clone()),
             AppError::Unauthorized(ref msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
@@ -43,7 +52,10 @@ impl IntoResponse for AppError {
             AppError::Forbidden(ref msg) => (StatusCode::FORBIDDEN, msg.clone()),
             AppError::Internal(ref msg) => {
                 tracing::error!("Internal error: {}", msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Internal server error".to_string(),
+                )
             }
         };
 

@@ -7,23 +7,24 @@ use crate::utils::error::{AppError, AppResult};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
-    pub sub: String,      // user id
+    pub sub: String, // user id
     pub email: String,
     pub role: String,
-    pub exp: usize,       // expiration time
-    pub iat: usize,       // issued at
+    pub exp: usize, // expiration time
+    pub iat: usize, // issued at
 }
 
 pub fn create_token(user_id: Uuid, email: &str, role: &str) -> AppResult<String> {
     let jwt_secret = env::var("JWT_SECRET")
         .unwrap_or_else(|_| "your-super-secret-jwt-key-minimum-32-characters".to_string());
 
-    let expires_in = env::var("JWT_EXPIRES_IN")
-        .unwrap_or_else(|_| "7d".to_string());
+    let expires_in = env::var("JWT_EXPIRES_IN").unwrap_or_else(|_| "7d".to_string());
 
     // Parse expiration (simple implementation for days)
     let exp_days = if expires_in.ends_with('d') {
-        expires_in[..expires_in.len()-1].parse::<i64>().unwrap_or(7)
+        expires_in[..expires_in.len() - 1]
+            .parse::<i64>()
+            .unwrap_or(7)
     } else {
         7
     };

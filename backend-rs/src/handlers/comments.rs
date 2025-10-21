@@ -6,7 +6,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::middleware::auth::AuthUser;
-use crate::utils::{app_state::AppState, error::{AppError, AppResult}, response::ApiResponse};
+use crate::utils::{
+    app_state::AppState,
+    error::{AppError, AppResult},
+    response::ApiResponse,
+};
 
 #[derive(Deserialize)]
 pub struct CreateCommentRequest {
@@ -55,16 +59,16 @@ pub async fn create_comment(
 ) -> AppResult<impl IntoResponse> {
     // Validate content
     if req.content.trim().is_empty() {
-        return Err(AppError::BadRequest("Comment content cannot be empty".to_string()));
+        return Err(AppError::BadRequest(
+            "Comment content cannot be empty".to_string(),
+        ));
     }
 
     // Check if campaign exists
-    let campaign: Option<(String,)> = sqlx::query_as(
-        r#"SELECT id FROM "Campaign" WHERE id = $1"#
-    )
-    .bind(&req.campaign_id)
-    .fetch_optional(&state.db)
-    .await?;
+    let campaign: Option<(String,)> = sqlx::query_as(r#"SELECT id FROM "Campaign" WHERE id = $1"#)
+        .bind(&req.campaign_id)
+        .fetch_optional(&state.db)
+        .await?;
 
     if campaign.is_none() {
         return Err(AppError::NotFound("Campaign not found".to_string()));
@@ -72,12 +76,11 @@ pub async fn create_comment(
 
     // If it's a reply, check if parent comment exists and belongs to same campaign
     if let Some(ref parent_id) = req.parent_id {
-        let parent: Option<(String, String)> = sqlx::query_as(
-            r#"SELECT id, "campaignId" FROM "Comment" WHERE id = $1"#
-        )
-        .bind(parent_id)
-        .fetch_optional(&state.db)
-        .await?;
+        let parent: Option<(String, String)> =
+            sqlx::query_as(r#"SELECT id, "campaignId" FROM "Comment" WHERE id = $1"#)
+                .bind(parent_id)
+                .fetch_optional(&state.db)
+                .await?;
 
         match parent {
             None => {
@@ -86,7 +89,7 @@ pub async fn create_comment(
             Some((_, parent_campaign_id)) => {
                 if parent_campaign_id != req.campaign_id {
                     return Err(AppError::BadRequest(
-                        "Parent comment does not belong to this campaign".to_string()
+                        "Parent comment does not belong to this campaign".to_string(),
                     ));
                 }
             }
@@ -126,8 +129,14 @@ pub async fn create_comment(
         user_id: row.get("userId"),
         campaign_id: row.get("campaignId"),
         parent_id: row.get("parentId"),
-        created_at: row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
-        updated_at: row.get::<chrono::NaiveDateTime, _>("updatedAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+        created_at: row
+            .get::<chrono::NaiveDateTime, _>("createdAt")
+            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+            .to_string(),
+        updated_at: row
+            .get::<chrono::NaiveDateTime, _>("updatedAt")
+            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+            .to_string(),
         user: UserInfo {
             id: row.get("user_id"),
             name: row.get("user_name"),
@@ -183,8 +192,14 @@ pub async fn get_comments_by_campaign(
                 user_id: reply_row.get("userId"),
                 campaign_id: reply_row.get("campaignId"),
                 parent_id: reply_row.get("parentId"),
-                created_at: reply_row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
-                updated_at: reply_row.get::<chrono::NaiveDateTime, _>("updatedAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+                created_at: reply_row
+                    .get::<chrono::NaiveDateTime, _>("createdAt")
+                    .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+                    .to_string(),
+                updated_at: reply_row
+                    .get::<chrono::NaiveDateTime, _>("updatedAt")
+                    .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+                    .to_string(),
                 user: UserInfo {
                     id: reply_row.get("user_id"),
                     name: reply_row.get("user_name"),
@@ -200,8 +215,14 @@ pub async fn get_comments_by_campaign(
             user_id: row.get("userId"),
             campaign_id: row.get("campaignId"),
             parent_id: row.get("parentId"),
-            created_at: row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
-            updated_at: row.get::<chrono::NaiveDateTime, _>("updatedAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+            created_at: row
+                .get::<chrono::NaiveDateTime, _>("createdAt")
+                .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+                .to_string(),
+            updated_at: row
+                .get::<chrono::NaiveDateTime, _>("updatedAt")
+                .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+                .to_string(),
             user: UserInfo {
                 id: row.get("user_id"),
                 name: row.get("user_name"),
@@ -222,34 +243,34 @@ pub async fn update_comment(
 ) -> AppResult<impl IntoResponse> {
     // Validate content
     if req.content.trim().is_empty() {
-        return Err(AppError::BadRequest("Comment content cannot be empty".to_string()));
+        return Err(AppError::BadRequest(
+            "Comment content cannot be empty".to_string(),
+        ));
     }
 
     // Check if comment exists and get owner
-    let comment: Option<(String, String)> = sqlx::query_as(
-        r#"SELECT id, "userId" FROM "Comment" WHERE id = $1"#
-    )
-    .bind(&id)
-    .fetch_optional(&state.db)
-    .await?;
+    let comment: Option<(String, String)> =
+        sqlx::query_as(r#"SELECT id, "userId" FROM "Comment" WHERE id = $1"#)
+            .bind(&id)
+            .fetch_optional(&state.db)
+            .await?;
 
-    let (_, user_id) = comment.ok_or_else(|| AppError::NotFound("Comment not found".to_string()))?;
+    let (_, user_id) =
+        comment.ok_or_else(|| AppError::NotFound("Comment not found".to_string()))?;
 
     // Check ownership
     if user_id != auth_user.id.to_string() && auth_user.role != "ADMIN" {
         return Err(AppError::Forbidden(
-            "You do not have permission to update this comment".to_string()
+            "You do not have permission to update this comment".to_string(),
         ));
     }
 
     // Update comment
-    sqlx::query(
-        r#"UPDATE "Comment" SET content = $1, "updatedAt" = NOW() WHERE id = $2"#
-    )
-    .bind(req.content.trim())
-    .bind(&id)
-    .execute(&state.db)
-    .await?;
+    sqlx::query(r#"UPDATE "Comment" SET content = $1, "updatedAt" = NOW() WHERE id = $2"#)
+        .bind(req.content.trim())
+        .bind(&id)
+        .execute(&state.db)
+        .await?;
 
     // Fetch updated comment with user info
     let row = sqlx::query(
@@ -270,8 +291,14 @@ pub async fn update_comment(
         user_id: row.get("userId"),
         campaign_id: row.get("campaignId"),
         parent_id: row.get("parentId"),
-        created_at: row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
-        updated_at: row.get::<chrono::NaiveDateTime, _>("updatedAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+        created_at: row
+            .get::<chrono::NaiveDateTime, _>("createdAt")
+            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+            .to_string(),
+        updated_at: row
+            .get::<chrono::NaiveDateTime, _>("updatedAt")
+            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+            .to_string(),
         user: UserInfo {
             id: row.get("user_id"),
             name: row.get("user_name"),
@@ -289,19 +316,19 @@ pub async fn delete_comment(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     // Check if comment exists and get owner
-    let comment: Option<(String, String)> = sqlx::query_as(
-        r#"SELECT id, "userId" FROM "Comment" WHERE id = $1"#
-    )
-    .bind(&id)
-    .fetch_optional(&state.db)
-    .await?;
+    let comment: Option<(String, String)> =
+        sqlx::query_as(r#"SELECT id, "userId" FROM "Comment" WHERE id = $1"#)
+            .bind(&id)
+            .fetch_optional(&state.db)
+            .await?;
 
-    let (_, user_id) = comment.ok_or_else(|| AppError::NotFound("Comment not found".to_string()))?;
+    let (_, user_id) =
+        comment.ok_or_else(|| AppError::NotFound("Comment not found".to_string()))?;
 
     // Check ownership
     if user_id != auth_user.id.to_string() && auth_user.role != "ADMIN" {
         return Err(AppError::Forbidden(
-            "You do not have permission to delete this comment".to_string()
+            "You do not have permission to delete this comment".to_string(),
         ));
     }
 
