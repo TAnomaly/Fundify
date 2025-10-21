@@ -9,7 +9,7 @@ use axum::{
     http::HeaderValue,
     middleware::{Next, from_fn},
     response::Response,
-    routing::{delete, get, post, put},
+    routing::{delete, get, post, put, options},
     Router,
 };
 use dotenvy::dotenv;
@@ -166,6 +166,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Campaign routes
         .route("/api/campaigns", get(handlers::campaigns::list_campaigns))
         .route("/api/campaigns", post(handlers::campaigns::create_campaign))
+        .route("/api/campaigns", options(|| async { "OK" }))
         .route("/api/campaigns/:id", get(handlers::campaigns::get_campaign))
         .route("/api/campaigns/:id", post(handlers::campaigns::update_campaign))
         // Donation routes
@@ -207,6 +208,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/webhooks/stripe", post(handlers::stripe::webhook))
         // Notification routes
         .route("/api/notifications", get(handlers::notifications::list_notifications))
+        .route("/api/notifications", options(|| async { "OK" }))
         .route("/api/notifications/:id/read", post(handlers::notifications::mark_read))
         .route("/api/notifications/read-all", post(handlers::notifications::mark_all_read))
         // Message routes
@@ -214,6 +216,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/messages", post(handlers::messages::send_message))
         // Feed routes
         .route("/api/feed", get(handlers::feed::get_feed))
+        .route("/api/feed", options(|| async { "OK" }))
         .layer(from_fn(cors_middleware))
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http())
