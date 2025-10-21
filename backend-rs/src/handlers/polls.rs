@@ -4,7 +4,9 @@ use uuid::Uuid;
 use crate::utils::{app_state::AppState, error::AppResult, response::ApiResponse};
 
 pub async fn list_polls(State(_state): State<AppState>) -> AppResult<impl axum::response::IntoResponse> {
-    // Return empty array for now - polls table might not exist
+    // For now, return empty array - database connection issues
+    // TODO: Implement proper database query when connection is stable
+    tracing::info!("Polls endpoint called - returning empty array for now");
     Ok(ApiResponse::success(Vec::<serde_json::Value>::new()))
 }
 

@@ -84,7 +84,7 @@ pub async fn list_campaigns(
 ) -> AppResult<impl IntoResponse> {
     let page = params.page.unwrap_or(1).max(1);
     let limit = params.limit.unwrap_or(12).min(100);
-    let skip = (page - 1) * limit;
+    let skip: i64 = ((page - 1) * limit) as i64;
 
     let status_filter = params.status.as_deref().unwrap_or("ACTIVE");
 
