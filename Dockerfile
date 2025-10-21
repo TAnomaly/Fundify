@@ -9,18 +9,17 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Rust backend files
+# Copy Cargo files
 COPY backend-rs/Cargo.toml backend-rs/Cargo.lock ./
-COPY backend-rs/src ./src
 
-# Build dependencies (cached layer)
-RUN mkdir -p temp && \
-    echo "fn main() {}" > temp/main.rs && \
-    mv src src_backup && \
-    mv temp src && \
+# Create dummy main to cache dependencies
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
     cargo build --release && \
-    rm -rf src && \
-    mv src_backup src
+    rm -rf src
+
+# Copy actual source code
+COPY backend-rs/src ./src
 
 # Build application
 RUN cargo build --release
@@ -37,7 +36,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy binary from builder
-COPY --from=builder /app/target/release/fundify-backend /app/fundify-backend
+COPY --from=builder /app/target/release/fundify-backend ./fundify-backend
 
 # Set environment
 ENV RUST_LOG=info
