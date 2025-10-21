@@ -20,16 +20,12 @@ import {
 
 // Create axios instance with default config
 export const getApiUrl = () => {
-  // Try environment variable first, then fallback to hardcoded URLs
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-
-  // Production fallback URL - UPDATED with working Railway URL
+  // Production URL - Force Railway URL for production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     return "https://perfect-happiness-production.up.railway.app/api";
   }
 
+  // Development fallback
   return "http://localhost:4000/api";
 };
 
