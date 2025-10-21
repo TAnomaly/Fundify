@@ -137,6 +137,25 @@ pub async fn list_campaigns(
     Ok(ApiResponse::success(response))
 }
 
+pub async fn get_user_campaigns(
+    State(_state): State<AppState>,
+    Path(user_id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    // For now, return empty campaigns list
+    // TODO: Implement actual user campaigns fetching
+    let response = CampaignsListResponse {
+        campaigns: vec![],
+        pagination: PaginationInfo {
+            page: 1,
+            limit: 12,
+            total: 0,
+            pages: 0,
+        },
+    };
+
+    Ok(ApiResponse::success(response))
+}
+
 pub async fn get_campaign(
     State(state): State<AppState>,
     Path(id): Path<String>,
