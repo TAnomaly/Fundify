@@ -10,13 +10,13 @@ use crate::utils::{app_state::AppState, error::AppResult};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Product {
-    pub id: i32,
+    pub id: String,
     pub title: String,
     pub description: String,
     pub price: f64,
     pub currency: String,
     pub category: String,
-    pub creator_id: i32,
+    pub creator_id: String,
     pub creator_name: String,
     pub creator_username: String,
     pub image_url: Option<String>,
@@ -29,7 +29,7 @@ pub struct Product {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProductCollection {
-    pub id: i32,
+    pub id: String,
     pub name: String,
     pub description: String,
     pub image_url: Option<String>,
