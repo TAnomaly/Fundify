@@ -25,8 +25,8 @@ use crate::utils::app_state::AppState;
 async fn cors_middleware(request: Request, next: Next) -> Response {
     let origin = request.headers().get("origin").cloned();
 
-    // Static allowed origins
-    let static_origins = vec![
+    // Static allowed origins (unused but kept for future use)
+    let _static_origins = vec![
         "http://localhost:3000",
         "http://localhost:3001",
         "https://funify.vercel.app",
@@ -34,8 +34,8 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
         "https://perfect-happiness-production.up.railway.app",
     ];
 
-    // Get environment origins
-    let env_origins: Vec<String> = [
+    // Get environment origins (unused but kept for future use)
+    let _env_origins: Vec<String> = [
         env::var("CORS_ORIGIN").ok(),
         env::var("FRONTEND_URL").ok(),
         env::var("NEXT_PUBLIC_FRONTEND_URL").ok(),

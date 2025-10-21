@@ -108,7 +108,7 @@ pub async fn list_campaigns(
     .await
     .map_err(|e| {
         tracing::error!("Database error in campaigns: {}", e);
-        AppError::Database(e.to_string())
+        AppError::Database(e)
     })?;
 
     // Manually map rows to CampaignWithCreator
