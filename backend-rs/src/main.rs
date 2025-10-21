@@ -56,9 +56,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState::new(pool);
 
     // Build CORS layer - explicitly allow Authorization header
+    let frontend_url = env::var("FRONTEND_URL")
+        .unwrap_or_else(|_| "https://funify.vercel.app".to_string());
+
+    let cors_origin = frontend_url.parse::<axum::http::HeaderValue>()
+        .expect("Invalid FRONTEND_URL");
+
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
+        .allow_origin(cors_origin)
+        .allow_methods(vec![
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PUT,
+            axum::http::Method::DELETE,
+            axum::http::Method::OPTIONS,
+        ])
         .allow_headers(vec![
             axum::http::header::AUTHORIZATION,
             axum::http::header::CONTENT_TYPE,
