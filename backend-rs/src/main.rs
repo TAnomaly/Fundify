@@ -32,6 +32,9 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
         "https://funify.vercel.app",
         "https://fundify.vercel.app",
         "https://perfect-happiness-production.up.railway.app",
+        // Blog specific origins
+        "https://funify.vercel.app/blog",
+        "https://fundify.vercel.app/blog",
     ];
 
     // Get environment origins
@@ -74,7 +77,9 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
         let wildcard_allowed =
             normalized.ends_with(".vercel.app") || 
             normalized.ends_with(".railway.app") ||
-            normalized.ends_with(".up.railway.app");
+            normalized.ends_with(".up.railway.app") ||
+            normalized.contains("funify.vercel.app") ||
+            normalized.contains("fundify.vercel.app");
 
         static_allowed || env_allowed || wildcard_allowed
     } else {
