@@ -128,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     tracing::info!(
-        "Starting Fundify Backend (Rust + Axum) - CORS Fixed - Database Fixed - Railway Ready"
+        "Starting Fundify Backend (Rust + Axum) - CORS Fixed - Database Fixed - Railway Ready - Cargo.lock Added"
     );
 
     // Database connection
