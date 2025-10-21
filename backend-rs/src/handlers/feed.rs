@@ -183,9 +183,67 @@ pub async fn get_feed(
         .fetch_all(&state.db)
         .await?;
 
-    // TODO: Re-enable articles and events after debugging
-    let articles: Vec<ArticleRow> = vec![];
-    let events: Vec<EventRow> = vec![];
+    // Fetch articles (simplified query)
+    let articles: Vec<ArticleRow> = sqlx::query_as(
+        r#"
+        SELECT
+            a.id,
+            a.slug,
+            a.title,
+            COALESCE(a.excerpt, '') AS excerpt,
+            '' AS content,
+            a."coverImage" AS cover_image,
+            a."readTime" AS read_time,
+            TRUE AS is_public,
+            a."publishedAt" AS published_at,
+            u.id AS author_id,
+            u.name AS author_name,
+            u.username AS author_username,
+            u.avatar AS author_avatar,
+            0::BIGINT AS like_count,
+            0::BIGINT AS comment_count
+        FROM "Article" a
+        INNER JOIN "User" u ON u.id = a."authorId"
+        WHERE a.status = 'PUBLISHED'
+        ORDER BY a."createdAt" DESC
+        LIMIT $1
+        "#
+    )
+    .bind(10)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    // Fetch events (simplified query)
+    let events: Vec<EventRow> = sqlx::query_as(
+        r#"
+        SELECT
+            e.id,
+            e.title,
+            COALESCE(e.description, '') AS description,
+            e."coverImage" AS cover_image,
+            e."startTime" AS start_time,
+            e."endTime" AS end_time,
+            e.location,
+            CAST(COALESCE(e.price, 0) AS INTEGER) AS price,
+            TRUE AS is_public,
+            e."createdAt" AS created_at,
+            u.id AS host_id,
+            u.name AS host_name,
+            u.username AS host_username,
+            u.avatar AS host_avatar,
+            0::BIGINT AS rsvp_count
+        FROM "Event" e
+        INNER JOIN "User" u ON u.id = e."hostId"
+        WHERE e.status = 'PUBLISHED'
+        ORDER BY e."createdAt" DESC
+        LIMIT $1
+        "#
+    )
+    .bind(10)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
 
     let mut items: Vec<FeedItem> = Vec::new();
 
