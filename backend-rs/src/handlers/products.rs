@@ -65,10 +65,28 @@ pub struct ProductMetaResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProductMeta {
-    pub total_products: i64,
-    pub total_collections: i64,
-    pub categories: Vec<String>,
+    pub types: Vec<TypeCount>,
     pub price_range: PriceRange,
+    pub stats: Stats,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TypeCount {
+    #[serde(rename = "type")]
+    pub type_name: String,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Stats {
+    #[serde(rename = "totalProducts")]
+    pub total_products: i64,
+    #[serde(rename = "featuredCount")]
+    pub featured_count: i64,
+    #[serde(rename = "creatorCount")]
+    pub creator_count: i64,
+    #[serde(rename = "totalRevenue")]
+    pub total_revenue: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -194,13 +212,41 @@ pub async fn get_meta(
         .await?;
     let total_products: i64 = total_products_row.get("total");
 
-    // Get categories
-    let category_rows = sqlx::query("SELECT DISTINCT \"productType\"::text FROM \"DigitalProduct\" WHERE \"isActive\" = true AND \"productType\" IS NOT NULL")
+    // Get featured count
+    let featured_row = sqlx::query("SELECT COUNT(*) as total FROM \"DigitalProduct\" WHERE \"isActive\" = true AND \"isFeatured\" = true")
+        .fetch_one(&state.db)
+        .await?;
+    let featured_count: i64 = featured_row.get("total");
+
+    // Get creator count
+    let creator_row = sqlx::query("SELECT COUNT(DISTINCT \"creatorId\") as total FROM \"DigitalProduct\" WHERE \"isActive\" = true")
+        .fetch_one(&state.db)
+        .await?;
+    let creator_count: i64 = creator_row.get("total");
+
+    // Get total revenue
+    let revenue_row = sqlx::query("SELECT COALESCE(SUM(revenue), 0) as total FROM \"DigitalProduct\" WHERE \"isActive\" = true")
+        .fetch_one(&state.db)
+        .await?;
+    let total_revenue: f64 = revenue_row.get("total");
+
+    // Get product types with counts
+    let type_rows = sqlx::query(r#"
+        SELECT "productType"::text as type_name, COUNT(*) as count 
+        FROM "DigitalProduct" 
+        WHERE "isActive" = true AND "productType" IS NOT NULL
+        GROUP BY "productType"
+        ORDER BY count DESC
+    "#)
         .fetch_all(&state.db)
         .await?;
-    let categories: Vec<String> = category_rows
-        .into_iter()
-        .map(|row| row.get("productType"))
+    
+    let types: Vec<TypeCount> = type_rows
+        .iter()
+        .map(|row| TypeCount {
+            type_name: row.get("type_name"),
+            count: row.get("count"),
+        })
         .collect();
 
     // Get price range
@@ -213,12 +259,16 @@ pub async fn get_meta(
     Ok(Json(ProductMetaResponse {
         success: true,
         data: ProductMeta {
-            total_products,
-            total_collections: 0, // No collections table yet
-            categories,
+            types,
             price_range: PriceRange {
                 min: min_price,
                 max: max_price,
+            },
+            stats: Stats {
+                total_products,
+                featured_count,
+                creator_count,
+                total_revenue,
             },
         },
     }))
