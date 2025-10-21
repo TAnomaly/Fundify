@@ -92,14 +92,12 @@ pub async fn list_campaigns(
     State(state): State<AppState>,
     Query(params): Query<ListCampaignsQuery>,
 ) -> AppResult<impl IntoResponse> {
-    // Simple query to avoid database issues
-    let campaigns: Vec<CampaignWithCreator> = sqlx::query_as::<_, CampaignWithCreator>(
+    // Use manual row parsing to avoid FromRow trait issues
+    let rows = sqlx::query(
         r#"SELECT 
             c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
-            c."goalAmount" as goal_amount, c."currentAmount" as current_amount, 
-            c."coverImage" as cover_image, c."createdAt" as created_at,
-            u.id as creator_id, u.name as creator_name, u.avatar as creator_avatar,
-            0 as donation_count, 0 as comment_count
+            c."goalAmount", c."currentAmount", c."coverImage", c."createdAt",
+            u.id as creator_id, u.name as creator_name, u.avatar as creator_avatar
         FROM "Campaign" c
         LEFT JOIN "User" u ON c."creatorId" = u.id
         WHERE c.status = 'ACTIVE'
@@ -112,6 +110,36 @@ pub async fn list_campaigns(
         tracing::error!("Database error in campaigns: {}", e);
         AppError::Database(e.to_string())
     })?;
+
+    // Manually map rows to CampaignWithCreator
+    let mut campaigns: Vec<CampaignWithCreator> = Vec::new();
+    for row in rows {
+        use sqlx::Row;
+        campaigns.push(CampaignWithCreator {
+            id: row.get("id"),
+            title: row.get("title"),
+            slug: row.get("slug"),
+            description: row.get("description"),
+            story: row.get("story"),
+            category: row.get("category"),
+            campaign_type: row.get("type"),
+            status: row.get("status"),
+            goal_amount: row.get("goalAmount"),
+            current_amount: row.get("currentAmount"),
+            cover_image: row.get("coverImage"),
+            created_at: row
+                .get::<chrono::NaiveDateTime, _>("createdAt")
+                .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+                .to_string(),
+            creator: CreatorInfo {
+                id: row.get("creator_id"),
+                name: row.get("creator_name"),
+                avatar: row.get("creator_avatar"),
+            },
+            donation_count: 0,
+            comment_count: 0,
+        });
+    }
 
     let total = campaigns.len() as i64;
     let pages = ((total as f64) / 12.0).ceil() as i32;
