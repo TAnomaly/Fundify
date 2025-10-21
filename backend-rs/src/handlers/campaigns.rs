@@ -97,7 +97,7 @@ pub async fn list_campaigns(
     let skip: i64 = ((page - 1) * limit) as i64;
 
     // Simple query to get campaigns from database
-    let campaigns_result = sqlx::query!(
+    let campaigns_result = sqlx::query(
         r#"SELECT c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
            c."goalAmount", c."currentAmount", c."coverImage", c."createdAt",
            u.id as creator_id, u.name as creator_name, u.avatar as creator_avatar
@@ -105,10 +105,10 @@ pub async fn list_campaigns(
         LEFT JOIN "User" u ON c."creatorId" = u.id
         WHERE c.status = 'ACTIVE'
         ORDER BY c."createdAt" DESC
-        LIMIT $1 OFFSET $2"#,
-        limit as i64,
-        skip
+        LIMIT $1 OFFSET $2"#
     )
+    .bind(limit as i64)
+    .bind(skip)
     .fetch_all(&state.db)
     .await;
 
@@ -116,23 +116,24 @@ pub async fn list_campaigns(
         Ok(rows) => {
             let mut campaign_list = Vec::new();
             for row in rows {
+                use sqlx::Row;
                 campaign_list.push(serde_json::json!({
-                    "id": row.id,
-                    "title": row.title,
-                    "slug": row.slug,
-                    "description": row.description,
-                    "story": row.story,
-                    "category": row.category,
-                    "type": row.r#type,
-                    "status": row.status,
-                    "goalAmount": row.goal_amount,
-                    "currentAmount": row.current_amount,
-                    "coverImage": row.cover_image,
-                    "createdAt": row.created_at.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
+                    "id": row.get::<String, _>("id"),
+                    "title": row.get::<String, _>("title"),
+                    "slug": row.get::<String, _>("slug"),
+                    "description": row.get::<String, _>("description"),
+                    "story": row.get::<Option<String>, _>("story"),
+                    "category": row.get::<String, _>("category"),
+                    "type": row.get::<String, _>("type"),
+                    "status": row.get::<String, _>("status"),
+                    "goalAmount": row.get::<f64, _>("goalAmount"),
+                    "currentAmount": row.get::<f64, _>("currentAmount"),
+                    "coverImage": row.get::<Option<String>, _>("coverImage"),
+                    "createdAt": row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
                     "creator": {
-                        "id": row.creator_id,
-                        "name": row.creator_name,
-                        "avatar": row.creator_avatar
+                        "id": row.get::<Option<String>, _>("creator_id"),
+                        "name": row.get::<Option<String>, _>("creator_name"),
+                        "avatar": row.get::<Option<String>, _>("creator_avatar")
                     },
                     "donationCount": 0,
                     "commentCount": 0
