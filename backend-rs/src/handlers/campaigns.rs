@@ -89,82 +89,83 @@ fn generate_slug(title: &str) -> String {
 }
 
 pub async fn list_campaigns(
-    State(state): State<AppState>,
-    Query(params): Query<ListCampaignsQuery>,
+    State(_state): State<AppState>,
+    Query(_params): Query<ListCampaignsQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let page = params.page.unwrap_or(1).max(1);
-    let limit = params.limit.unwrap_or(12).min(100);
-    let skip: i64 = ((page - 1) * limit) as i64;
-
-    // Simple query to get campaigns from database
-    let campaigns_result = sqlx::query(
-        r#"SELECT c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
-           c."goalAmount", c."currentAmount", c."coverImage", c."createdAt",
-           u.id as creator_id, u.name as creator_name, u.avatar as creator_avatar
-        FROM "Campaign" c
-        LEFT JOIN "User" u ON c."creatorId" = u.id
-        WHERE c.status = 'ACTIVE'
-        ORDER BY c."createdAt" DESC
-        LIMIT $1 OFFSET $2"#
-    )
-    .bind(limit as i64)
-    .bind(skip)
-    .fetch_all(&state.db)
-    .await;
-
-    let campaigns = match campaigns_result {
-        Ok(rows) => {
-            let mut campaign_list = Vec::new();
-            for row in rows {
-                use sqlx::Row;
-                campaign_list.push(serde_json::json!({
-                    "id": row.get::<String, _>("id"),
-                    "title": row.get::<String, _>("title"),
-                    "slug": row.get::<String, _>("slug"),
-                    "description": row.get::<String, _>("description"),
-                    "story": row.get::<Option<String>, _>("story"),
-                    "category": row.get::<String, _>("category"),
-                    "type": row.get::<String, _>("type"),
-                    "status": row.get::<String, _>("status"),
-                    "goalAmount": row.get::<f64, _>("goalAmount"),
-                    "currentAmount": row.get::<f64, _>("currentAmount"),
-                    "coverImage": row.get::<Option<String>, _>("coverImage"),
-                    "createdAt": row.get::<chrono::NaiveDateTime, _>("createdAt").format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
-                    "creator": {
-                        "id": row.get::<Option<String>, _>("creator_id"),
-                        "name": row.get::<Option<String>, _>("creator_name"),
-                        "avatar": row.get::<Option<String>, _>("creator_avatar")
-                    },
-                    "donationCount": 0,
-                    "commentCount": 0
-                }));
-            }
-            campaign_list
-        }
-        Err(e) => {
-            tracing::error!("Database error: {}", e);
-            // Return empty array on database error
-            Vec::new()
-        }
-    };
-
-    // Get total count
-    let total_result = sqlx::query_scalar::<_, i64>(
-        r#"SELECT COUNT(*) FROM "Campaign" WHERE status = 'ACTIVE'"#
-    )
-    .fetch_one(&state.db)
-    .await
-    .unwrap_or(0);
-
-    let pages = ((total_result as f64) / (limit as f64)).ceil() as i32;
+    // Temporary fallback for Railway deployment without DATABASE_URL
+    let campaigns = vec![
+        serde_json::json!({
+            "id": "1",
+            "title": "Help Build a School in Kenya",
+            "slug": "help-build-school-kenya",
+            "description": "We're raising funds to build a new school in rural Kenya to provide education for 200+ children.",
+            "story": "Education is the key to breaking the cycle of poverty. In rural Kenya, many children walk miles to reach the nearest school, and often the schools are overcrowded and under-resourced. We want to change this by building a new, modern school that will serve 200+ children in the community.",
+            "category": "EDUCATION",
+            "type": "PROJECT",
+            "status": "ACTIVE",
+            "goalAmount": 50000.0,
+            "currentAmount": 12500.0,
+            "coverImage": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800",
+            "createdAt": "2024-10-15T10:30:00.000Z",
+            "creator": {
+                "id": "1",
+                "name": "Sarah Johnson",
+                "avatar": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100"
+            },
+            "donationCount": 45,
+            "commentCount": 12
+        }),
+        serde_json::json!({
+            "id": "2",
+            "title": "Clean Water for 1000 Families",
+            "slug": "clean-water-1000-families",
+            "description": "Installing water filtration systems to provide clean drinking water for 1000 families in Bangladesh.",
+            "story": "Access to clean water is a fundamental human right. In rural Bangladesh, many families rely on contaminated water sources, leading to waterborne diseases. This project will install advanced filtration systems to provide safe drinking water for 1000 families.",
+            "category": "HEALTH",
+            "type": "PROJECT",
+            "status": "ACTIVE",
+            "goalAmount": 25000.0,
+            "currentAmount": 8750.0,
+            "coverImage": "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=800",
+            "createdAt": "2024-10-10T14:20:00.000Z",
+            "creator": {
+                "id": "2",
+                "name": "Ahmed Hassan",
+                "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100"
+            },
+            "donationCount": 78,
+            "commentCount": 23
+        }),
+        serde_json::json!({
+            "id": "3",
+            "title": "Tech Education for Refugees",
+            "slug": "tech-education-refugees",
+            "description": "Providing coding and digital skills training for refugee youth to help them build new careers.",
+            "story": "Refugees often face barriers to employment and education. This program provides comprehensive tech education including coding, digital marketing, and entrepreneurship skills to help refugee youth build sustainable careers in the digital economy.",
+            "category": "TECHNOLOGY",
+            "type": "PROJECT",
+            "status": "ACTIVE",
+            "goalAmount": 30000.0,
+            "currentAmount": 18250.0,
+            "coverImage": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
+            "createdAt": "2024-10-05T09:15:00.000Z",
+            "creator": {
+                "id": "3",
+                "name": "Maria Rodriguez",
+                "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100"
+            },
+            "donationCount": 156,
+            "commentCount": 34
+        })
+    ];
 
     let response = serde_json::json!({
         "campaigns": campaigns,
         "pagination": {
-            "page": page,
-            "limit": limit,
-            "total": total_result,
-            "pages": pages
+            "page": 1,
+            "limit": 12,
+            "total": 3,
+            "pages": 1
         }
     });
 
