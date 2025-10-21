@@ -138,7 +138,7 @@ pub async fn list_products(
             category: row.get("category"),
             creator_id: row.get("creator_id"),
             creator_name: row.get("creator_name"),
-            creator_username: row.get("creator_username"),
+            creator_username: row.try_get("creator_username").unwrap_or_else(|_| "unknown".to_string()),
             image_url: row.get("image_url"),
             download_url: row.get("download_url"),
             is_digital: row.get("is_digital"),
