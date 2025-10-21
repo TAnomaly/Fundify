@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Json, Path, Query, State};
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row};
 use uuid::Uuid;
 
-use crate::utils::{app_state::AppState, error::AppResult, response::ApiResponse};
+use crate::utils::{app_state::AppState, error::{AppError, AppResult}, response::ApiResponse};
 
 #[derive(Debug, Deserialize)]
 pub struct ListPollsQuery {
@@ -228,10 +228,102 @@ pub async fn list_polls(
     Ok(ApiResponse::success(payload))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct PollOption {
+    pub text: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePollRequest {
+    pub question: String,
+    pub options: Vec<PollOption>,
+    #[serde(rename = "endsAt")]
+    pub ends_at: Option<String>,
+    #[serde(rename = "allowMultiple")]
+    pub allow_multiple: Option<bool>,
+}
+
 pub async fn create_poll(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    Json(data): Json<CreatePollRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
-    Ok(ApiResponse::success("Create poll - TODO"))
+    // TODO: Get user from JWT token
+    let creator_id = "test-user-id";
+
+    // Verify user is a creator
+    let user: Option<(bool,)> = sqlx::query_as(
+        r#"SELECT "isCreator" FROM "User" WHERE id = $1"#
+    )
+    .bind(creator_id)
+    .fetch_optional(&state.db)
+    .await?;
+
+    match user {
+        Some((is_creator,)) if !is_creator => {
+            return Err(AppError::Forbidden(
+                "Only creators can create polls.".to_string()
+            ));
+        },
+        None => {
+            return Err(AppError::NotFound("User not found".to_string()));
+        },
+        _ => {}
+    }
+
+    if data.options.len() < 2 {
+        return Err(AppError::BadRequest("Poll must have at least 2 options".to_string()));
+    }
+
+    let poll_id = Uuid::new_v4();
+    let ends_at = data.ends_at.as_ref()
+        .map(|t| chrono::DateTime::parse_from_rfc3339(t)
+            .map(|dt| dt.naive_utc()))
+        .transpose()
+        .map_err(|_| AppError::BadRequest("Invalid ends_at format".to_string()))?;
+
+    let allow_multiple = data.allow_multiple.unwrap_or(false);
+
+    // Create poll
+    sqlx::query(
+        r#"
+        INSERT INTO "Poll" (
+            id, question, "endsAt", "allowMultiple", "creatorId", "createdAt", "updatedAt"
+        )
+        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        "#
+    )
+    .bind(poll_id)
+    .bind(&data.question)
+    .bind(ends_at)
+    .bind(allow_multiple)
+    .bind(creator_id)
+    .execute(&state.db)
+    .await?;
+
+    // Create poll options
+    for (index, option) in data.options.iter().enumerate() {
+        let option_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+            INSERT INTO "PollOption" (
+                id, "pollId", text, "optionIndex", "createdAt"
+            )
+            VALUES ($1, $2, $3, $4, NOW())
+            "#
+        )
+        .bind(option_id)
+        .bind(poll_id)
+        .bind(&option.text)
+        .bind(index as i32)
+        .execute(&state.db)
+        .await?;
+    }
+
+    Ok(ApiResponse::success(serde_json::json!({
+        "id": poll_id,
+        "question": data.question,
+        "optionsCount": data.options.len(),
+    })))
 }
 
 pub async fn vote_poll(

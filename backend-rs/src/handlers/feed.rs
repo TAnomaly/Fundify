@@ -115,87 +115,271 @@ pub async fn get_feed(
         comment_count: i64,
     }
 
-    let posts: Vec<PostRow> = sqlx::query_as(
-        r#"
-        SELECT
-            p.id,
-            p.title,
-            p.excerpt,
-            p.content,
-            p.images,
-            p."isPublic" AS is_public,
-            p."publishedAt" AS published_at,
-            u.id AS author_id,
-            u.name AS author_name,
-            u.username AS author_username,
-            u.avatar AS author_avatar,
-            COALESCE(likes.cnt, 0) AS like_count,
-            COALESCE(comments.cnt, 0) AS comment_count
-        FROM "CreatorPost" p
-        LEFT JOIN "User" u ON u.id = p."authorId"
-        LEFT JOIN LATERAL (
-            SELECT COUNT(*)::BIGINT AS cnt FROM "PostLike" WHERE "postId" = p.id
-        ) likes ON TRUE
-        LEFT JOIN LATERAL (
-            SELECT COUNT(*)::BIGINT AS cnt FROM "PostComment" WHERE "postId" = p.id
-        ) comments ON TRUE
-        WHERE p.published = TRUE AND p."isPublic" = TRUE
-        ORDER BY COALESCE(p."publishedAt", p."createdAt") DESC
-        LIMIT $1 OFFSET $2
-        "#
-    )
-    .bind(limit)
-    .bind(offset)
-    .fetch_all(&state.db)
-    .await?;
+    // Fetch posts, articles, and events in parallel
+    #[derive(Debug, FromRow)]
+    struct ArticleRow {
+        id: String,
+        slug: String,
+        title: String,
+        excerpt: Option<String>,
+        content: String,
+        cover_image: Option<String>,
+        read_time: Option<i32>,
+        is_public: bool,
+        published_at: Option<NaiveDateTime>,
+        author_id: String,
+        author_name: String,
+        author_username: Option<String>,
+        author_avatar: Option<String>,
+        like_count: i64,
+        comment_count: i64,
+    }
 
-    let total: i64 = sqlx::query_scalar(
-        r#"SELECT COUNT(*)::BIGINT FROM "CreatorPost" WHERE published = TRUE AND "isPublic" = TRUE"#
-    )
-    .fetch_one(&state.db)
-    .await?;
+    #[derive(Debug, FromRow)]
+    struct EventRow {
+        id: String,
+        title: String,
+        description: String,
+        cover_image: Option<String>,
+        start_time: NaiveDateTime,
+        end_time: Option<NaiveDateTime>,
+        location: Option<String>,
+        price: Option<i32>,
+        is_public: bool,
+        created_at: NaiveDateTime,
+        host_id: String,
+        host_name: String,
+        host_username: Option<String>,
+        host_avatar: Option<String>,
+        rsvp_count: i64,
+    }
 
-    let items: Vec<FeedItem> = posts
-        .into_iter()
-        .map(|post| {
-            let slug = to_slug(post.author_username.as_deref(), &post.author_name);
-            let likes = post.like_count;
-            let comments = post.comment_count;
-            let popularity_score = (likes * 3 + comments * 4) as i32;
+    let (posts, articles, events): (Vec<PostRow>, Vec<ArticleRow>, Vec<EventRow>) = tokio::try_join!(
+        sqlx::query_as::<_, PostRow>(
+            r#"
+            SELECT
+                p.id,
+                p.title,
+                p.excerpt,
+                p.content,
+                p.images,
+                p."isPublic" AS is_public,
+                p."publishedAt" AS published_at,
+                u.id AS author_id,
+                u.name AS author_name,
+                u.username AS author_username,
+                u.avatar AS author_avatar,
+                COALESCE(likes.cnt, 0) AS like_count,
+                COALESCE(comments.cnt, 0) AS comment_count
+            FROM "CreatorPost" p
+            LEFT JOIN "User" u ON u.id = p."authorId"
+            LEFT JOIN LATERAL (
+                SELECT COUNT(*)::BIGINT AS cnt FROM "PostLike" WHERE "postId" = p.id
+            ) likes ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT COUNT(*)::BIGINT AS cnt FROM "PostComment" WHERE "postId" = p.id
+            ) comments ON TRUE
+            WHERE p.published = TRUE AND p."isPublic" = TRUE
+            ORDER BY COALESCE(p."publishedAt", p."createdAt") DESC
+            LIMIT $1
+            "#
+        )
+        .bind(limit * 2)
+        .fetch_all(&state.db),
 
-            FeedItem {
-                id: format!("post_{}", post.id),
-                source_id: post.id.clone(),
-                item_type: "post".to_string(),
-                title: post.title,
-                summary: post.excerpt.clone(),
-                preview: post.excerpt,
-                cover_image: post.images.and_then(|imgs| imgs.first().cloned()),
-                published_at: post.published_at
-                    .map(format_datetime)
-                    .unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
-                link: format!("/creators/{}?tab=posts&post={}", slug, post.id),
-                creator: FeedCreator {
-                    id: post.author_id,
-                    name: post.author_name.clone(),
-                    username: post.author_username.clone(),
-                    avatar: post.author_avatar,
-                    slug,
-                },
-                popularity_score,
-                is_highlight: popularity_score >= 12,
-                is_new: false,
-                is_saved: false,
-                badges: vec![],
-                meta: FeedMeta {
-                    likes: Some(likes),
-                    comments: Some(comments),
-                    rsvps: None,
-                    visibility: if post.is_public { "public" } else { "supporters" }.to_string(),
-                },
-            }
-        })
-        .collect();
+        sqlx::query_as::<_, ArticleRow>(
+            r#"
+            SELECT
+                a.id,
+                a.slug,
+                a.title,
+                a.excerpt,
+                a.content,
+                a."coverImage" AS cover_image,
+                a."readTime" AS read_time,
+                a."isPublic" AS is_public,
+                a."publishedAt" AS published_at,
+                u.id AS author_id,
+                u.name AS author_name,
+                u.username AS author_username,
+                u.avatar AS author_avatar,
+                COALESCE(likes.cnt, 0) AS like_count,
+                COALESCE(comments.cnt, 0) AS comment_count
+            FROM "Article" a
+            LEFT JOIN "User" u ON u.id = a."authorId"
+            LEFT JOIN LATERAL (
+                SELECT COUNT(*)::BIGINT AS cnt FROM "ArticleLike" WHERE "articleId" = a.id
+            ) likes ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT COUNT(*)::BIGINT AS cnt FROM "ArticleComment" WHERE "articleId" = a.id
+            ) comments ON TRUE
+            WHERE a.status = 'PUBLISHED' AND a."isPublic" = TRUE
+            ORDER BY COALESCE(a."publishedAt", a."createdAt") DESC
+            LIMIT $1
+            "#
+        )
+        .bind(limit * 2)
+        .fetch_all(&state.db),
+
+        sqlx::query_as::<_, EventRow>(
+            r#"
+            SELECT
+                e.id,
+                e.title,
+                e.description,
+                e."coverImage" AS cover_image,
+                e."startTime" AS start_time,
+                e."endTime" AS end_time,
+                e.location,
+                e.price,
+                e."isPublic" AS is_public,
+                e."createdAt" AS created_at,
+                u.id AS host_id,
+                u.name AS host_name,
+                u.username AS host_username,
+                u.avatar AS host_avatar,
+                COALESCE(rsvps.cnt, 0) AS rsvp_count
+            FROM "Event" e
+            LEFT JOIN "User" u ON u.id = e."hostId"
+            LEFT JOIN LATERAL (
+                SELECT COUNT(*)::BIGINT AS cnt FROM "EventRsvp" WHERE "eventId" = e.id
+            ) rsvps ON TRUE
+            WHERE e.status = 'PUBLISHED' AND e."isPublic" = TRUE
+            ORDER BY e."createdAt" DESC
+            LIMIT $1
+            "#
+        )
+        .bind(limit * 2)
+        .fetch_all(&state.db)
+    )?;
+
+    let mut items: Vec<FeedItem> = Vec::new();
+
+    // Add posts
+    for post in posts {
+        let slug = to_slug(post.author_username.as_deref(), &post.author_name);
+        let likes = post.like_count;
+        let comments = post.comment_count;
+        let popularity_score = (likes * 3 + comments * 4) as i32;
+
+        items.push(FeedItem {
+            id: format!("post_{}", post.id),
+            source_id: post.id.clone(),
+            item_type: "post".to_string(),
+            title: post.title,
+            summary: post.excerpt.clone(),
+            preview: post.excerpt,
+            cover_image: post.images.and_then(|imgs| imgs.first().cloned()),
+            published_at: post.published_at
+                .map(format_datetime)
+                .unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
+            link: format!("/creators/{}?tab=posts&post={}", slug, post.id),
+            creator: FeedCreator {
+                id: post.author_id,
+                name: post.author_name.clone(),
+                username: post.author_username.clone(),
+                avatar: post.author_avatar,
+                slug,
+            },
+            popularity_score,
+            is_highlight: popularity_score >= 12,
+            is_new: false,
+            is_saved: false,
+            badges: vec![],
+            meta: FeedMeta {
+                likes: Some(likes),
+                comments: Some(comments),
+                rsvps: None,
+                visibility: if post.is_public { "public" } else { "supporters" }.to_string(),
+            },
+        });
+    }
+
+    // Add articles
+    for article in articles {
+        let slug = to_slug(article.author_username.as_deref(), &article.author_name);
+        let likes = article.like_count;
+        let comments = article.comment_count;
+        let popularity_score = (likes * 3 + comments * 4) as i32;
+
+        items.push(FeedItem {
+            id: format!("article_{}", article.id),
+            source_id: article.id.clone(),
+            item_type: "article".to_string(),
+            title: article.title,
+            summary: article.excerpt.clone(),
+            preview: article.excerpt,
+            cover_image: article.cover_image,
+            published_at: article.published_at
+                .map(format_datetime)
+                .unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
+            link: format!("/blog/{}", article.slug),
+            creator: FeedCreator {
+                id: article.author_id,
+                name: article.author_name.clone(),
+                username: article.author_username.clone(),
+                avatar: article.author_avatar,
+                slug,
+            },
+            popularity_score,
+            is_highlight: popularity_score >= 12,
+            is_new: false,
+            is_saved: false,
+            badges: vec![],
+            meta: FeedMeta {
+                likes: Some(likes),
+                comments: Some(comments),
+                rsvps: None,
+                visibility: if article.is_public { "public" } else { "supporters" }.to_string(),
+            },
+        });
+    }
+
+    // Add events
+    for event in events {
+        let slug = to_slug(event.host_username.as_deref(), &event.host_name);
+        let rsvps = event.rsvp_count;
+        let popularity_score = (rsvps * 2) as i32;
+
+        items.push(FeedItem {
+            id: format!("event_{}", event.id),
+            source_id: event.id.clone(),
+            item_type: "event".to_string(),
+            title: event.title,
+            summary: Some(event.description.chars().take(200).collect()),
+            preview: Some(event.description),
+            cover_image: event.cover_image,
+            published_at: format_datetime(event.created_at),
+            link: format!("/events/{}", event.id),
+            creator: FeedCreator {
+                id: event.host_id,
+                name: event.host_name.clone(),
+                username: event.host_username.clone(),
+                avatar: event.host_avatar,
+                slug,
+            },
+            popularity_score,
+            is_highlight: popularity_score >= 6,
+            is_new: false,
+            is_saved: false,
+            badges: vec![],
+            meta: FeedMeta {
+                likes: None,
+                comments: None,
+                rsvps: Some(rsvps),
+                visibility: if event.is_public { "public" } else { "supporters" }.to_string(),
+            },
+        });
+    }
+
+    // Sort all items by published date
+    items.sort_by(|a, b| b.published_at.cmp(&a.published_at));
+
+    // Apply pagination
+    let total = items.len() as i64;
+    let start = ((page - 1) * limit) as usize;
+    let end = (start + limit as usize).min(items.len());
+    let paginated_items: Vec<FeedItem> = items[start..end].to_vec();
 
     let highlights = items
         .iter()
@@ -211,7 +395,7 @@ pub async fn get_feed(
     };
 
     Ok(ApiResponse::success(FeedResponse {
-        items,
+        items: paginated_items,
         highlights,
         pagination: FeedPagination {
             page,

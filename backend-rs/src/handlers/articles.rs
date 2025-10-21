@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Json, Path, Query, State};
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Postgres, QueryBuilder, Row};
@@ -339,10 +339,97 @@ pub async fn list_articles(
     Ok(ApiResponse::success(payload))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct CreateArticleRequest {
+    pub title: String,
+    pub content: String,
+    pub excerpt: Option<String>,
+    #[serde(rename = "coverImage")]
+    pub cover_image: Option<String>,
+    #[serde(rename = "isPublic")]
+    pub is_public: Option<bool>,
+    #[serde(rename = "isPremium")]
+    pub is_premium: Option<bool>,
+    #[serde(rename = "readTime")]
+    pub read_time: Option<i32>,
+    pub status: Option<String>,
+}
+
 pub async fn create_article(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    Json(data): Json<CreateArticleRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
-    Ok(ApiResponse::success("Create article - TODO"))
+    // TODO: Get user from JWT token
+    let author_id = "test-user-id";
+
+    // Verify user is a creator
+    let user: Option<(bool,)> = sqlx::query_as(
+        r#"SELECT "isCreator" FROM "User" WHERE id = $1"#
+    )
+    .bind(author_id)
+    .fetch_optional(&state.db)
+    .await?;
+
+    match user {
+        Some((is_creator,)) if !is_creator => {
+            return Err(AppError::Forbidden(
+                "Only creators can publish articles.".to_string()
+            ));
+        },
+        None => {
+            return Err(AppError::NotFound("User not found".to_string()));
+        },
+        _ => {}
+    }
+
+    let article_id = Uuid::new_v4();
+    let slug = data.title
+        .to_lowercase()
+        .replace(|c: char| !c.is_alphanumeric() && c != '-', "-")
+        .replace("--", "-")
+        .trim_matches('-')
+        .to_string() + &format!("-{}", &article_id.to_string()[..8]);
+
+    let status = data.status.as_deref().unwrap_or("DRAFT");
+    let is_public = data.is_public.unwrap_or(true);
+    let is_premium = data.is_premium.unwrap_or(false);
+    let published_at = if status == "PUBLISHED" {
+        Some(chrono::Utc::now().naive_utc())
+    } else {
+        None
+    };
+
+    sqlx::query(
+        r#"
+        INSERT INTO "Article" (
+            id, slug, title, content, excerpt, "coverImage",
+            "isPublic", "isPremium", "readTime", status, "publishedAt",
+            "authorId", "createdAt", "updatedAt"
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+        "#
+    )
+    .bind(article_id)
+    .bind(&slug)
+    .bind(&data.title)
+    .bind(&data.content)
+    .bind(&data.excerpt)
+    .bind(&data.cover_image)
+    .bind(is_public)
+    .bind(is_premium)
+    .bind(data.read_time)
+    .bind(status)
+    .bind(published_at)
+    .bind(author_id)
+    .execute(&state.db)
+    .await?;
+
+    Ok(ApiResponse::success(serde_json::json!({
+        "id": article_id,
+        "slug": slug,
+        "title": data.title,
+        "status": status,
+    })))
 }
 
 pub async fn get_article(

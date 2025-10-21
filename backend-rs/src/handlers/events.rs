@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Json, Path, Query, State},
     Extension,
 };
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
@@ -296,10 +296,101 @@ pub async fn list_events(
     Ok(ApiResponse::success(payload))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct CreateEventRequest {
+    pub title: String,
+    pub description: String,
+    #[serde(rename = "coverImage")]
+    pub cover_image: Option<String>,
+    #[serde(rename = "startTime")]
+    pub start_time: String,
+    #[serde(rename = "endTime")]
+    pub end_time: Option<String>,
+    pub location: Option<String>,
+    #[serde(rename = "virtualLink")]
+    pub virtual_link: Option<String>,
+    pub price: Option<i32>,
+    #[serde(rename = "isPublic")]
+    pub is_public: Option<bool>,
+    #[serde(rename = "type")]
+    pub event_type: Option<String>,
+    pub status: Option<String>,
+}
+
 pub async fn create_event(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    Json(data): Json<CreateEventRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
-    Ok(ApiResponse::success("Create event - TODO"))
+    // TODO: Get user from JWT token
+    let host_id = "test-user-id";
+
+    // Verify user is a creator
+    let user: Option<(bool,)> = sqlx::query_as(
+        r#"SELECT "isCreator" FROM "User" WHERE id = $1"#
+    )
+    .bind(host_id)
+    .fetch_optional(&state.db)
+    .await?;
+
+    match user {
+        Some((is_creator,)) if !is_creator => {
+            return Err(AppError::Forbidden(
+                "Only creators can create events.".to_string()
+            ));
+        },
+        None => {
+            return Err(AppError::NotFound("User not found".to_string()));
+        },
+        _ => {}
+    }
+
+    let event_id = Uuid::new_v4();
+    let start_time = chrono::DateTime::parse_from_rfc3339(&data.start_time)
+        .map_err(|_| AppError::BadRequest("Invalid start time format".to_string()))?
+        .naive_utc();
+
+    let end_time = data.end_time.as_ref()
+        .map(|t| chrono::DateTime::parse_from_rfc3339(t)
+            .map(|dt| dt.naive_utc()))
+        .transpose()
+        .map_err(|_| AppError::BadRequest("Invalid end time format".to_string()))?;
+
+    let status = data.status.as_deref().unwrap_or("DRAFT");
+    let event_type = data.event_type.as_deref().unwrap_or("ONLINE");
+    let is_public = data.is_public.unwrap_or(true);
+
+    sqlx::query(
+        r#"
+        INSERT INTO "Event" (
+            id, title, description, "coverImage", "startTime", "endTime",
+            location, "virtualLink", price, "isPublic", type, status,
+            "hostId", "createdAt", "updatedAt"
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+        "#
+    )
+    .bind(event_id)
+    .bind(&data.title)
+    .bind(&data.description)
+    .bind(&data.cover_image)
+    .bind(start_time)
+    .bind(end_time)
+    .bind(&data.location)
+    .bind(&data.virtual_link)
+    .bind(data.price)
+    .bind(is_public)
+    .bind(event_type)
+    .bind(status)
+    .bind(host_id)
+    .execute(&state.db)
+    .await?;
+
+    Ok(ApiResponse::success(serde_json::json!({
+        "id": event_id,
+        "title": data.title,
+        "status": status,
+        "startTime": start_time.to_string(),
+    })))
 }
 
 pub async fn get_event(
