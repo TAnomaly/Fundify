@@ -24,8 +24,9 @@ use crate::utils::app_state::AppState;
 // Custom CORS middleware for more sophisticated origin checking
 async fn cors_middleware(request: Request, next: Next) -> Response {
     let origin = request.headers().get("origin").cloned();
+    let method = request.method().clone();
 
-    // Static allowed origins
+    // Static allowed origins - comprehensive list
     let static_origins = vec![
         "http://localhost:3000",
         "http://localhost:3001",
@@ -34,6 +35,9 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
         "https://perfect-happiness-production.up.railway.app",
         "https://fundify-frontend.vercel.app",
         "https://fundify-app.vercel.app",
+        "https://fundify.vercel.app",
+        "https://fundify-app.vercel.app",
+        "https://fundify-frontend.vercel.app",
         "https://fundify.vercel.app",
         "https://fundify-app.vercel.app",
         "https://fundify-frontend.vercel.app",
@@ -58,8 +62,6 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
     })
     .collect();
 
-    let mut response = next.run(request).await;
-
     // Check if origin is allowed
     let is_allowed = if let Some(origin_header) = &origin {
         let origin_str = origin_header.to_str().unwrap_or("");
@@ -77,19 +79,26 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
 
         // Check wildcard patterns
         let wildcard_allowed =
-            normalized.ends_with(".vercel.app") || normalized.ends_with(".railway.app");
+            normalized.ends_with(".vercel.app") || 
+            normalized.ends_with(".railway.app") ||
+            normalized.ends_with(".up.railway.app");
 
         static_allowed || env_allowed || wildcard_allowed
     } else {
         true // Allow requests without origin (like Postman, curl, etc.)
     };
 
-    if is_allowed {
+    // Handle preflight requests
+    if method == "OPTIONS" {
+        let mut response = Response::new("OK".into());
+        
         if let Some(origin_header) = origin {
-            response
-                .headers_mut()
-                .insert("access-control-allow-origin", origin_header);
-        } else if env::var("NODE_ENV").unwrap_or_default() != "production" {
+            if is_allowed {
+                response
+                    .headers_mut()
+                    .insert("access-control-allow-origin", origin_header.clone());
+            }
+        } else {
             response
                 .headers_mut()
                 .insert("access-control-allow-origin", HeaderValue::from_static("*"));
@@ -107,13 +116,71 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
 
         response.headers_mut().insert(
             "access-control-allow-headers",
-            HeaderValue::from_static("Content-Type, Authorization, Cache-Control, X-Requested-With, Accept, Accept-Language")
+            HeaderValue::from_static("Content-Type, Authorization, Cache-Control, X-Requested-With, Accept, Accept-Language, Origin, Access-Control-Request-Method, Access-Control-Request-Headers")
+        );
+
+        response.headers_mut().insert(
+            "access-control-max-age",
+            HeaderValue::from_static("86400")
         );
 
         response
             .headers_mut()
             .insert("vary", HeaderValue::from_static("Origin"));
+
+        return response;
     }
+
+    let mut response = next.run(request).await;
+
+    // Always set CORS headers for all responses
+    if let Some(origin_header) = origin {
+        if is_allowed {
+            response
+                .headers_mut()
+                .insert("access-control-allow-origin", origin_header.clone());
+        }
+    } else {
+        // For production, allow specific origins, for development allow all
+        if env::var("NODE_ENV").unwrap_or_default() == "production" {
+            // In production, only allow specific origins
+            if is_allowed {
+                response
+                    .headers_mut()
+                    .insert("access-control-allow-origin", HeaderValue::from_static("https://fundify.vercel.app"));
+            }
+        } else {
+            // In development, allow all origins
+            response
+                .headers_mut()
+                .insert("access-control-allow-origin", HeaderValue::from_static("*"));
+        }
+    }
+
+    // Always set these headers
+    response.headers_mut().insert(
+        "access-control-allow-credentials",
+        HeaderValue::from_static("true"),
+    );
+
+    response.headers_mut().insert(
+        "access-control-allow-methods",
+        HeaderValue::from_static("GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"),
+    );
+
+    response.headers_mut().insert(
+        "access-control-allow-headers",
+        HeaderValue::from_static("Content-Type, Authorization, Cache-Control, X-Requested-With, Accept, Accept-Language, Origin, Access-Control-Request-Method, Access-Control-Request-Headers")
+    );
+
+    response.headers_mut().insert(
+        "access-control-expose-headers",
+        HeaderValue::from_static("Content-Length, Content-Type, Date, Server, Transfer-Encoding")
+    );
+
+    response
+        .headers_mut()
+        .insert("vary", HeaderValue::from_static("Origin"));
 
     response
 }
@@ -177,6 +244,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/auth/me", get(handlers::auth::get_me))
         // User routes
         .route("/api/users/creators", get(handlers::users::get_creators))
+        .route("/api/users/creators", options(|| async { "OK" }))
         .route(
             "/api/users/creators/:username",
             get(handlers::users::get_creator_by_username),
@@ -190,6 +258,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/campaigns", post(handlers::campaigns::create_campaign))
         .route("/api/campaigns", options(|| async { "OK" }))
         .route("/api/campaigns/:id", get(handlers::campaigns::get_campaign))
+        .route("/api/campaigns/:id", options(|| async { "OK" }))
         .route(
             "/api/campaigns/:id",
             post(handlers::campaigns::update_campaign),
@@ -285,6 +354,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/products/collections", options(|| async { "OK" }))
         .route("/api/products/meta", get(handlers::products::get_meta))
         .route("/api/products/meta", options(|| async { "OK" }))
+        // Global OPTIONS handler for any unmatched routes
+        .route("/*path", options(|| async { "OK" }))
         .layer(from_fn(cors_middleware))
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http())
