@@ -3,7 +3,9 @@ use axum::extract::{Path, State};
 use crate::utils::{app_state::AppState, error::AppResult, response::ApiResponse};
 
 pub async fn list_articles(State(_state): State<AppState>) -> AppResult<impl axum::response::IntoResponse> {
-    // Return empty array for now - articles table might not exist
+    // For now, return empty array - database connection issues
+    // TODO: Implement proper database query when connection is stable
+    tracing::info!("Articles endpoint called - returning empty array for now");
     Ok(ApiResponse::success(Vec::<serde_json::Value>::new()))
 }
 
