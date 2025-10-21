@@ -179,9 +179,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get(handlers::users::get_creator_by_username),
         )
         .route("/api/users/me", get(handlers::auth::get_me))
+        .route("/api/users/me", options(|| async { "OK" }))
         .route("/api/users/:id", get(handlers::users::get_user))
         .route("/api/users/:id", post(handlers::users::update_user))
         .route("/api/users/:id/campaigns", get(handlers::campaigns::get_user_campaigns))
+        .route("/api/users/:id/campaigns", options(|| async { "OK" }))
         // Campaign routes
         .route("/api/campaigns", get(handlers::campaigns::list_campaigns))
         .route("/api/campaigns", post(handlers::campaigns::create_campaign))
@@ -197,6 +199,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/api/donations/me",
             get(handlers::donations::get_my_donations),
         )
+        .route("/api/donations/me", options(|| async { "OK" }))
         .route(
             "/api/campaigns/:id/donations",
             get(handlers::donations::list_donations),
