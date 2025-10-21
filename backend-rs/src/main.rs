@@ -5,7 +5,7 @@ mod services;
 mod utils;
 
 use axum::{
-    extract::Request,
+    extract::{Request, State},
     http::HeaderValue,
     middleware::{from_fn, Next},
     response::Response,
@@ -128,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     tracing::info!(
-        "Starting Fundify Backend (Rust + Axum) - CORS Fixed - Database Fixed - Railway Ready - Cargo.lock Added"
+        "Starting Fundify Backend (Rust + Axum) - CORS Fixed - Database Fixed - Railway Ready"
     );
 
     // Database connection
@@ -161,6 +161,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/health", get(health_check))
         .route("/api/health", get(health_check))
+        .route("/api/test", get(test_endpoint))
+        .route("/api/campaigns-simple", get(simple_campaigns))
         // Auth routes
         .route("/api/auth/register", post(handlers::auth::register))
         .route("/api/auth/login", post(handlers::auth::login))
@@ -289,4 +291,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn health_check() -> &'static str {
     "OK"
+}
+
+async fn test_endpoint() -> &'static str {
+    "Test endpoint working"
+}
+
+async fn simple_campaigns(State(state): State<AppState>) -> Result<String, String> {
+    match sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM \"Campaign\"")
+        .fetch_one(&state.db)
+        .await
+    {
+        Ok(count) => Ok(format!("Found {} campaigns", count)),
+        Err(e) => Err(format!("Database error: {}", e)),
+    }
 }

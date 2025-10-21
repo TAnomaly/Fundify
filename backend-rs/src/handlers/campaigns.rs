@@ -103,26 +103,24 @@ pub async fn list_campaigns(
         r#"SELECT c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
            c."goalAmount", c."currentAmount", c."coverImage", c."createdAt",
            u.id as creator_id, u.name as creator_name, u.avatar as creator_avatar,
-           COUNT(DISTINCT d.id) as donation_count,
-           COUNT(DISTINCT com.id) as comment_count
+           0 as donation_count,
+           0 as comment_count
         FROM "Campaign" c
         LEFT JOIN "User" u ON c."creatorId" = u.id
-        LEFT JOIN "Donation" d ON c.id = d."campaignId"
-        LEFT JOIN "Comment" com ON c.id = com."campaignId"
-        WHERE c.status::text = $1"#,
+        WHERE c.status = $1::"CampaignStatus""#,
     );
 
     let mut param_index = 2;
     let mut query_params: Vec<String> = vec![status_filter.to_string()];
 
     if let Some(category) = &params.category {
-        query.push_str(&format!(" AND c.category::text = ${}", param_index));
+        query.push_str(&format!(" AND c.category = ${}::\"CampaignCategory\"", param_index));
         query_params.push(category.clone());
         param_index += 1;
     }
 
     if let Some(campaign_type) = &params.campaign_type {
-        query.push_str(&format!(" AND c.type::text = ${}", param_index));
+        query.push_str(&format!(" AND c.type = ${}::\"CampaignType\"", param_index));
         query_params.push(campaign_type.clone());
         param_index += 1;
     }
@@ -140,19 +138,14 @@ pub async fn list_campaigns(
     }
 
     query.push_str(
-        r#" GROUP BY c.id, c.title, c.slug, c.description, c.story, c.category, c.type, c.status,
-           c."goalAmount", c."currentAmount", c."coverImage", c."createdAt",
-           u.id, u.name, u.avatar
-        ORDER BY c."createdAt" DESC
+        r#" ORDER BY c."createdAt" DESC
         LIMIT $"#,
     );
     query.push_str(&param_index.to_string());
-    query_params.push(limit.to_string());
     param_index += 1;
 
     query.push_str(" OFFSET $");
     query.push_str(&param_index.to_string());
-    query_params.push(skip.to_string());
 
     // Execute query - using sqlx::query with manual row parsing
     let mut sql_query = sqlx::query(&query);
@@ -160,23 +153,27 @@ pub async fn list_campaigns(
     for param in &query_params {
         sql_query = sql_query.bind(param);
     }
+    
+    // Bind limit and offset as integers
+    sql_query = sql_query.bind(limit as i64);
+    sql_query = sql_query.bind(skip);
 
     let rows = sql_query.fetch_all(&state.db).await?;
 
     // Get total count
     let mut count_query =
-        String::from(r#"SELECT COUNT(*) as total FROM "Campaign" WHERE status = $1"#);
+        String::from(r#"SELECT COUNT(*) as total FROM "Campaign" WHERE status = $1::"CampaignStatus""#);
     let mut count_params: Vec<String> = vec![status_filter.to_string()];
     let mut count_param_index = 2;
 
     if let Some(category) = &params.category {
-        count_query.push_str(&format!(" AND category = ${}", count_param_index));
+        count_query.push_str(&format!(" AND category = ${}::\"CampaignCategory\"", count_param_index));
         count_params.push(category.clone());
         count_param_index += 1;
     }
 
     if let Some(campaign_type) = &params.campaign_type {
-        count_query.push_str(&format!(" AND type = ${}", count_param_index));
+        count_query.push_str(&format!(" AND type = ${}::\"CampaignType\"", count_param_index));
         count_params.push(campaign_type.clone());
         count_param_index += 1;
     }
