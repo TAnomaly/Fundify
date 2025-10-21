@@ -1,4 +1,5 @@
 use axum::extract::{Path, Query, State};
+use axum::Json;
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Postgres, QueryBuilder};
@@ -247,10 +248,149 @@ pub async fn list_posts(
     Ok(ApiResponse::success(payload))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct CreatePostRequest {
+    pub title: String,
+    pub content: String,
+    pub excerpt: Option<String>,
+    pub images: Option<Vec<String>>,
+    #[serde(rename = "videoUrl")]
+    pub video_url: Option<String>,
+    pub attachments: Option<serde_json::Value>,
+    #[serde(rename = "isPublic")]
+    pub is_public: Option<bool>,
+    #[serde(rename = "minimumTierId")]
+    pub minimum_tier_id: Option<String>,
+    pub published: Option<bool>,
+    #[serde(rename = "publishedAt")]
+    pub published_at: Option<String>,
+}
+
 pub async fn create_post(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    Json(data): Json<CreatePostRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
-    Ok(ApiResponse::success("Create post - TODO"))
+    // TODO: Get user from JWT token - for now use a test user
+    // In real implementation, extract userId from Authorization header
+    let author_id = "test-user-id"; // This should come from JWT middleware
+
+    // Verify user is a creator
+    let user: Option<(bool,)> = sqlx::query_as(
+        r#"SELECT "isCreator" FROM "User" WHERE id = $1"#
+    )
+    .bind(author_id)
+    .fetch_optional(&state.db)
+    .await?;
+
+    match user {
+        Some((is_creator,)) if !is_creator => {
+            return Err(AppError::Forbidden(
+                "Only creators can publish posts. Please upgrade to a creator account.".to_string()
+            ));
+        },
+        None => {
+            return Err(AppError::NotFound("User not found".to_string()));
+        },
+        _ => {}
+    }
+
+    let post_id = Uuid::new_v4();
+    let is_public = data.is_public.unwrap_or(false);
+    let published = data.published.unwrap_or(true);
+    let published_at = if published {
+        chrono::Utc::now().naive_utc()
+    } else {
+        chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap()
+    };
+
+    let images_json = data.images.as_ref()
+        .map(|imgs| serde_json::to_value(imgs).unwrap())
+        .unwrap_or(serde_json::Value::Array(vec![]));
+
+    sqlx::query(
+        r#"
+        INSERT INTO "CreatorPost" (
+            id, title, content, excerpt, images, "videoUrl", attachments,
+            "isPublic", "minimumTierId", published, "publishedAt",
+            "authorId", "createdAt", "updatedAt"
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+        "#
+    )
+    .bind(post_id)
+    .bind(&data.title)
+    .bind(&data.content)
+    .bind(&data.excerpt)
+    .bind(images_json)
+    .bind(&data.video_url)
+    .bind(&data.attachments)
+    .bind(is_public)
+    .bind(&data.minimum_tier_id)
+    .bind(published)
+    .bind(published_at)
+    .bind(author_id)
+    .execute(&state.db)
+    .await?;
+
+    // Fetch the created post with author info
+    let post: Option<PostRow> = sqlx::query_as(
+        r#"
+        SELECT
+            p.id,
+            p.title,
+            p.content,
+            p.excerpt,
+            p.images,
+            p."videoUrl" AS video_url,
+            p.attachments,
+            p."isPublic" AS is_public,
+            p.published,
+            p."publishedAt" AS published_at,
+            p."createdAt" AS created_at,
+            p."updatedAt" AS updated_at,
+            p."minimumTierId" AS minimum_tier_id,
+            u.id AS author_id,
+            u.name AS author_name,
+            u.avatar AS author_avatar,
+            0::BIGINT AS like_count,
+            0::BIGINT AS comment_count
+        FROM "CreatorPost" p
+        LEFT JOIN "User" u ON u.id = p."authorId"
+        WHERE p.id = $1
+        "#
+    )
+    .bind(post_id)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let row = post.ok_or_else(|| AppError::Internal("Failed to create post".to_string()))?;
+
+    let post_item = PostItem {
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        excerpt: row.excerpt,
+        images: row.images.unwrap_or_default(),
+        video_url: row.video_url,
+        attachments: row.attachments,
+        is_public: row.is_public,
+        published: row.published,
+        published_at: row.published_at.map(format_datetime),
+        created_at: format_datetime(row.created_at),
+        updated_at: format_datetime(row.updated_at),
+        minimum_tier_id: row.minimum_tier_id,
+        author: PostAuthor {
+            id: row.author_id,
+            name: row.author_name,
+            avatar: row.author_avatar,
+        },
+        counts: PostCounts {
+            likes: row.like_count,
+            comments: row.comment_count,
+        },
+    };
+
+    Ok(ApiResponse::success(post_item))
 }
 
 pub async fn get_post(
