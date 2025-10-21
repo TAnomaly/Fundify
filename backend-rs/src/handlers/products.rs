@@ -143,17 +143,17 @@ pub async fn list_products(
             download_url: row.get("download_url"),
             is_digital: row.get("is_digital"),
             tags: row.try_get::<Vec<String>, _>("tags").unwrap_or_else(|_| Vec::new()),
-            created_at: row.get("created_at"),
-            updated_at: row.get("updated_at"),
+            created_at: row.try_get("created_at").unwrap_or_else(|_| chrono::Utc::now()),
+            updated_at: row.try_get("updated_at").unwrap_or_else(|_| chrono::Utc::now()),
         })
         .collect();
 
     // Get total count
     let count_query = r#"
         SELECT COUNT(*) as total
-        FROM "Product" p
-        JOIN "User" u ON p.creator_id = u.id
-        WHERE 1=1
+        FROM "DigitalProduct" dp
+        JOIN "User" u ON dp."creatorId" = u.id
+        WHERE dp."isActive" = true
     "#;
 
     let total_row = sqlx::query(count_query).fetch_one(&state.db).await?;
