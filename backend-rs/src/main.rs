@@ -55,7 +55,7 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
 
     let mut response = next.run(request).await;
 
-    // Check if origin is allowed
+    // Check if origin is allowed - more permissive for Railway
     let is_allowed = if let Some(origin_header) = &origin {
         let origin_str = origin_header.to_str().unwrap_or("");
         let normalized = origin_str.trim().to_lowercase();
@@ -72,19 +72,23 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
 
         // Check wildcard patterns
         let wildcard_allowed =
-            normalized.ends_with(".vercel.app") || normalized.ends_with(".railway.app");
+            normalized.ends_with(".vercel.app") || 
+            normalized.ends_with(".railway.app") ||
+            normalized.ends_with(".up.railway.app");
 
         static_allowed || env_allowed || wildcard_allowed
     } else {
         true // Allow requests without origin (like Postman, curl, etc.)
     };
 
+    // Always add CORS headers for Railway deployment
     if is_allowed {
         if let Some(origin_header) = origin {
             response
                 .headers_mut()
                 .insert("access-control-allow-origin", origin_header);
-        } else if env::var("NODE_ENV").unwrap_or_default() != "production" {
+        } else {
+            // Always allow all origins in production for Railway
             response
                 .headers_mut()
                 .insert("access-control-allow-origin", HeaderValue::from_static("*"));
@@ -139,6 +143,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Default public Neon database used for shared development/testing
             "postgresql://neondb_owner:npg_rRLz5k8qTHnc@ep-fancy-tooth-abl09hty-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require".to_string()
         });
+
+    tracing::info!("Using database URL: {}", database_url.replace("://", "://***"));
 
     tracing::info!("Connecting to database...");
     let pool = PgPoolOptions::new()
