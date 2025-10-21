@@ -122,7 +122,7 @@ pub struct ArticleItem {
     #[serde(rename = "readTime")]
     pub read_time: i32,
     #[serde(rename = "viewCount")]
-    pub view_count: i64,
+    pub view_count: i32,
     #[serde(rename = "isPublic")]
     pub is_public: bool,
     #[serde(rename = "isPremium")]
@@ -152,7 +152,7 @@ struct ArticleRow {
     created_at: NaiveDateTime,
     updated_at: NaiveDateTime,
     read_time: Option<i32>,
-    view_count: i64,
+    view_count: i32,
     is_public: bool,
     is_premium: bool,
     author_id: String,
