@@ -154,7 +154,8 @@ pub async fn get_feed(
         rsvp_count: i64,
     }
 
-    let (posts, articles, events): (Vec<PostRow>, Vec<ArticleRow>, Vec<EventRow>) = tokio::try_join!(
+    // Temporarily fetch only posts to debug issues
+    let posts: Vec<PostRow> =
         sqlx::query_as::<_, PostRow>(
             r#"
             SELECT
@@ -179,64 +180,12 @@ pub async fn get_feed(
             "#
         )
         .bind(limit * 2)
-        .fetch_all(&state.db),
-
-        sqlx::query_as::<_, ArticleRow>(
-            r#"
-            SELECT
-                a.id,
-                a.slug,
-                a.title,
-                COALESCE(a.excerpt, '') AS excerpt,
-                COALESCE(a.content, '') AS content,
-                a."coverImage" AS cover_image,
-                a."readTime" AS read_time,
-                COALESCE(a."isPublic", TRUE) AS is_public,
-                a."publishedAt" AS published_at,
-                u.id AS author_id,
-                u.name AS author_name,
-                u.username AS author_username,
-                u.avatar AS author_avatar,
-                0::BIGINT AS like_count,
-                0::BIGINT AS comment_count
-            FROM "Article" a
-            LEFT JOIN "User" u ON u.id = a."authorId"
-            WHERE a.status = 'PUBLISHED'
-            ORDER BY COALESCE(a."publishedAt", a."createdAt") DESC
-            LIMIT $1
-            "#
-        )
-        .bind(limit * 2)
-        .fetch_all(&state.db),
-
-        sqlx::query_as::<_, EventRow>(
-            r#"
-            SELECT
-                e.id,
-                e.title,
-                COALESCE(e.description, '') AS description,
-                e."coverImage" AS cover_image,
-                e."startTime" AS start_time,
-                e."endTime" AS end_time,
-                e.location,
-                e.price,
-                COALESCE(e."isPublic", TRUE) AS is_public,
-                e."createdAt" AS created_at,
-                u.id AS host_id,
-                u.name AS host_name,
-                u.username AS host_username,
-                u.avatar AS host_avatar,
-                0::BIGINT AS rsvp_count
-            FROM "Event" e
-            LEFT JOIN "User" u ON u.id = e."hostId"
-            WHERE e.status = 'PUBLISHED'
-            ORDER BY e."createdAt" DESC
-            LIMIT $1
-            "#
-        )
-        .bind(limit * 2)
         .fetch_all(&state.db)
-    )?;
+        .await?;
+
+    // TODO: Re-enable articles and events after debugging
+    let articles: Vec<ArticleRow> = vec![];
+    let events: Vec<EventRow> = vec![];
 
     let mut items: Vec<FeedItem> = Vec::new();
 
