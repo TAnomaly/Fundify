@@ -102,7 +102,7 @@ pub async fn get_feed(
     struct PostRow {
         id: String,
         title: String,
-        excerpt: Option<String>,
+        excerpt: String,
         content: String,
         images: Option<Vec<String>>,
         is_public: bool,
@@ -160,26 +160,20 @@ pub async fn get_feed(
             SELECT
                 p.id,
                 p.title,
-                p.excerpt,
-                p.content,
+                COALESCE(p.excerpt, '') AS excerpt,
+                COALESCE(p.content, '') AS content,
                 p.images,
-                p."isPublic" AS is_public,
+                COALESCE(p."isPublic", TRUE) AS is_public,
                 p."publishedAt" AS published_at,
                 u.id AS author_id,
                 u.name AS author_name,
                 u.username AS author_username,
                 u.avatar AS author_avatar,
-                COALESCE(likes.cnt, 0) AS like_count,
-                COALESCE(comments.cnt, 0) AS comment_count
+                COALESCE(p."likeCount", 0)::BIGINT AS like_count,
+                COALESCE(p."commentCount", 0)::BIGINT AS comment_count
             FROM "CreatorPost" p
             LEFT JOIN "User" u ON u.id = p."authorId"
-            LEFT JOIN LATERAL (
-                SELECT COUNT(*)::BIGINT AS cnt FROM "PostLike" WHERE "postId" = p.id
-            ) likes ON TRUE
-            LEFT JOIN LATERAL (
-                SELECT COUNT(*)::BIGINT AS cnt FROM "PostComment" WHERE "postId" = p.id
-            ) comments ON TRUE
-            WHERE p.published = TRUE AND p."isPublic" = TRUE
+            WHERE p.published = TRUE
             ORDER BY COALESCE(p."publishedAt", p."createdAt") DESC
             LIMIT $1
             "#
@@ -253,13 +247,19 @@ pub async fn get_feed(
         let comments = post.comment_count;
         let popularity_score = (likes * 3 + comments * 4) as i32;
 
+        let excerpt_text = if post.excerpt.is_empty() {
+            None
+        } else {
+            Some(post.excerpt.clone())
+        };
+
         items.push(FeedItem {
             id: format!("post_{}", post.id),
             source_id: post.id.clone(),
             item_type: "post".to_string(),
             title: post.title,
-            summary: post.excerpt.clone(),
-            preview: post.excerpt,
+            summary: excerpt_text.clone(),
+            preview: excerpt_text,
             cover_image: post.images.and_then(|imgs| imgs.first().cloned()),
             published_at: post.published_at
                 .map(format_datetime)

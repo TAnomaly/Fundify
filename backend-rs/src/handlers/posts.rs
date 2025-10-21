@@ -131,20 +131,10 @@ pub async fn list_posts(
             u.id AS author_id,
             u.name AS author_name,
             u.avatar AS author_avatar,
-            COALESCE(likes.like_count, 0) AS like_count,
-            COALESCE(comments.comment_count, 0) AS comment_count
+            COALESCE(p."likeCount", 0)::BIGINT AS like_count,
+            COALESCE(p."commentCount", 0)::BIGINT AS comment_count
         FROM "CreatorPost" p
         LEFT JOIN "User" u ON u.id = p."authorId"
-        LEFT JOIN LATERAL (
-            SELECT COUNT(*)::BIGINT AS like_count
-            FROM "PostLike" pl
-            WHERE pl."postId" = p.id
-        ) likes ON TRUE
-        LEFT JOIN LATERAL (
-            SELECT COUNT(*)::BIGINT AS comment_count
-            FROM "PostComment" pc
-            WHERE pc."postId" = p.id
-        ) comments ON TRUE
         WHERE 1=1
         "#,
     );
@@ -409,20 +399,10 @@ pub async fn get_post(
             u.id AS author_id,
             u.name AS author_name,
             u.avatar AS author_avatar,
-            COALESCE(likes.like_count, 0) AS like_count,
-            COALESCE(comments.comment_count, 0) AS comment_count
+            COALESCE(p."likeCount", 0)::BIGINT AS like_count,
+            COALESCE(p."commentCount", 0)::BIGINT AS comment_count
         FROM "CreatorPost" p
         LEFT JOIN "User" u ON u.id = p."authorId"
-        LEFT JOIN LATERAL (
-            SELECT COUNT(*)::BIGINT AS like_count
-            FROM "PostLike" pl
-            WHERE pl."postId" = p.id
-        ) likes ON TRUE
-        LEFT JOIN LATERAL (
-            SELECT COUNT(*)::BIGINT AS comment_count
-            FROM "PostComment" pc
-            WHERE pc."postId" = p.id
-        ) comments ON TRUE
         WHERE p.id = $1
         LIMIT 1
         "#,
