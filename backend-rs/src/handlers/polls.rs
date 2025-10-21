@@ -277,41 +277,31 @@ pub async fn create_poll(
 
     let allow_multiple = data.allow_multiple.unwrap_or(false);
 
+    // Convert options to String array for database
+    let options_array: Vec<String> = data.options.iter().map(|o| o.text.clone()).collect();
+    let options_json = serde_json::to_value(&options_array).unwrap();
+
     // Create poll
     sqlx::query(
         r#"
         INSERT INTO "Poll" (
-            id, question, "endsAt", "allowMultiple", "creatorId", "createdAt", "updatedAt"
+            id, question, options, "expiresAt", "multipleChoice", "allowAddOption",
+            "isPublic", "isActive", "totalVotes", "minimumTierId",
+            "creatorId", "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, FALSE, FALSE, TRUE, 0, NULL, $6, NOW(), NOW())
         "#
     )
     .bind(poll_id)
     .bind(&data.question)
+    .bind(options_json)
     .bind(ends_at)
     .bind(allow_multiple)
     .bind(creator_id)
     .execute(&state.db)
     .await?;
 
-    // Create poll options
-    for (index, option) in data.options.iter().enumerate() {
-        let option_id = Uuid::new_v4();
-        sqlx::query(
-            r#"
-            INSERT INTO "PollOption" (
-                id, "pollId", text, "optionIndex", "createdAt"
-            )
-            VALUES ($1, $2, $3, $4, NOW())
-            "#
-        )
-        .bind(option_id)
-        .bind(poll_id)
-        .bind(&option.text)
-        .bind(index as i32)
-        .execute(&state.db)
-        .await?;
-    }
+    // Options are already stored in the Poll table, no need for PollOption table
 
     Ok(ApiResponse::success(serde_json::json!({
         "id": poll_id,

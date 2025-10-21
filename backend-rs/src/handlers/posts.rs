@@ -295,9 +295,9 @@ pub async fn create_post(
         INSERT INTO "CreatorPost" (
             id, title, content, excerpt, images, "videoUrl", attachments,
             "isPublic", "minimumTierId", published, "publishedAt",
-            "authorId", "createdAt", "updatedAt"
+            "authorId", type, "likeCount", "commentCount", "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'TEXT', 0, 0, NOW(), NOW())
         "#
     )
     .bind(post_id)

@@ -353,14 +353,17 @@ pub async fn create_event(
     let event_type = data.event_type.as_deref().unwrap_or("ONLINE");
     let is_public = data.is_public.unwrap_or(true);
 
+    let price_float = data.price.map(|p| p as f64).unwrap_or(0.0);
+
     sqlx::query(
         r#"
         INSERT INTO "Event" (
             id, title, description, "coverImage", "startTime", "endTime",
-            location, "virtualLink", price, "isPublic", type, status,
-            "hostId", "createdAt", "updatedAt"
+            location, "virtualLink", price, "isPublic", "isPremium", type, status,
+            "hostId", timezone, tags, "maxAttendees", "minimumTierId", agenda,
+            "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, FALSE, $11, $12, $13, 'UTC', '{}', NULL, NULL, NULL, NOW(), NOW())
         "#
     )
     .bind(event_id)
@@ -371,7 +374,7 @@ pub async fn create_event(
     .bind(end_time)
     .bind(&data.location)
     .bind(&data.virtual_link)
-    .bind(data.price)
+    .bind(price_float)
     .bind(is_public)
     .bind(event_type)
     .bind(status)

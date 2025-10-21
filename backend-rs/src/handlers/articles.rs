@@ -398,9 +398,10 @@ pub async fn create_article(
         INSERT INTO "Article" (
             id, slug, title, content, excerpt, "coverImage",
             "isPublic", "isPremium", "readTime", status, "publishedAt",
-            "authorId", "createdAt", "updatedAt"
+            "authorId", "viewCount", keywords, "metaTitle", "metaDescription",
+            "scheduledFor", "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 0, '{}', NULL, NULL, NULL, NOW(), NOW())
         "#
     )
     .bind(article_id)
