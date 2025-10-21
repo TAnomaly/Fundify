@@ -128,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    tracing::info!("Starting Fundify Backend (Rust + Axum)");
+    tracing::info!("Starting Fundify Backend (Rust + Axum) - CORS Fixed");
 
     // Database connection
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
