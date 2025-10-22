@@ -25,4 +25,5 @@ RUN npm run build
 EXPOSE 4000
 
 # Start command with migration
-CMD ["npm", "run", "deploy"]
+CMD ["sh", "-c", "npm run deploy"]
+
