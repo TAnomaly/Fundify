@@ -5,9 +5,9 @@ const TOKEN_KEY = "authToken";
 export const AUTH_EVENT = "fundify-auth-change";
 
 interface DecodedToken {
-  userId: string;
+  sub: string;
   email: string;
-  username: string;
+  role: string;
   exp: number;
   iat: number;
 }
@@ -21,21 +21,7 @@ export const saveToken = async (token: string): Promise<void> => {
   localStorage.setItem(TOKEN_KEY, token);
   document.cookie = `authToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
 
-  try {
-    const { default: axios } = await import("axios");
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
-    const response = await axios.get(`${apiUrl}/users/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (response.data.success && response.data.data) {
-      localStorage.setItem("user", JSON.stringify(response.data.data));
-    }
-  } catch (error) {
-    console.error("Failed to fetch user data after login:", error);
-  }
-
+  // Dispatch login event immediately
   window.dispatchEvent(
     new CustomEvent(AUTH_EVENT, { detail: { status: "login" as const } })
   );
@@ -83,7 +69,7 @@ export const isAuthenticated = (): boolean => {
   }
 };
 
-// Get current user from token AND localStorage (merged)
+// Get current user from token
 export const getCurrentUser = (): Partial<User> | null => {
   const token = getToken();
   if (!token) return null;
@@ -91,32 +77,11 @@ export const getCurrentUser = (): Partial<User> | null => {
   try {
     const decoded = jwtDecode<DecodedToken>(token);
 
-    // Try to get updated user data from localStorage
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        // Merge token data with stored user data (stored data takes priority)
-        return {
-          id: decoded.userId,
-          email: decoded.email,
-          username: userData.username || decoded.username,
-          name: userData.name,
-          avatar: userData.avatar,
-          bannerImage: userData.bannerImage,
-          bio: userData.bio,
-          creatorBio: userData.creatorBio,
-        };
-      } catch (e) {
-        console.error("Failed to parse stored user:", e);
-      }
-    }
-
-    // Fallback to token data only
+    // Return basic user info from token
     return {
-      id: decoded.userId,
+      id: decoded.sub,
       email: decoded.email,
-      username: decoded.username,
+      role: decoded.role,
     };
   } catch (error) {
     return null;
