@@ -361,3 +361,35 @@ pub async fn get_me(
 
     Ok(ApiResponse::success(user))
 }
+
+pub async fn become_creator(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> AppResult<impl IntoResponse> {
+    // Update user to be a creator
+    sqlx::query(
+        r#"UPDATE "User" SET "isCreator" = true WHERE id = $1"#,
+    )
+    .bind(auth_user.id.to_string())
+    .execute(&state.db)
+    .await?;
+
+    // Get updated user data
+    let user: User = sqlx::query_as::<_, User>(
+        r#"
+        SELECT id, email, password, name, username, avatar, "bannerImage" as banner_image, bio,
+               'USER'::text as role, "emailVerified" as email_verified, "githubId" as github_id,
+               "isCreator" as is_creator, "creatorBio" as creator_bio, "socialLinks" as social_links,
+               "stripeCustomerId" as stripe_customer_id, "stripeAccountId" as stripe_account_id,
+               "stripeOnboardingComplete" as stripe_onboarding_complete,
+               "createdAt"::text as created_at, "updatedAt"::text as updated_at
+        FROM "User" WHERE id = $1
+        "#,
+    )
+    .bind(auth_user.id.to_string())
+    .fetch_optional(&state.db)
+    .await?
+    .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+
+    Ok(ApiResponse::success(user))
+}
