@@ -52,7 +52,7 @@ pub struct PollItem {
     #[serde(rename = "minimumTierId")]
     pub minimum_tier_id: Option<String>,
     #[serde(rename = "totalVotes")]
-    pub total_votes: i64,
+    pub total_votes: i32,
     #[serde(rename = "isActive")]
     pub is_active: bool,
     #[serde(rename = "createdAt")]
@@ -61,7 +61,7 @@ pub struct PollItem {
     pub updated_at: String,
     pub creator: PollCreator,
     #[serde(rename = "voteCounts")]
-    pub vote_counts: Vec<i64>,
+    pub vote_counts: Vec<i32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -80,7 +80,7 @@ struct PollRow {
     allow_add_option: bool,
     is_public: bool,
     minimum_tier_id: Option<String>,
-    total_votes: i64,
+    total_votes: i32,
     is_active: bool,
     created_at: NaiveDateTime,
     updated_at: NaiveDateTime,
@@ -188,7 +188,7 @@ pub async fn list_polls(
         .map(|row| {
             let option_votes = vote_counts_map.get(&row.id).cloned().unwrap_or_default();
 
-            let mut vote_counts = vec![0_i64; row.options.len()];
+            let mut vote_counts = vec![0_i32; row.options.len()];
             for (index, count) in option_votes {
                 if let Some(slot) = vote_counts.get_mut(index as usize) {
                     *slot = count;
@@ -309,7 +309,7 @@ pub async fn vote_poll(
 async fn load_poll_vote_counts(
     state: &AppState,
     poll_ids: &[String],
-) -> Result<HashMap<String, Vec<(i32, i64)>>, sqlx::Error> {
+    ) -> Result<HashMap<String, Vec<(i32, i32)>>, sqlx::Error> {
     if poll_ids.is_empty() {
         return Ok(HashMap::new());
     }
@@ -329,12 +329,12 @@ async fn load_poll_vote_counts(
     .fetch_all(&state.db)
     .await?;
 
-    let mut map: HashMap<String, Vec<(i32, i64)>> = HashMap::new();
+    let mut map: HashMap<String, Vec<(i32, i32)>> = HashMap::new();
 
     for row in rows {
         let poll_id: String = row.get("poll_id");
         let option_index: i32 = row.get("option_index");
-        let vote_count: i64 = row.get("vote_count");
+        let vote_count: i32 = row.get("vote_count");
 
         map.entry(poll_id)
             .or_default()
