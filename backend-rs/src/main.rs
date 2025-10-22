@@ -27,24 +27,14 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
     let origin = request.headers().get("origin").cloned();
     let method = request.method().clone();
 
-    // Always allow all origins for Railway deployment
-    let is_allowed = true;
-
     // Handle preflight requests
     if method == "OPTIONS" {
         let mut response = Response::new("OK".into());
         
-        if let Some(origin_header) = origin {
-            if is_allowed {
-                response
-                    .headers_mut()
-                    .insert("access-control-allow-origin", origin_header.clone());
-            }
-        } else {
-            response
-                .headers_mut()
-                .insert("access-control-allow-origin", HeaderValue::from_static("*"));
-        }
+        // Always allow all origins
+        response
+            .headers_mut()
+            .insert("access-control-allow-origin", HeaderValue::from_static("*"));
 
         response.headers_mut().insert(
             "access-control-allow-credentials",
@@ -76,15 +66,9 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
     let mut response = next.run(request).await;
 
     // Always set CORS headers for all responses - allow all origins
-    if let Some(origin_header) = origin {
-        response
-            .headers_mut()
-            .insert("access-control-allow-origin", origin_header.clone());
-    } else {
-        response
-            .headers_mut()
-            .insert("access-control-allow-origin", HeaderValue::from_static("*"));
-    }
+    response
+        .headers_mut()
+        .insert("access-control-allow-origin", HeaderValue::from_static("*"));
 
     // Always set these headers
     response.headers_mut().insert(
