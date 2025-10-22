@@ -14,8 +14,7 @@ pub struct Claims {
 }
 
 pub fn create_token(user_id: String, email: &str, role: &str) -> AppResult<String> {
-    let jwt_secret = env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "your-super-secret-jwt-key-minimum-32-characters".to_string());
+    let jwt_secret = env::var("JWT_SECRET").unwrap_or_else(|_| "your-secret-key".to_string());
 
     let expires_in = env::var("JWT_EXPIRES_IN").unwrap_or_else(|_| "7d".to_string());
 
@@ -49,8 +48,7 @@ pub fn create_token(user_id: String, email: &str, role: &str) -> AppResult<Strin
 }
 
 pub fn verify_token(token: &str) -> AppResult<Claims> {
-    let jwt_secret = env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "your-super-secret-jwt-key-minimum-32-characters".to_string());
+    let jwt_secret = env::var("JWT_SECRET").unwrap_or_else(|_| "your-secret-key".to_string());
 
     decode::<Claims>(
         token,
