@@ -71,8 +71,10 @@ export default function BlogPage() {
       const params = new URLSearchParams();
       if (selectedCategory) params.append("category", selectedCategory);
 
+      const apiUrl = getApiUrl();
+      console.log('Blog API URL:', apiUrl);
       const response = await axios.get(
-        `${getApiUrl()}/articles?${params.toString()}`
+        `${apiUrl}/articles?${params.toString()}`
       );
 
       if (response.data.success) {
