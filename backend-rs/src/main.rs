@@ -84,7 +84,10 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
             normalized.ends_with(".railway.app") ||
             normalized.ends_with(".up.railway.app");
 
-        static_allowed || env_allowed || wildcard_allowed
+        // Always allow in production for now
+        let production_allow = true;
+
+        static_allowed || env_allowed || wildcard_allowed || production_allow
     } else {
         true // Allow requests without origin (like Postman, curl, etc.)
     };
@@ -134,28 +137,15 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
 
     let mut response = next.run(request).await;
 
-    // Always set CORS headers for all responses
+    // Always set CORS headers for all responses - allow all origins
     if let Some(origin_header) = origin {
-        if is_allowed {
-            response
-                .headers_mut()
-                .insert("access-control-allow-origin", origin_header.clone());
-        }
+        response
+            .headers_mut()
+            .insert("access-control-allow-origin", origin_header.clone());
     } else {
-        // For production, allow specific origins, for development allow all
-        if env::var("NODE_ENV").unwrap_or_default() == "production" {
-            // In production, only allow specific origins
-            if is_allowed {
-                response
-                    .headers_mut()
-                    .insert("access-control-allow-origin", HeaderValue::from_static("https://fundify.vercel.app"));
-            }
-        } else {
-            // In development, allow all origins
-            response
-                .headers_mut()
-                .insert("access-control-allow-origin", HeaderValue::from_static("*"));
-        }
+        response
+            .headers_mut()
+            .insert("access-control-allow-origin", HeaderValue::from_static("*"));
     }
 
     // Always set these headers
