@@ -2,7 +2,7 @@
 
 Modern, scalable, and feature-rich crowdfunding platform built with cutting-edge technologies. Inspired by industry leaders like Kickstarter, Patreon, and GoFundMe.
 
-<!-- Trigger deployment -->
+<!-- Trigger deployment - Railway build trigger -->
 
 ![Tech Stack](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)
