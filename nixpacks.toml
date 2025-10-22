@@ -1,5 +1,6 @@
 [phases.setup]
 nixPkgs = ["nodejs_18"]
+cmds = ["npm install -g typescript"]
 
 [phases.install]
 cmds = [
