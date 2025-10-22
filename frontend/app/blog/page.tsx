@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isAuthenticated } from "@/lib/auth";
 import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
+import { getApiUrl } from "@/lib/config";
 import axios from "axios";
 import toast from "react-hot-toast";
 import {
@@ -71,7 +72,7 @@ export default function BlogPage() {
       if (selectedCategory) params.append("category", selectedCategory);
 
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/articles?${params.toString()}`
+        `${getApiUrl()}/articles?${params.toString()}`
       );
 
       if (response.data.success) {

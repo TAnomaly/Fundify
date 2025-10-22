@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { isAuthenticated } from "@/lib/auth";
 import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
+import { getApiUrl } from "@/lib/config";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,7 +43,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
             }
             const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+            const apiUrl = getApiUrl();
             const cacheBuster = `_=${new Date().getTime()}`;
 
             // 1) Fetch article by slug
