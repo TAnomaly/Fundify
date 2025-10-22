@@ -73,9 +73,11 @@ export default function BlogPage() {
 
       const apiUrl = getApiUrl();
       console.log('Blog API URL:', apiUrl);
+      console.log('Full URL:', `${apiUrl}/articles?${params.toString()}`);
       const response = await axios.get(
         `${apiUrl}/articles?${params.toString()}`
       );
+      console.log('Response:', response.data);
 
       if (response.data.success) {
         setArticles(response.data.data.articles);
