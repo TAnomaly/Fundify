@@ -20,6 +20,7 @@ import {
   FileDown
 } from "lucide-react";
 import { generateTicketPDF } from "@/lib/generateTicketPDF";
+import { getApiUrl } from "@/lib/config";
 
 interface Ticket {
   id: string;
@@ -70,8 +71,9 @@ export default function EventTicketPage() {
         return;
       }
 
+      const apiUrl = getApiUrl();
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/events/${params.id}/ticket`,
+        `${apiUrl}/events/${params.id}/ticket`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

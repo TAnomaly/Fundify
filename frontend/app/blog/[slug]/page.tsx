@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, use } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -15,15 +15,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import SocialShare from "@/components/SocialShare";
 import {
-    Heart, MessageCircle, Calendar, Clock, Eye, ArrowLeft, Send, Share2
+    Heart, MessageCircle, Share2
 } from "lucide-react";
 
 // Interfaces
 interface Article { id: string; slug: string; title: string; content: string; excerpt: string; coverImage?: string; publishedAt: string; readTime: number; viewCount: number; hasLiked?: boolean; author: { id: string; name: string; avatar?: string; }; _count: { likes: number; comments: number; }; }
 interface Comment { id: string; content: string; createdAt: string; user: { name: string; avatar?: string; }; }
 
-export default function ArticlePage({ params }: { params: { slug: string } }) {
+export default function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
     const router = useRouter();
+    const resolvedParams = use(params);
     const [article, setArticle] = useState<Article | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -47,12 +48,12 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
             const cacheBuster = `_=${new Date().getTime()}`;
 
             // 1) Fetch article by slug
-            const articleResponse = await axios.get(`${apiUrl}/articles/${params.slug}?${cacheBuster}`, { headers });
+            const articleResponse = await axios.get(`${apiUrl}/articles/${resolvedParams.slug}?${cacheBuster}`, { headers });
             if (articleResponse.data.success) {
                 const articleData = articleResponse.data.data;
                 setArticle(articleData);
                 setLikeCount(articleData._count?.likes || 0);
-                setIsLiked(articleData.hasLiked || false);
+                setIsLiked(articleData.isLiked || false);
 
                 // 2) Fetch comments by article ID (backend expects :id, not slug)
                 const commentsResponse = await axios.get(`${apiUrl}/articles/${articleData.id}/comments?${cacheBuster}`, { headers });
@@ -70,7 +71,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                 setIsLoading(false);
             }
         }
-    }, [params.slug, router]);
+    }, [resolvedParams.slug, router]);
 
     useEffect(() => {
         loadArticleAndComments(true);
@@ -78,15 +79,17 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
 
     const handleLike = async () => {
         if (!isAuthenticated() || !article) return toast.error("Please login to like articles");
-        const wasLiked = isLiked;
-        setIsLiked(!wasLiked);
-        setLikeCount(wasLiked ? likeCount - 1 : likeCount + 1);
         try {
             const token = localStorage.getItem("authToken");
-            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/articles/${article.id}/like`, {}, { headers: { Authorization: `Bearer ${token}` } });
+            const apiUrl = getApiUrl();
+            const response = await axios.post(`${apiUrl}/articles/${article.id}/like`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+            if (response.data.success) {
+                const { liked, likeCount: newLikeCount } = response.data.data;
+                setIsLiked(liked);
+                setLikeCount(newLikeCount);
+            }
         } catch (error) {
-            setIsLiked(wasLiked);
-            setLikeCount(likeCount);
             toast.error("Failed to update like.");
         }
     };
@@ -97,7 +100,8 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem("authToken");
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/articles/${article.id}/comments`, { content: newComment }, { headers: { Authorization: `Bearer ${token}` } });
+            const apiUrl = getApiUrl();
+            const response = await axios.post(`${apiUrl}/articles/${article.id}/comments`, { content: newComment }, { headers: { Authorization: `Bearer ${token}` } });
             if (response.data.success) {
                 toast.success("Comment added!");
                 setNewComment("");
@@ -134,7 +138,11 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
             {/* Header */}
             <header className="relative h-[45vh] min-h-[300px] w-full overflow-hidden">
                 <motion.div style={{ y: heroImageY, scale: heroImageScale }} className="absolute inset-0">
-                    <Image src={getFullMediaUrl(article.coverImage)!} alt={article.title} fill className="object-cover" />
+                    {article.coverImage && getFullMediaUrl(article.coverImage) ? (
+                        <Image src={getFullMediaUrl(article.coverImage)!} alt={article.title} fill className="object-cover" />
+                    ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-400 to-blue-400" />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
                 </motion.div>
                 <div className="absolute bottom-0 left-0 right-0 p-8">
@@ -142,7 +150,13 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                         <BlurFade delay={0.25} inView>
                             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground mb-4">{article.title}</h1>
                             <div className="flex items-center gap-4">
-                                <Image src={getFullMediaUrl(article.author.avatar)!} alt={article.author.name} width={48} height={48} className="rounded-full bg-muted" />
+                                {article.author.avatar && getFullMediaUrl(article.author.avatar) ? (
+                                    <Image src={getFullMediaUrl(article.author.avatar)!} alt={article.author.name} width={48} height={48} className="rounded-full bg-muted" />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
+                                        {article.author.name.charAt(0)}
+                                    </div>
+                                )}
                                 <div>
                                     <p className="font-semibold text-foreground">{article.author.name}</p>
                                     <p className="text-sm text-muted-foreground">
@@ -176,13 +190,19 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                         ) : (
                             <div className="text-center p-6 bg-muted/50 rounded-lg border border-dashed border-border/30">
                                 <p className="mb-3">Want to join the discussion?</p>
-                                <Button onClick={() => router.push(`/login?redirect=/blog/${article.slug}`)}>Login to Comment</Button>
+                                <Button onClick={() => router.push(`/login?redirect=/blog/${resolvedParams.slug}`)}>Login to Comment</Button>
                             </div>
                         )}
                         <div className="space-y-6">
                             {comments.map(comment => (
                                 <div key={comment.id} className="flex items-start gap-3">
-                                    <Image src={getFullMediaUrl(comment.user.avatar)!} alt={comment.user.name} width={40} height={40} className="rounded-full bg-muted" />
+                                    {comment.user.avatar && getFullMediaUrl(comment.user.avatar) ? (
+                                        <Image src={getFullMediaUrl(comment.user.avatar)!} alt={comment.user.name} width={40} height={40} className="rounded-full bg-muted" />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                            {comment.user.name.charAt(0)}
+                                        </div>
+                                    )}
                                     <div className="flex-1 bg-muted/50 p-4 rounded-lg">
                                         <p className="font-semibold text-sm">{comment.user.name}</p>
                                         <p className="text-sm text-muted-foreground">{new Date(comment.createdAt).toLocaleString()}</p>

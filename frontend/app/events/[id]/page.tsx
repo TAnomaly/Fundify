@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import axios from "axios";
@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { isAuthenticated } from "@/lib/auth";
 import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
+import { getApiUrl } from "@/lib/config";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,8 +21,9 @@ import { Calendar, Clock, MapPin, Video, Users, Ticket, ArrowLeft, Share2, Check
 interface Event { id: string; title: string; description: string; type: "VIRTUAL" | "IN_PERSON" | "HYBRID"; status: string; startTime: string; endTime: string; location?: string; virtualLink?: string; coverImage?: string; maxAttendees?: number; price: number; isPremium: boolean; agenda?: any; tags: string[]; host: { id: string; name: string; avatar?: string; username?: string; }; _count: { rsvps: number; }; userRSVPStatus?: "GOING" | "MAYBE" | "NOT_GOING"; userRSVPIsPaid?: boolean; }
 interface RSVP { status: "GOING" | "MAYBE" | "NOT_GOING"; isPaid?: boolean; }
 
-export default function EventDetailPage({ params }: { params: { id: string } }) {
+export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
+    const resolvedParams = use(params);
     const [event, setEvent] = useState<Event | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [userRSVP, setUserRSVP] = useState<RSVP | null>(null);
@@ -34,13 +36,14 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadEvent();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
     const loadEvent = async () => {
         try {
+            const apiUrl = getApiUrl();
             const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events/${params.id}`, { headers });
+            const response = await axios.get(`${apiUrl}/events/${resolvedParams.id}`, { headers });
 
             if (response.data.success) {
                 const eventData = response.data.data;
@@ -64,10 +67,18 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
             return;
         }
         try {
+            const apiUrl = getApiUrl();
             const token = localStorage.getItem("authToken");
-            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/events/${event.id}/rsvp`, { status }, { headers: { Authorization: `Bearer ${token}` } });
-            toast.success(status === "GOING" ? "You're going! 🎉" : status === "MAYBE" ? "Marked as maybe" : "RSVP cancelled");
-            loadEvent();
+            const response = await axios.post(`${apiUrl}/events/${event.id}/rsvp`, { status }, { headers: { Authorization: `Bearer ${token}` } });
+
+            if (response.data.success) {
+                const { rsvp, rsvpCount } = response.data.data;
+                // Update event with new RSVP count
+                setEvent(prev => prev ? { ...prev, _count: { rsvps: rsvpCount } } : null);
+                // Update user RSVP status
+                setUserRSVP({ status: rsvp.status, isPaid: rsvp.isPaid });
+                toast.success(status === "GOING" ? "You're going! 🎉" : status === "MAYBE" ? "Marked as maybe" : "RSVP cancelled");
+            }
         } catch (error) {
             toast.error("Failed to update RSVP.");
         }
@@ -149,7 +160,13 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                         <BlurFade delay={0.65} inView>
                             <div className="p-6 bg-card/80 backdrop-blur-sm rounded-2xl border border-border/30 space-y-4">
                                 <Link href={`/creators/${event.host.username}`} className="flex items-center gap-3 group">
-                                    <Image src={getFullMediaUrl(event.host.avatar)!} alt={event.host.name} width={40} height={40} className="rounded-full bg-muted" />
+                                    {event.host.avatar && getFullMediaUrl(event.host.avatar) ? (
+                                        <Image src={getFullMediaUrl(event.host.avatar)!} alt={event.host.name} width={40} height={40} className="rounded-full bg-muted" />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
+                                            {event.host.name.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
                                     <div>
                                         <p className="text-sm text-muted-foreground">Hosted by</p>
                                         <p className="font-semibold text-foreground group-hover:text-primary transition-colors">{event.host.name}</p>

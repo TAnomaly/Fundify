@@ -64,6 +64,7 @@ export default function BlogPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [totalPages, setTotalPages] = useState(1);
 
   const loadArticles = useCallback(async () => {
     try {
@@ -80,12 +81,16 @@ export default function BlogPage() {
       console.log('Response:', response.data);
 
       if (response.data.success) {
+        console.log('Setting articles:', response.data.data.articles);
         setArticles(response.data.data.articles);
+        setTotalPages(response.data.data.pagination.totalPages);
+        console.log('Articles set successfully');
       }
     } catch (error) {
       console.error("Error loading articles:", error);
       toast.error("Failed to load articles");
     } finally {
+      console.log('Setting isLoading to false');
       setIsLoading(false);
     }
   }, [selectedCategory]);

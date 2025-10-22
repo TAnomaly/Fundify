@@ -169,6 +169,41 @@ export default function PodcastsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const loadEpisodes = useCallback(async (podcastId: string) => {
+    setIsLoadingEpisodes(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        toast.error("Please log in again");
+        router.push("/login");
+        return;
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/${podcastId}/episodes?includeDrafts=true`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || "Failed to load episodes");
+      }
+
+      setEpisodes(data.data?.episodes ?? []);
+    } catch (error) {
+      console.error("Error loading episodes", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load episodes"
+      );
+    } finally {
+      setIsLoadingEpisodes(false);
+    }
+  }, [router]);
+
   // loadEpisodes depends on selectedPodcastId; additional dependencies intentionally omitted to avoid re-fetch loops
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -221,41 +256,6 @@ export default function PodcastsPage() {
       setIsLoadingPodcasts(false);
     }
   };
-
-  const loadEpisodes = useCallback(async (podcastId: string) => {
-    setIsLoadingEpisodes(true);
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        toast.error("Please log in again");
-        router.push("/login");
-        return;
-      }
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/podcasts/${podcastId}/episodes?includeDrafts=true`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.message || "Failed to load episodes");
-      }
-
-      setEpisodes(data.data?.episodes ?? []);
-    } catch (error) {
-      console.error("Error loading episodes", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to load episodes"
-      );
-    } finally {
-      setIsLoadingEpisodes(false);
-    }
-  }, [router]);
 
   const handleCreatePodcast = async () => {
     if (!podcastForm.title.trim()) {
@@ -432,11 +432,10 @@ export default function PodcastsPage() {
             <button
               key={podcast.id}
               onClick={() => setSelectedPodcastId(podcast.id)}
-              className={`w-full rounded-xl border p-4 text-left transition hover:border-primary hover:bg-primary/5 ${
-                selectedPodcastId === podcast.id
+              className={`w-full rounded-xl border p-4 text-left transition hover:border-primary hover:bg-primary/5 ${selectedPodcastId === podcast.id
                   ? "border-primary bg-primary/10"
                   : "border-border bg-background"
-              }`}
+                }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
