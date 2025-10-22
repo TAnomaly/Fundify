@@ -94,11 +94,11 @@ pub async fn login(
     let user: User = sqlx::query_as::<_, User>(
         r#"
         SELECT id, email, password, name, username, avatar, "bannerImage" as banner_image, bio,
-               role as "role: _", "emailVerified" as email_verified, "githubId" as github_id,
+               'USER'::text as role, "emailVerified" as email_verified, "githubId" as github_id,
                "isCreator" as is_creator, "creatorBio" as creator_bio, "socialLinks" as social_links,
                "stripeCustomerId" as stripe_customer_id, "stripeAccountId" as stripe_account_id,
                "stripeOnboardingComplete" as stripe_onboarding_complete,
-               "createdAt" as created_at, "updatedAt" as updated_at
+               "createdAt"::text as created_at, "updatedAt"::text as updated_at
         FROM "User"
         WHERE email = $1
         "#

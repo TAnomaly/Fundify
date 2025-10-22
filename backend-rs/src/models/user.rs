@@ -21,7 +21,7 @@ pub struct User {
     #[serde(rename = "bannerImage")]
     pub banner_image: Option<String>,
     pub bio: Option<String>,
-    pub role: UserRole,
+    pub role: String,
     #[serde(rename = "emailVerified")]
     pub email_verified: bool,
     #[serde(rename = "githubId")]
@@ -42,9 +42,9 @@ pub struct User {
     pub stripe_onboarding_complete: bool,
 
     #[serde(rename = "createdAt")]
-    pub created_at: DateTime<Utc>,
+    pub created_at: String,
     #[serde(rename = "updatedAt")]
-    pub updated_at: DateTime<Utc>,
+    pub updated_at: String,
 }
 
 #[derive(Debug, Deserialize)]
