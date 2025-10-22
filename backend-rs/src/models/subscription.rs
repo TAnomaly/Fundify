@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "SubscriptionStatus", rename_all = "SCREAMING_SNAKE_CASE")]
@@ -24,7 +23,7 @@ pub enum SubscriptionInterval {
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Subscription {
-    pub id: Uuid,
+    pub id: String,
     pub status: SubscriptionStatus,
 
     #[serde(rename = "startDate")]
@@ -47,9 +46,9 @@ pub struct Subscription {
     pub updated_at: DateTime<Utc>,
 
     #[serde(rename = "subscriberId")]
-    pub subscriber_id: Uuid,
+    pub subscriber_id: String,
     #[serde(rename = "creatorId")]
-    pub creator_id: Uuid,
+    pub creator_id: String,
     #[serde(rename = "tierId")]
-    pub tier_id: Uuid,
+    pub tier_id: String,
 }

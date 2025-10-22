@@ -1,7 +1,6 @@
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use std::env;
-use uuid::Uuid;
 
 use crate::utils::error::{AppError, AppResult};
 
@@ -14,7 +13,7 @@ pub struct Claims {
     pub iat: usize, // issued at
 }
 
-pub fn create_token(user_id: Uuid, email: &str, role: &str) -> AppResult<String> {
+pub fn create_token(user_id: String, email: &str, role: &str) -> AppResult<String> {
     let jwt_secret = env::var("JWT_SECRET")
         .unwrap_or_else(|_| "your-super-secret-jwt-key-minimum-32-characters".to_string());
 
@@ -34,7 +33,7 @@ pub fn create_token(user_id: Uuid, email: &str, role: &str) -> AppResult<String>
     let exp = (now + chrono::Duration::days(exp_days)).timestamp() as usize;
 
     let claims = Claims {
-        sub: user_id.to_string(),
+        sub: user_id,
         email: email.to_string(),
         role: role.to_string(),
         exp,

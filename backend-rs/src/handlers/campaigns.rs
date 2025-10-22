@@ -139,7 +139,7 @@ pub async fn list_campaigns(
 
 pub async fn get_user_campaigns(
     State(_state): State<AppState>,
-    Path(user_id): Path<Uuid>,
+    Path(user_id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     // For now, return empty campaigns list
     // TODO: Implement actual user campaigns fetching
@@ -161,7 +161,7 @@ pub async fn get_campaign(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     // Try to parse as UUID first, if fails, treat as slug
-    let campaign = if let Ok(uuid) = Uuid::parse_str(&id) {
+    let campaign = if let Ok(uuid) = uuid::Uuid::parse_str(&id) {
         sqlx::query_as::<_, Campaign>(
             r#"SELECT id, title, slug, description, story, category, type as "type: _", status as "status: _",
                "goalAmount" as goal_amount, "currentAmount" as current_amount,
@@ -234,7 +234,7 @@ pub async fn create_campaign(
 
     let campaign_type = req.campaign_type.unwrap_or_else(|| "PROJECT".to_string());
 
-    let campaign_id = Uuid::new_v4();
+    let campaign_id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
         r#"INSERT INTO "Campaign"
         (id, title, slug, description, story, category, type, status, "goalAmount", "currentAmount",

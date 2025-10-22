@@ -1,20 +1,22 @@
 use std::collections::HashMap;
 
 use axum::extract::{Json, Path, Query, State, Extension};
-use crate::middleware::auth::AuthUser;
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row};
 use uuid::Uuid;
 
-use crate::utils::{app_state::AppState, error::{AppError, AppResult}, response::ApiResponse};
+use crate::{
+    middleware::auth::AuthUser,
+    utils::{app_state::AppState, error::{AppError, AppResult}, response::ApiResponse},
+};
 
 #[derive(Debug, Deserialize)]
 pub struct ListPollsQuery {
     pub page: Option<i32>,
     pub limit: Option<i32>,
     #[serde(rename = "creatorId")]
-    pub creator_id: Option<Uuid>,
+    pub creator_id: Option<String>,
     #[serde(rename = "isActive")]
     pub is_active: Option<bool>,
 }
@@ -70,7 +72,7 @@ pub struct PollListResponse {
 
 #[derive(Debug, FromRow)]
 struct PollRow {
-    id: Uuid,
+    id: String,
     question: String,
     options: Vec<String>,
     expires_at: Option<NaiveDateTime>,
@@ -82,7 +84,7 @@ struct PollRow {
     is_active: bool,
     created_at: NaiveDateTime,
     updated_at: NaiveDateTime,
-    creator_id: Uuid,
+    creator_id: String,
     creator_name: String,
     creator_avatar: Option<String>,
 }
@@ -128,7 +130,7 @@ pub async fn list_polls(
         "#,
     );
 
-    if let Some(creator_id) = params.creator_id {
+    if let Some(ref creator_id) = params.creator_id {
         polls_query
             .push(" AND p.\"creatorId\" = ")
             .push_bind(creator_id);
@@ -153,7 +155,7 @@ pub async fn list_polls(
     let mut count_query =
         sqlx::QueryBuilder::new(r#"SELECT COUNT(*)::BIGINT AS total FROM "Poll" p WHERE 1=1"#);
 
-    if let Some(creator_id) = params.creator_id {
+    if let Some(ref creator_id) = params.creator_id {
         count_query
             .push(" AND p.\"creatorId\" = ")
             .push_bind(creator_id);
@@ -178,7 +180,7 @@ pub async fn list_polls(
         ((total as f64) / (limit as f64)).ceil() as i32
     };
 
-    let poll_ids: Vec<Uuid> = rows.iter().map(|row| row.id).collect();
+    let poll_ids: Vec<String> = rows.iter().map(|row| row.id.clone()).collect();
     let vote_counts_map = load_poll_vote_counts(&state, &poll_ids).await?;
 
     let polls = rows
@@ -255,7 +257,8 @@ pub async fn create_poll(
         return Err(AppError::BadRequest("Poll must have at least 2 options".to_string()));
     }
 
-    let poll_id = Uuid::new_v4();
+    let poll_id = uuid::Uuid::new_v4().to_string();
+    let poll_id_clone = poll_id.clone();
     let ends_at = data.ends_at.as_ref()
         .map(|t| chrono::DateTime::parse_from_rfc3339(t)
             .map(|dt| dt.naive_utc()))
@@ -266,7 +269,6 @@ pub async fn create_poll(
 
     // Convert options to String array for database
     let options_array: Vec<String> = data.options.iter().map(|o| o.text.clone()).collect();
-    let options_json = serde_json::to_value(&options_array).unwrap();
 
     // Create poll
     sqlx::query(
@@ -281,7 +283,7 @@ pub async fn create_poll(
     )
     .bind(poll_id)
     .bind(&data.question)
-    .bind(options_json)
+    .bind(&options_array)
     .bind(ends_at)
     .bind(allow_multiple)
     .bind(creator_id)
@@ -291,7 +293,7 @@ pub async fn create_poll(
     // Options are already stored in the Poll table, no need for PollOption table
 
     Ok(ApiResponse::success(serde_json::json!({
-        "id": poll_id,
+        "id": poll_id_clone,
         "question": data.question,
         "optionsCount": data.options.len(),
     })))
@@ -299,15 +301,15 @@ pub async fn create_poll(
 
 pub async fn vote_poll(
     State(_state): State<AppState>,
-    Path(_id): Path<Uuid>,
+    Path(_id): Path<String>,
 ) -> AppResult<impl axum::response::IntoResponse> {
     Ok(ApiResponse::success("Vote poll - TODO"))
 }
 
 async fn load_poll_vote_counts(
     state: &AppState,
-    poll_ids: &[Uuid],
-) -> Result<HashMap<Uuid, Vec<(i32, i64)>>, sqlx::Error> {
+    poll_ids: &[String],
+) -> Result<HashMap<String, Vec<(i32, i64)>>, sqlx::Error> {
     if poll_ids.is_empty() {
         return Ok(HashMap::new());
     }
@@ -327,10 +329,10 @@ async fn load_poll_vote_counts(
     .fetch_all(&state.db)
     .await?;
 
-    let mut map: HashMap<Uuid, Vec<(i32, i64)>> = HashMap::new();
+    let mut map: HashMap<String, Vec<(i32, i64)>> = HashMap::new();
 
     for row in rows {
-        let poll_id: Uuid = row.get("poll_id");
+        let poll_id: String = row.get("poll_id");
         let option_index: i32 = row.get("option_index");
         let vote_count: i64 = row.get("vote_count");
 

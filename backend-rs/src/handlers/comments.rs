@@ -97,7 +97,7 @@ pub async fn create_comment(
     }
 
     // Create comment
-    let comment_id = Uuid::new_v4();
+    let comment_id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
         r#"INSERT INTO "Comment" (id, content, "userId", "campaignId", "parentId", "createdAt", "updatedAt")
         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())"#

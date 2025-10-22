@@ -100,7 +100,7 @@ pub async fn create_donation(
         ));
     }
 
-    let donation_id = Uuid::new_v4().to_string();
+    let donation_id = uuid::Uuid::new_v4().to_string();
     let anonymous = req.anonymous.unwrap_or(false);
     let payment_method = req.payment_method.unwrap_or_else(|| "CARD".to_string());
 
@@ -182,7 +182,7 @@ pub async fn create_donation(
 
 pub async fn list_donations(
     State(state): State<AppState>,
-    Path(campaign_id): Path<Uuid>,
+    Path(campaign_id): Path<String>,
     Query(params): Query<ListDonationsQuery>,
 ) -> AppResult<impl IntoResponse> {
     let page = params.page.unwrap_or(1).max(1);

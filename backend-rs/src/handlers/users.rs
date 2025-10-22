@@ -92,7 +92,7 @@ pub struct TierInfo {
 
 pub async fn get_user(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     let user: Option<User> = sqlx::query_as::<_, User>(
         r#"SELECT id, email, password, name, username, avatar, "bannerImage" as banner_image, bio,
@@ -114,7 +114,7 @@ pub async fn get_user(
 
 pub async fn update_user(
     State(_state): State<AppState>,
-    Path(_id): Path<Uuid>,
+    Path(_id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     Ok(ApiResponse::success("User updated - TODO"))
 }
@@ -245,7 +245,7 @@ pub async fn get_creator_by_username(
             user_name.to_lowercase().replace(' ', "-"),
             chrono::Utc::now().timestamp()
         );
-        let campaign_id = Uuid::new_v4().to_string();
+        let campaign_id = uuid::Uuid::new_v4().to_string();
 
         sqlx::query(
             r#"INSERT INTO "Campaign"

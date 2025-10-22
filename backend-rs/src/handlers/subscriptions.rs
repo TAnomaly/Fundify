@@ -11,14 +11,14 @@ pub async fn create_subscription(
 
 pub async fn get_subscription(
     State(_state): State<AppState>,
-    Path(_id): Path<Uuid>,
+    Path(_id): Path<String>,
 ) -> AppResult<impl axum::response::IntoResponse> {
     Ok(ApiResponse::success("Get subscription - TODO"))
 }
 
 pub async fn cancel_subscription(
     State(_state): State<AppState>,
-    Path(_id): Path<Uuid>,
+    Path(_id): Path<String>,
 ) -> AppResult<impl axum::response::IntoResponse> {
     Ok(ApiResponse::success("Cancel subscription - TODO"))
 }

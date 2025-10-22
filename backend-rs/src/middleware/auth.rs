@@ -1,5 +1,4 @@
 use axum::{extract::Request, http::header::AUTHORIZATION, middleware::Next, response::Response};
-use uuid::Uuid;
 
 use crate::utils::{
     error::{AppError, AppResult},
@@ -8,7 +7,7 @@ use crate::utils::{
 
 #[derive(Clone)]
 pub struct AuthUser {
-    pub id: Uuid,
+    pub id: String,
     pub email: String,
     pub role: String,
 }
@@ -16,7 +15,7 @@ pub struct AuthUser {
 impl From<Claims> for AuthUser {
     fn from(claims: Claims) -> Self {
         Self {
-            id: Uuid::parse_str(&claims.sub).unwrap(),
+            id: claims.sub,
             email: claims.email,
             role: claims.role,
         }

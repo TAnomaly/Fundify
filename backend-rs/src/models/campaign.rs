@@ -2,7 +2,6 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "CampaignStatus", rename_all = "SCREAMING_SNAKE_CASE")]
@@ -37,7 +36,7 @@ pub enum CampaignCategory {
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Campaign {
-    pub id: Uuid,
+    pub id: String,
     pub slug: String,
     pub title: String,
     pub description: String,
@@ -68,7 +67,7 @@ pub struct Campaign {
     pub updated_at: DateTime<Utc>,
 
     #[serde(rename = "creatorId")]
-    pub creator_id: Uuid,
+    pub creator_id: String,
 }
 
 #[derive(Debug, Deserialize)]

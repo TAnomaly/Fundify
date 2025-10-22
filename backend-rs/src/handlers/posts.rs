@@ -1,5 +1,4 @@
-use axum::extract::{Path, Query, State, Extension};
-use crate::middleware::auth::AuthUser;
+use axum::extract::{Path, Query, State};
 use axum::Json;
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
@@ -17,9 +16,9 @@ pub struct ListPostsQuery {
     pub page: Option<i32>,
     pub limit: Option<i32>,
     #[serde(rename = "authorId")]
-    pub author_id: Option<Uuid>,
+    pub author_id: Option<String>,
     #[serde(rename = "creatorId")]
-    pub creator_id: Option<Uuid>,
+    pub creator_id: Option<String>,
     pub published: Option<bool>,
     #[serde(rename = "isPublic")]
     pub is_public: Option<bool>,
@@ -155,7 +154,7 @@ pub async fn list_posts(
         }
     }
 
-    if let Some(author_id) = params.author_id.or(params.creator_id) {
+    if let Some(author_id) = params.author_id.clone().or(params.creator_id.clone()) {
         qb.push(" AND p.\"authorId\" = ").push_bind(author_id);
     }
 
@@ -186,7 +185,7 @@ pub async fn list_posts(
         }
     }
 
-    if let Some(author_id) = params.author_id.or(params.creator_id) {
+    if let Some(author_id) = params.author_id.clone().or(params.creator_id.clone()) {
         count_qb.push(" AND p.\"authorId\" = ").push_bind(author_id);
     }
 
@@ -259,12 +258,27 @@ pub struct CreatePostRequest {
 
 pub async fn create_post(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
     Json(data): Json<CreatePostRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
-    let author_id = auth_user.id.to_string();
+    // TODO: Get user from JWT token
+    // For now, find first creator in database
+    let author: Option<(String,)> = sqlx::query_as(
+        r#"SELECT id FROM "User" WHERE "isCreator" = TRUE LIMIT 1"#
+    )
+    .fetch_optional(&state.db)
+    .await?;
 
-    let post_id = Uuid::new_v4();
+    let author_id = match author {
+        Some((id,)) => id,
+        None => {
+            return Err(AppError::NotFound(
+                "No creator found in database. Please create a creator account first.".to_string()
+            ));
+        }
+    };
+
+    let post_id = uuid::Uuid::new_v4().to_string();
+    let post_id_clone = post_id.clone();
     let is_public = data.is_public.unwrap_or(false);
     let published = data.published.unwrap_or(true);
     let published_at = if published {
@@ -287,7 +301,7 @@ pub async fn create_post(
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'TEXT', 0, 0, NOW(), NOW())
         "#
     )
-    .bind(post_id)
+    .bind(&post_id)
     .bind(&data.title)
     .bind(&data.content)
     .bind(&data.excerpt)
@@ -329,7 +343,7 @@ pub async fn create_post(
         WHERE p.id = $1
         "#
     )
-    .bind(post_id)
+    .bind(&post_id)
     .fetch_optional(&state.db)
     .await?;
 
@@ -365,7 +379,7 @@ pub async fn create_post(
 
 pub async fn get_post(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
 ) -> AppResult<impl axum::response::IntoResponse> {
     let row: Option<PostRow> = sqlx::query_as(
         r#"

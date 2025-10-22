@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "UserRole", rename_all = "SCREAMING_SNAKE_CASE")]
@@ -12,7 +11,7 @@ pub enum UserRole {
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
-    pub id: Uuid,
+    pub id: String,
     pub email: String,
     #[serde(skip_serializing)]
     pub password: String,
@@ -70,7 +69,7 @@ pub struct AuthResponse {
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct UserPublic {
-    pub id: Uuid,
+    pub id: String,
     pub email: String,
     pub name: String,
     pub username: Option<String>,
@@ -78,9 +77,9 @@ pub struct UserPublic {
     #[serde(rename = "bannerImage")]
     pub banner_image: Option<String>,
     pub bio: Option<String>,
-    pub role: UserRole,
+    pub role: String, // Temporarily use String instead of UserRole
     #[serde(rename = "isCreator")]
     pub is_creator: bool,
     #[serde(rename = "createdAt")]
-    pub created_at: DateTime<Utc>,
+    pub created_at: String, // Temporarily use String instead of DateTime<Utc>
 }

@@ -1,16 +1,18 @@
 use std::collections::HashMap;
 
 use axum::extract::{Json, Path, Query, State, Extension};
-use crate::middleware::auth::AuthUser;
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Postgres, QueryBuilder, Row};
 use uuid::Uuid;
 
-use crate::utils::{
-    app_state::AppState,
-    error::{AppError, AppResult},
-    response::ApiResponse,
+use crate::{
+    middleware::auth::AuthUser,
+    utils::{
+        app_state::AppState,
+        error::{AppError, AppResult},
+        response::ApiResponse,
+    },
 };
 
 const ARTICLE_SELECT_BASE: &str = r#"
@@ -56,7 +58,7 @@ pub struct ListArticlesQuery {
     pub tag: Option<String>,
     pub status: Option<String>,
     #[serde(rename = "authorId")]
-    pub author_id: Option<Uuid>,
+    pub author_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -199,7 +201,7 @@ pub async fn list_articles(
         qb.push(" AND a.status::text = ").push_bind(status_value);
     }
 
-    if let Some(author_id) = params.author_id {
+    if let Some(ref author_id) = params.author_id {
         qb.push(" AND a.\"authorId\" = ").push_bind(author_id);
     }
 
@@ -240,7 +242,7 @@ pub async fn list_articles(
         count_qb.push(" AND a.status::text = ").push_bind(status_value);
     }
 
-    if let Some(author_id) = params.author_id {
+    if let Some(ref author_id) = params.author_id {
         count_qb.push(" AND a.\"authorId\" = ").push_bind(author_id);
     }
 
@@ -363,7 +365,8 @@ pub async fn create_article(
 ) -> AppResult<impl axum::response::IntoResponse> {
     let author_id = auth_user.id.to_string();
 
-    let article_id = Uuid::new_v4();
+    let article_id = uuid::Uuid::new_v4().to_string();
+    let article_id_clone = article_id.clone();
     let slug = data.title
         .to_lowercase()
         .replace(|c: char| !c.is_alphanumeric() && c != '-', "-")
@@ -384,11 +387,11 @@ pub async fn create_article(
         r#"
         INSERT INTO "Article" (
             id, slug, title, content, excerpt, "coverImage",
-            "isPublic", "isPremium", "readTime", status, "publishedAt",
+            "isPublic", "isPremium", "readTime", "publishedAt",
             "authorId", "viewCount", keywords, "metaTitle", "metaDescription",
             "scheduledFor", "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 0, '{}', NULL, NULL, NULL, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, '{}', NULL, NULL, NULL, NOW(), NOW())
         "#
     )
     .bind(article_id)
@@ -400,14 +403,13 @@ pub async fn create_article(
     .bind(is_public)
     .bind(is_premium)
     .bind(data.read_time)
-    .bind(status)
     .bind(published_at)
     .bind(author_id)
     .execute(&state.db)
     .await?;
 
     Ok(ApiResponse::success(serde_json::json!({
-        "id": article_id,
+        "id": article_id_clone,
         "slug": slug,
         "title": data.title,
         "status": status,
@@ -420,8 +422,8 @@ pub async fn get_article(
 ) -> AppResult<impl axum::response::IntoResponse> {
     let mut qb = QueryBuilder::<Postgres>::new(ARTICLE_SELECT_BASE);
 
-    if let Ok(article_id) = Uuid::parse_str(&identifier) {
-        qb.push(" AND a.id = ").push_bind(article_id);
+    if let Ok(article_id) = uuid::Uuid::parse_str(&identifier) {
+        qb.push(" AND a.id = ").push_bind(article_id.to_string());
     } else {
         qb.push(" AND LOWER(a.slug) = ")
             .push_bind(identifier.to_lowercase());
@@ -516,7 +518,7 @@ async fn load_article_categories(
         let article_id: String = row.get("article_id");
         let entry = map.entry(article_id).or_default();
         entry.push(CategoryInfo {
-            id: row.get::<Uuid, _>("category_id").to_string(),
+            id: row.get::<String, _>("category_id"),
             name: row.get("category_name"),
             slug: row.get("category_slug"),
             color: row.get("category_color"),
@@ -557,7 +559,7 @@ async fn load_article_tags(
         let article_id: String = row.get("article_id");
         let entry = map.entry(article_id).or_default();
         entry.push(TagInfo {
-            id: row.get::<Uuid, _>("tag_id").to_string(),
+            id: row.get::<String, _>("tag_id"),
             name: row.get("tag_name"),
             slug: row.get("tag_slug"),
         });

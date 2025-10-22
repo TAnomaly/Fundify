@@ -2,16 +2,18 @@ use axum::{
     extract::{Json, Path, Query, State},
     Extension,
 };
-use crate::middleware::auth::AuthUser;
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Postgres, QueryBuilder, Row};
 use uuid::Uuid;
 
-use crate::utils::{
-    app_state::AppState,
-    error::{AppError, AppResult},
-    response::ApiResponse,
+use crate::{
+    middleware::auth::AuthUser,
+    utils::{
+        app_state::AppState,
+        error::{AppError, AppResult},
+        response::ApiResponse,
+    },
 };
 
 #[derive(Debug, Deserialize)]
@@ -22,7 +24,7 @@ pub struct ListEventsQuery {
     pub event_type: Option<String>,
     pub status: Option<String>,
     #[serde(rename = "hostId")]
-    pub host_id: Option<Uuid>,
+    pub host_id: Option<String>,
     pub upcoming: Option<bool>,
     pub past: Option<bool>,
 }
@@ -194,7 +196,7 @@ pub async fn list_events(
         qb.push(" AND e.type = ").push_bind(type_value);
     }
 
-    if let Some(host_id) = params.host_id {
+    if let Some(ref host_id) = params.host_id {
         qb.push(" AND e.\"hostId\" = ").push_bind(host_id);
     }
 
@@ -225,7 +227,7 @@ pub async fn list_events(
         count_qb.push(" AND e.type = ").push_bind(type_value);
     }
 
-    if let Some(host_id) = params.host_id {
+    if let Some(ref host_id) = params.host_id {
         count_qb.push(" AND e.\"hostId\" = ").push_bind(host_id);
     }
 
@@ -322,7 +324,8 @@ pub async fn create_event(
 ) -> AppResult<impl axum::response::IntoResponse> {
     let host_id = auth_user.id.to_string();
 
-    let event_id = Uuid::new_v4();
+    let event_id = uuid::Uuid::new_v4().to_string();
+    let event_id_clone = event_id.clone();
     let start_time = chrono::DateTime::parse_from_rfc3339(&data.start_time)
         .map_err(|_| AppError::BadRequest("Invalid start time format".to_string()))?
         .naive_utc();
@@ -343,11 +346,11 @@ pub async fn create_event(
         r#"
         INSERT INTO "Event" (
             id, title, description, "coverImage", "startTime", "endTime",
-            location, "virtualLink", price, "isPublic", "isPremium", type, status,
+            location, "virtualLink", price, "isPublic", "isPremium", type,
             "hostId", timezone, tags, "maxAttendees", "minimumTierId", agenda,
             "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, FALSE, $11, $12, $13, 'UTC', '{}', NULL, NULL, NULL, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, FALSE, 'IN_PERSON', $11, 'UTC', '{}', NULL, NULL, NULL, NOW(), NOW())
         "#
     )
     .bind(event_id)
@@ -360,14 +363,12 @@ pub async fn create_event(
     .bind(&data.virtual_link)
     .bind(price_float)
     .bind(is_public)
-    .bind(event_type)
-    .bind(status)
     .bind(host_id)
     .execute(&state.db)
     .await?;
 
     Ok(ApiResponse::success(serde_json::json!({
-        "id": event_id,
+        "id": event_id_clone,
         "title": data.title,
         "status": status,
         "startTime": start_time.to_string(),
@@ -376,7 +377,7 @@ pub async fn create_event(
 
 pub async fn get_event(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
     maybe_user: Option<Extension<AuthUser>>,
 ) -> AppResult<impl axum::response::IntoResponse> {
     let row: Option<EventRow> = sqlx::query_as(
@@ -503,7 +504,7 @@ pub async fn get_event(
 
 pub async fn rsvp_event(
     State(_state): State<AppState>,
-    Path(_id): Path<Uuid>,
+    Path(_id): Path<String>,
 ) -> AppResult<impl axum::response::IntoResponse> {
     Ok(ApiResponse::success("RSVP event - TODO"))
 }

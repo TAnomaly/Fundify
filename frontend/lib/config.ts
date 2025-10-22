@@ -1,8 +1,8 @@
 // API Configuration
 export const getApiUrl = () => {
-  // Production URL - Use Node.js backend temporarily
+  // Production URL - Force Railway URL for production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return 'https://fundify-backend.vercel.app/api';
+    return 'https://perfect-happiness-production.up.railway.app/api';
   }
   
   // Development fallback

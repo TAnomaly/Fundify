@@ -12,6 +12,7 @@ use axum::{
     routing::{delete, get, options, post, put},
     Router,
 };
+use tower::ServiceBuilder;
 use dotenvy::dotenv;
 use sqlx::{postgres::PgPoolOptions, Row};
 use std::env;
@@ -185,6 +186,7 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
     response
 }
 
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
@@ -242,9 +244,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/auth/register", post(handlers::auth::register))
         .route("/api/auth/login", post(handlers::auth::login))
         .route("/api/auth/me", get(handlers::auth::get_me))
-        // GitHub OAuth routes
-        .route("/api/auth/github", get(handlers::auth::github_auth))
-        .route("/api/auth/github/callback", get(handlers::auth::github_callback))
         // User routes
         .route("/api/users/creators", get(handlers::users::get_creators))
         .route("/api/users/creators", options(|| async { "OK" }))
@@ -258,7 +257,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/users/:id/campaigns", get(handlers::campaigns::get_user_campaigns))
         // Campaign routes
         .route("/api/campaigns", get(handlers::campaigns::list_campaigns))
-        .route("/api/campaigns", post(handlers::campaigns::create_campaign).layer(from_fn(middleware::auth::auth_middleware)))
+        .route("/api/campaigns", post(handlers::campaigns::create_campaign))
         .route("/api/campaigns", options(|| async { "OK" }))
         .route("/api/campaigns/:id", get(handlers::campaigns::get_campaign))
         .route("/api/campaigns/:id", options(|| async { "OK" }))
@@ -267,10 +266,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             post(handlers::campaigns::update_campaign),
         )
         // Donation routes
-        .route("/api/donations", post(handlers::donations::create_donation).layer(from_fn(middleware::auth::auth_middleware)))
+        .route("/api/donations", post(handlers::donations::create_donation))
         .route(
             "/api/donations/me",
-            get(handlers::donations::get_my_donations).layer(from_fn(middleware::auth::auth_middleware)),
+            get(handlers::donations::get_my_donations),
         )
         .route(
             "/api/campaigns/:id/donations",
@@ -281,44 +280,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/api/campaigns/:id/comments",
             get(handlers::comments::get_comments_by_campaign),
         )
-        .route("/api/comments", post(handlers::comments::create_comment).layer(from_fn(middleware::auth::auth_middleware)))
-        .route("/api/comments/:id", put(handlers::comments::update_comment).layer(from_fn(middleware::auth::auth_middleware)))
+        .route("/api/comments", post(handlers::comments::create_comment))
+        .route("/api/comments/:id", put(handlers::comments::update_comment))
         .route(
             "/api/comments/:id",
-            delete(handlers::comments::delete_comment).layer(from_fn(middleware::auth::auth_middleware)),
+            delete(handlers::comments::delete_comment),
         )
         // Subscription routes
         .route(
             "/api/subscriptions",
-            post(handlers::subscriptions::create_subscription).layer(from_fn(middleware::auth::auth_middleware)),
+            post(handlers::subscriptions::create_subscription),
         )
         .route(
             "/api/subscriptions/:id",
-            get(handlers::subscriptions::get_subscription).layer(from_fn(middleware::auth::auth_middleware)),
+            get(handlers::subscriptions::get_subscription),
         )
         .route(
             "/api/subscriptions/:id/cancel",
-            post(handlers::subscriptions::cancel_subscription).layer(from_fn(middleware::auth::auth_middleware)),
+            post(handlers::subscriptions::cancel_subscription),
         )
         // Membership Tier routes
         .route("/api/memberships", get(handlers::memberships::list_tiers))
-        .route("/api/memberships", post(handlers::memberships::create_tier).layer(from_fn(middleware::auth::auth_middleware)))
+        .route("/api/memberships", post(handlers::memberships::create_tier))
         // Creator Post routes
         .route("/api/posts", get(handlers::posts::list_posts))
-        .route("/api/posts", post(handlers::posts::create_post).layer(from_fn(middleware::auth::auth_middleware)))
+        .route("/api/posts", post(handlers::posts::create_post))
         .route("/api/posts/:id", get(handlers::posts::get_post))
         // Article routes
         .route("/api/articles", get(handlers::articles::list_articles))
-        .route("/api/articles", post(handlers::articles::create_article).layer(from_fn(middleware::auth::auth_middleware)))
+        .route("/api/articles", post(handlers::articles::create_article).layer(from_fn(crate::middleware::auth::auth_middleware)))
         .route("/api/articles/:slug", get(handlers::articles::get_article))
         // Event routes
         .route("/api/events", get(handlers::events::list_events))
-        .route("/api/events", post(handlers::events::create_event).layer(from_fn(middleware::auth::auth_middleware)))
+        .route("/api/events", post(handlers::events::create_event).layer(from_fn(crate::middleware::auth::auth_middleware)))
         .route("/api/events/:id", get(handlers::events::get_event))
         .route("/api/events/:id/rsvp", post(handlers::events::rsvp_event))
         // Poll routes
         .route("/api/polls", get(handlers::polls::list_polls))
-        .route("/api/polls", post(handlers::polls::create_poll).layer(from_fn(middleware::auth::auth_middleware)))
+        .route("/api/polls", post(handlers::polls::create_poll).layer(from_fn(crate::middleware::auth::auth_middleware)))
         .route("/api/polls/:id/vote", post(handlers::polls::vote_poll))
         // Stripe routes
         .route(
