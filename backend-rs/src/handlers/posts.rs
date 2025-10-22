@@ -1,4 +1,5 @@
-use axum::extract::{Path, Query, State};
+use axum::extract::{Path, Query, State, Extension};
+use crate::middleware::auth::AuthUser;
 use axum::Json;
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
@@ -258,24 +259,10 @@ pub struct CreatePostRequest {
 
 pub async fn create_post(
     State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
     Json(data): Json<CreatePostRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
-    // TODO: Get user from JWT token
-    // For now, find first creator in database
-    let author: Option<(String,)> = sqlx::query_as(
-        r#"SELECT id FROM "User" WHERE "isCreator" = TRUE LIMIT 1"#
-    )
-    .fetch_optional(&state.db)
-    .await?;
-
-    let author_id = match author {
-        Some((id,)) => id,
-        None => {
-            return Err(AppError::NotFound(
-                "No creator found in database. Please create a creator account first.".to_string()
-            ));
-        }
-    };
+    let author_id = auth_user.id.to_string();
 
     let post_id = Uuid::new_v4();
     let is_public = data.is_public.unwrap_or(false);

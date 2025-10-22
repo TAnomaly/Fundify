@@ -2,18 +2,16 @@ use axum::{
     extract::{Json, Path, Query, State},
     Extension,
 };
+use crate::middleware::auth::AuthUser;
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Postgres, QueryBuilder, Row};
 use uuid::Uuid;
 
-use crate::{
-    middleware::auth::AuthUser,
-    utils::{
-        app_state::AppState,
-        error::{AppError, AppResult},
-        response::ApiResponse,
-    },
+use crate::utils::{
+    app_state::AppState,
+    error::{AppError, AppResult},
+    response::ApiResponse,
 };
 
 #[derive(Debug, Deserialize)]
@@ -319,24 +317,10 @@ pub struct CreateEventRequest {
 
 pub async fn create_event(
     State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
     Json(data): Json<CreateEventRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
-    // TODO: Get user from JWT token
-    // For now, find first creator in database
-    let host: Option<(String,)> = sqlx::query_as(
-        r#"SELECT id FROM "User" WHERE "isCreator" = TRUE LIMIT 1"#
-    )
-    .fetch_optional(&state.db)
-    .await?;
-
-    let host_id = match host {
-        Some((id,)) => id,
-        None => {
-            return Err(AppError::NotFound(
-                "No creator found in database. Please create a creator account first.".to_string()
-            ));
-        }
-    };
+    let host_id = auth_user.id.to_string();
 
     let event_id = Uuid::new_v4();
     let start_time = chrono::DateTime::parse_from_rfc3339(&data.start_time)

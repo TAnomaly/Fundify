@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use axum::extract::{Json, Path, Query, State};
+use axum::extract::{Json, Path, Query, State, Extension};
+use crate::middleware::auth::AuthUser;
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row};
@@ -245,24 +246,10 @@ pub struct CreatePollRequest {
 
 pub async fn create_poll(
     State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
     Json(data): Json<CreatePollRequest>,
 ) -> AppResult<impl axum::response::IntoResponse> {
-    // TODO: Get user from JWT token
-    // For now, find first creator in database
-    let creator: Option<(String,)> = sqlx::query_as(
-        r#"SELECT id FROM "User" WHERE "isCreator" = TRUE LIMIT 1"#
-    )
-    .fetch_optional(&state.db)
-    .await?;
-
-    let creator_id = match creator {
-        Some((id,)) => id,
-        None => {
-            return Err(AppError::NotFound(
-                "No creator found in database. Please create a creator account first.".to_string()
-            ));
-        }
-    };
+    let creator_id = auth_user.id.to_string();
 
     if data.options.len() < 2 {
         return Err(AppError::BadRequest("Poll must have at least 2 options".to_string()));
