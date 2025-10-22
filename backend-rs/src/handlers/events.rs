@@ -220,7 +220,9 @@ pub async fn list_events(
     );
 
     if let Some(status_value) = status_filter.as_ref() {
-        count_qb.push(" AND e.status::text = ").push_bind(status_value);
+        count_qb
+            .push(" AND e.status::text = ")
+            .push_bind(status_value);
     }
 
     if let Some(type_value) = type_filter.as_ref() {
@@ -330,9 +332,10 @@ pub async fn create_event(
         .map_err(|_| AppError::BadRequest("Invalid start time format".to_string()))?
         .naive_utc();
 
-    let end_time = data.end_time.as_ref()
-        .map(|t| chrono::DateTime::parse_from_rfc3339(t)
-            .map(|dt| dt.naive_utc()))
+    let end_time = data
+        .end_time
+        .as_ref()
+        .map(|t| chrono::DateTime::parse_from_rfc3339(t).map(|dt| dt.naive_utc()))
         .transpose()
         .map_err(|_| AppError::BadRequest("Invalid end time format".to_string()))?;
 

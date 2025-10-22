@@ -12,11 +12,11 @@ use axum::{
     routing::{delete, get, options, post, put},
     Router,
 };
-use tower::ServiceBuilder;
 use dotenvy::dotenv;
 use sqlx::{postgres::PgPoolOptions, Row};
 use std::env;
 use std::net::SocketAddr;
+use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -30,7 +30,7 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
     // Handle preflight requests
     if method == "OPTIONS" {
         let mut response = Response::new("OK".into());
-        
+
         // Always allow all origins
         response
             .headers_mut()
@@ -51,10 +51,9 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
             HeaderValue::from_static("Content-Type, Authorization, Cache-Control, X-Requested-With, Accept, Accept-Language, Origin, Access-Control-Request-Method, Access-Control-Request-Headers")
         );
 
-        response.headers_mut().insert(
-            "access-control-max-age",
-            HeaderValue::from_static("86400")
-        );
+        response
+            .headers_mut()
+            .insert("access-control-max-age", HeaderValue::from_static("86400"));
 
         response
             .headers_mut()
@@ -88,7 +87,7 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
 
     response.headers_mut().insert(
         "access-control-expose-headers",
-        HeaderValue::from_static("Content-Length, Content-Type, Date, Server, Transfer-Encoding")
+        HeaderValue::from_static("Content-Length, Content-Type, Date, Server, Transfer-Encoding"),
     );
 
     response
@@ -97,7 +96,6 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
 
     response
 }
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -155,7 +153,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Auth routes
         .route("/api/auth/register", post(handlers::auth::register))
         .route("/api/auth/login", post(handlers::auth::login))
-        .route("/api/auth/me", get(handlers::auth::get_me))
+        .route(
+            "/api/auth/me",
+            get(handlers::auth::get_me).layer(from_fn(crate::middleware::auth::auth_middleware)),
+        )
         // User routes
         .route("/api/users/creators", get(handlers::users::get_creators))
         .route("/api/users/creators", options(|| async { "OK" }))
@@ -163,11 +164,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/api/users/creators/:username",
             get(handlers::users::get_creator_by_username),
         )
-        .route("/api/users/me", get(handlers::users::get_me).layer(from_fn(crate::middleware::auth::auth_middleware)))
-        .route("/api/users/become-creator", post(handlers::users::become_creator).layer(from_fn(crate::middleware::auth::auth_middleware)))
+        .route(
+            "/api/users/me",
+            get(handlers::users::get_me).layer(from_fn(crate::middleware::auth::auth_middleware)),
+        )
+        .route(
+            "/api/users/become-creator",
+            post(handlers::users::become_creator)
+                .layer(from_fn(crate::middleware::auth::auth_middleware)),
+        )
         .route("/api/users/:id", get(handlers::users::get_user))
         .route("/api/users/:id", post(handlers::users::update_user))
-        .route("/api/users/:id/campaigns", get(handlers::campaigns::get_user_campaigns))
+        .route(
+            "/api/users/:id/campaigns",
+            get(handlers::campaigns::get_user_campaigns),
+        )
         // Campaign routes
         .route("/api/campaigns", get(handlers::campaigns::list_campaigns))
         .route("/api/campaigns", post(handlers::campaigns::create_campaign))
@@ -221,16 +232,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/posts/:id", get(handlers::posts::get_post))
         // Article routes
         .route("/api/articles", get(handlers::articles::list_articles))
-        .route("/api/articles", post(handlers::articles::create_article).layer(from_fn(crate::middleware::auth::auth_middleware)))
+        .route(
+            "/api/articles",
+            post(handlers::articles::create_article)
+                .layer(from_fn(crate::middleware::auth::auth_middleware)),
+        )
         .route("/api/articles/:slug", get(handlers::articles::get_article))
         // Event routes
         .route("/api/events", get(handlers::events::list_events))
-        .route("/api/events", post(handlers::events::create_event).layer(from_fn(crate::middleware::auth::auth_middleware)))
+        .route(
+            "/api/events",
+            post(handlers::events::create_event)
+                .layer(from_fn(crate::middleware::auth::auth_middleware)),
+        )
         .route("/api/events/:id", get(handlers::events::get_event))
         .route("/api/events/:id/rsvp", post(handlers::events::rsvp_event))
         // Poll routes
         .route("/api/polls", get(handlers::polls::list_polls))
-        .route("/api/polls", post(handlers::polls::create_poll).layer(from_fn(crate::middleware::auth::auth_middleware)))
+        .route(
+            "/api/polls",
+            post(handlers::polls::create_poll)
+                .layer(from_fn(crate::middleware::auth::auth_middleware)),
+        )
         .route("/api/polls/:id/vote", post(handlers::polls::vote_poll))
         // Stripe routes
         .route(
@@ -265,7 +288,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Product routes
         .route("/api/products", get(handlers::products::list_products))
         .route("/api/products", options(|| async { "OK" }))
-        .route("/api/products/collections", get(handlers::products::get_collections))
+        .route(
+            "/api/products/collections",
+            get(handlers::products::get_collections),
+        )
         .route("/api/products/collections", options(|| async { "OK" }))
         .route("/api/products/meta", get(handlers::products::get_meta))
         .route("/api/products/meta", options(|| async { "OK" }))
@@ -316,9 +342,12 @@ async fn debug_campaigns(State(state): State<AppState>) -> Result<String, String
         .await
     {
         Ok(rows) => {
-            let statuses: Vec<String> = rows.into_iter().map(|row| row.get::<String, _>("status")).collect();
+            let statuses: Vec<String> = rows
+                .into_iter()
+                .map(|row| row.get::<String, _>("status"))
+                .collect();
             Ok(format!("Campaign statuses: {:?}", statuses))
-        },
+        }
         Err(e) => Err(format!("Database error: {}", e)),
     }
 }
@@ -329,7 +358,8 @@ async fn simple_campaigns_list(State(state): State<AppState>) -> Result<String, 
         .await
     {
         Ok(rows) => {
-            let campaigns: Vec<String> = rows.into_iter()
+            let campaigns: Vec<String> = rows
+                .into_iter()
                 .map(|row| {
                     let id: String = row.get("id");
                     let title: String = row.get("title");
@@ -338,7 +368,7 @@ async fn simple_campaigns_list(State(state): State<AppState>) -> Result<String, 
                 })
                 .collect();
             Ok(format!("Campaigns: {:?}", campaigns))
-        },
+        }
         Err(e) => Err(format!("Database error: {}", e)),
     }
 }
@@ -351,7 +381,7 @@ async fn test_campaigns(State(state): State<AppState>) -> Result<String, String>
         Ok(row) => {
             let count: i64 = row.get(0);
             Ok(format!("Found {} campaigns", count))
-        },
+        }
         Err(e) => Err(format!("Database error: {}", e)),
     }
 }

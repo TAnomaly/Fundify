@@ -6,14 +6,26 @@ use crate::utils::error::{AppError, AppResult};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
-    pub sub: String, // user id
+    #[serde(default)]
+    pub sub: Option<String>,
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(rename = "userId", default)]
+    pub user_id: Option<String>,
     pub email: String,
+    #[serde(default)]
+    pub username: Option<String>,
     pub role: String,
-    pub exp: usize, // expiration time
-    pub iat: usize, // issued at
+    pub exp: usize,
+    pub iat: usize,
 }
 
-pub fn create_token(user_id: String, email: &str, role: &str) -> AppResult<String> {
+pub fn create_token(
+    user_id: &str,
+    email: &str,
+    username: Option<&str>,
+    role: &str,
+) -> AppResult<String> {
     let jwt_secret = env::var("JWT_SECRET")
         .unwrap_or_else(|_| "your-super-secret-jwt-key-minimum-32-characters".to_string());
 
@@ -32,9 +44,14 @@ pub fn create_token(user_id: String, email: &str, role: &str) -> AppResult<Strin
     let iat = now.timestamp() as usize;
     let exp = (now + chrono::Duration::days(exp_days)).timestamp() as usize;
 
+    let user_id_string = user_id.to_string();
+
     let claims = Claims {
-        sub: user_id,
+        sub: Some(user_id_string.clone()),
+        id: Some(user_id_string.clone()),
+        user_id: Some(user_id_string),
         email: email.to_string(),
+        username: username.map(|value| value.to_string()),
         role: role.to_string(),
         exp,
         iat,

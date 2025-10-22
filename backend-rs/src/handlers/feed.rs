@@ -155,9 +155,8 @@ pub async fn get_feed(
     }
 
     // Temporarily fetch only posts to debug issues
-    let posts: Vec<PostRow> =
-        sqlx::query_as::<_, PostRow>(
-            r#"
+    let posts: Vec<PostRow> = sqlx::query_as::<_, PostRow>(
+        r#"
             SELECT
                 p.id,
                 p.title,
@@ -177,11 +176,11 @@ pub async fn get_feed(
             WHERE p.published = TRUE
             ORDER BY COALESCE(p."publishedAt", p."createdAt") DESC
             LIMIT $1
-            "#
-        )
-        .bind(limit * 2)
-        .fetch_all(&state.db)
-        .await?;
+            "#,
+    )
+    .bind(limit * 2)
+    .fetch_all(&state.db)
+    .await?;
 
     // Fetch articles (simplified query)
     let articles: Vec<ArticleRow> = sqlx::query_as(
@@ -207,7 +206,7 @@ pub async fn get_feed(
         WHERE a.status = 'PUBLISHED'
         ORDER BY a."createdAt" DESC
         LIMIT $1
-        "#
+        "#,
     )
     .bind(10)
     .fetch_all(&state.db)
@@ -238,7 +237,7 @@ pub async fn get_feed(
         WHERE e.status = 'PUBLISHED'
         ORDER BY e."createdAt" DESC
         LIMIT $1
-        "#
+        "#,
     )
     .bind(10)
     .fetch_all(&state.db)
@@ -268,7 +267,8 @@ pub async fn get_feed(
             summary: excerpt_text.clone(),
             preview: excerpt_text,
             cover_image: post.images.and_then(|imgs| imgs.first().cloned()),
-            published_at: post.published_at
+            published_at: post
+                .published_at
                 .map(format_datetime)
                 .unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
             link: format!("/creators/{}?tab=posts&post={}", slug, post.id),
@@ -288,7 +288,12 @@ pub async fn get_feed(
                 likes: Some(likes),
                 comments: Some(comments),
                 rsvps: None,
-                visibility: if post.is_public { "public" } else { "supporters" }.to_string(),
+                visibility: if post.is_public {
+                    "public"
+                } else {
+                    "supporters"
+                }
+                .to_string(),
             },
         });
     }
@@ -314,7 +319,8 @@ pub async fn get_feed(
             summary: excerpt_text.clone(),
             preview: excerpt_text,
             cover_image: article.cover_image,
-            published_at: article.published_at
+            published_at: article
+                .published_at
                 .map(format_datetime)
                 .unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
             link: format!("/blog/{}", article.slug),
@@ -334,7 +340,12 @@ pub async fn get_feed(
                 likes: Some(likes),
                 comments: Some(comments),
                 rsvps: None,
-                visibility: if article.is_public { "public" } else { "supporters" }.to_string(),
+                visibility: if article.is_public {
+                    "public"
+                } else {
+                    "supporters"
+                }
+                .to_string(),
             },
         });
     }
@@ -371,7 +382,12 @@ pub async fn get_feed(
                 likes: None,
                 comments: None,
                 rsvps: Some(rsvps),
-                visibility: if event.is_public { "public" } else { "supporters" }.to_string(),
+                visibility: if event.is_public {
+                    "public"
+                } else {
+                    "supporters"
+                }
+                .to_string(),
             },
         });
     }

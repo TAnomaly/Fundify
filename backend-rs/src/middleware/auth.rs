@@ -10,16 +10,7 @@ pub struct AuthUser {
     pub id: String,
     pub email: String,
     pub role: String,
-}
-
-impl From<Claims> for AuthUser {
-    fn from(claims: Claims) -> Self {
-        Self {
-            id: claims.sub,
-            email: claims.email,
-            role: claims.role,
-        }
-    }
+    pub username: Option<String>,
 }
 
 pub async fn auth_middleware(mut req: Request, next: Next) -> AppResult<Response> {
@@ -37,7 +28,27 @@ pub async fn auth_middleware(mut req: Request, next: Next) -> AppResult<Response
         .ok_or_else(|| AppError::Unauthorized("Missing authorization token".to_string()))?;
 
     let claims = verify_token(token)?;
-    let auth_user = AuthUser::from(claims);
+    let Claims {
+        sub,
+        id,
+        user_id,
+        email,
+        username,
+        role,
+        ..
+    } = claims;
+
+    let resolved_id = user_id
+        .or(id)
+        .or(sub)
+        .ok_or_else(|| AppError::Unauthorized("Invalid token payload".to_string()))?;
+
+    let auth_user = AuthUser {
+        id: resolved_id,
+        email,
+        role,
+        username,
+    };
 
     req.extensions_mut().insert(auth_user);
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use axum::extract::{Json, Path, Query, State, Extension};
+use axum::extract::{Extension, Json, Path, Query, State};
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Postgres, QueryBuilder, Row};
@@ -239,7 +239,9 @@ pub async fn list_articles(
     );
 
     if let Some(status_value) = status_filter.as_ref() {
-        count_qb.push(" AND a.status::text = ").push_bind(status_value);
+        count_qb
+            .push(" AND a.status::text = ")
+            .push_bind(status_value);
     }
 
     if let Some(ref author_id) = params.author_id {
@@ -367,12 +369,14 @@ pub async fn create_article(
 
     let article_id = uuid::Uuid::new_v4().to_string();
     let article_id_clone = article_id.clone();
-    let slug = data.title
+    let slug = data
+        .title
         .to_lowercase()
         .replace(|c: char| !c.is_alphanumeric() && c != '-', "-")
         .replace("--", "-")
         .trim_matches('-')
-        .to_string() + &format!("-{}", &article_id.to_string()[..8]);
+        .to_string()
+        + &format!("-{}", &article_id.to_string()[..8]);
 
     let status = data.status.as_deref().unwrap_or("PUBLISHED");
     let is_public = data.is_public.unwrap_or(true);

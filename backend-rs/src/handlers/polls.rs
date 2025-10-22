@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use axum::extract::{Json, Path, Query, State, Extension};
+use axum::extract::{Extension, Json, Path, Query, State};
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row};
@@ -8,7 +8,11 @@ use uuid::Uuid;
 
 use crate::{
     middleware::auth::AuthUser,
-    utils::{app_state::AppState, error::{AppError, AppResult}, response::ApiResponse},
+    utils::{
+        app_state::AppState,
+        error::{AppError, AppResult},
+        response::ApiResponse,
+    },
 };
 
 #[derive(Debug, Deserialize)]
@@ -254,14 +258,17 @@ pub async fn create_poll(
     let creator_id = auth_user.id.to_string();
 
     if data.options.len() < 2 {
-        return Err(AppError::BadRequest("Poll must have at least 2 options".to_string()));
+        return Err(AppError::BadRequest(
+            "Poll must have at least 2 options".to_string(),
+        ));
     }
 
     let poll_id = uuid::Uuid::new_v4().to_string();
     let poll_id_clone = poll_id.clone();
-    let ends_at = data.ends_at.as_ref()
-        .map(|t| chrono::DateTime::parse_from_rfc3339(t)
-            .map(|dt| dt.naive_utc()))
+    let ends_at = data
+        .ends_at
+        .as_ref()
+        .map(|t| chrono::DateTime::parse_from_rfc3339(t).map(|dt| dt.naive_utc()))
         .transpose()
         .map_err(|_| AppError::BadRequest("Invalid ends_at format".to_string()))?;
 
@@ -279,7 +286,7 @@ pub async fn create_poll(
             "creatorId", "createdAt", "updatedAt"
         )
         VALUES ($1, $2, $3, $4, $5, FALSE, FALSE, TRUE, 0, NULL, $6, NOW(), NOW())
-        "#
+        "#,
     )
     .bind(poll_id)
     .bind(&data.question)
@@ -309,7 +316,7 @@ pub async fn vote_poll(
 async fn load_poll_vote_counts(
     state: &AppState,
     poll_ids: &[String],
-    ) -> Result<HashMap<String, Vec<(i32, i32)>>, sqlx::Error> {
+) -> Result<HashMap<String, Vec<(i32, i32)>>, sqlx::Error> {
     if poll_ids.is_empty() {
         return Ok(HashMap::new());
     }

@@ -156,13 +156,21 @@ pub async fn list_products(
             category: row.get("category"),
             creator_id: row.get("creator_id"),
             creator_name: row.get("creator_name"),
-            creator_username: row.try_get("creator_username").unwrap_or_else(|_| "unknown".to_string()),
+            creator_username: row
+                .try_get("creator_username")
+                .unwrap_or_else(|_| "unknown".to_string()),
             image_url: row.get("image_url"),
             download_url: row.get("download_url"),
             is_digital: row.get("is_digital"),
-            tags: row.try_get::<Vec<String>, _>("tags").unwrap_or_else(|_| Vec::new()),
-            created_at: row.try_get("created_at").unwrap_or_else(|_| chrono::Utc::now()),
-            updated_at: row.try_get("updated_at").unwrap_or_else(|_| chrono::Utc::now()),
+            tags: row
+                .try_get::<Vec<String>, _>("tags")
+                .unwrap_or_else(|_| Vec::new()),
+            created_at: row
+                .try_get("created_at")
+                .unwrap_or_else(|_| chrono::Utc::now()),
+            updated_at: row
+                .try_get("updated_at")
+                .unwrap_or_else(|_| chrono::Utc::now()),
         })
         .collect();
 
@@ -203,13 +211,12 @@ pub async fn get_collections(
 }
 
 // Get product metadata
-pub async fn get_meta(
-    State(state): State<AppState>,
-) -> AppResult<Json<ProductMetaResponse>> {
+pub async fn get_meta(State(state): State<AppState>) -> AppResult<Json<ProductMetaResponse>> {
     // Get total products
-    let total_products_row = sqlx::query("SELECT COUNT(*) as total FROM \"DigitalProduct\" WHERE \"isActive\" = true")
-        .fetch_one(&state.db)
-        .await?;
+    let total_products_row =
+        sqlx::query("SELECT COUNT(*) as total FROM \"DigitalProduct\" WHERE \"isActive\" = true")
+            .fetch_one(&state.db)
+            .await?;
     let total_products: i64 = total_products_row.get("total");
 
     // Get featured count
@@ -231,16 +238,18 @@ pub async fn get_meta(
     let total_revenue: f64 = revenue_row.get("total");
 
     // Get product types with counts
-    let type_rows = sqlx::query(r#"
+    let type_rows = sqlx::query(
+        r#"
         SELECT "productType"::text as type_name, COUNT(*) as count 
         FROM "DigitalProduct" 
         WHERE "isActive" = true AND "productType" IS NOT NULL
         GROUP BY "productType"
         ORDER BY count DESC
-    "#)
-        .fetch_all(&state.db)
-        .await?;
-    
+    "#,
+    )
+    .fetch_all(&state.db)
+    .await?;
+
     let types: Vec<TypeCount> = type_rows
         .iter()
         .map(|row| TypeCount {

@@ -262,17 +262,16 @@ pub async fn create_post(
 ) -> AppResult<impl axum::response::IntoResponse> {
     // TODO: Get user from JWT token
     // For now, find first creator in database
-    let author: Option<(String,)> = sqlx::query_as(
-        r#"SELECT id FROM "User" WHERE "isCreator" = TRUE LIMIT 1"#
-    )
-    .fetch_optional(&state.db)
-    .await?;
+    let author: Option<(String,)> =
+        sqlx::query_as(r#"SELECT id FROM "User" WHERE "isCreator" = TRUE LIMIT 1"#)
+            .fetch_optional(&state.db)
+            .await?;
 
     let author_id = match author {
         Some((id,)) => id,
         None => {
             return Err(AppError::NotFound(
-                "No creator found in database. Please create a creator account first.".to_string()
+                "No creator found in database. Please create a creator account first.".to_string(),
             ));
         }
     };
@@ -287,7 +286,9 @@ pub async fn create_post(
         chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap()
     };
 
-    let images_json = data.images.as_ref()
+    let images_json = data
+        .images
+        .as_ref()
         .map(|imgs| serde_json::to_value(imgs).unwrap())
         .unwrap_or(serde_json::Value::Array(vec![]));
 
@@ -299,7 +300,7 @@ pub async fn create_post(
             "authorId", type, "likeCount", "commentCount", "createdAt", "updatedAt"
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'TEXT', 0, 0, NOW(), NOW())
-        "#
+        "#,
     )
     .bind(&post_id)
     .bind(&data.title)
@@ -341,7 +342,7 @@ pub async fn create_post(
         FROM "CreatorPost" p
         LEFT JOIN "User" u ON u.id = p."authorId"
         WHERE p.id = $1
-        "#
+        "#,
     )
     .bind(&post_id)
     .fetch_optional(&state.db)

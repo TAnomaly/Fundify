@@ -367,12 +367,10 @@ pub async fn become_creator(
     Extension(auth_user): Extension<AuthUser>,
 ) -> AppResult<impl IntoResponse> {
     // Update user to be a creator
-    sqlx::query(
-        r#"UPDATE "User" SET "isCreator" = true WHERE id = $1"#,
-    )
-    .bind(auth_user.id.to_string())
-    .execute(&state.db)
-    .await?;
+    sqlx::query(r#"UPDATE "User" SET "isCreator" = true WHERE id = $1"#)
+        .bind(auth_user.id.to_string())
+        .execute(&state.db)
+        .await?;
 
     // Get updated user data
     let user: User = sqlx::query_as::<_, User>(
