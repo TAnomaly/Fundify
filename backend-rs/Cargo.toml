@@ -31,6 +31,10 @@ validator = { version = "0.18", features = ["derive"] }
 # HTTP Client (for Stripe, external APIs)
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 
+# OAuth
+oauth2 = { version = "4.4", features = ["reqwest"] }
+url = "2.5"
+
 # Date & Time
 chrono = { version = "0.4", features = ["serde"] }
 

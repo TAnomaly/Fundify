@@ -242,6 +242,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/auth/register", post(handlers::auth::register))
         .route("/api/auth/login", post(handlers::auth::login))
         .route("/api/auth/me", get(handlers::auth::get_me))
+        // GitHub OAuth routes
+        .route("/api/auth/github", get(handlers::auth::github_auth))
+        .route("/api/auth/github/callback", get(handlers::auth::github_callback))
         // User routes
         .route("/api/users/creators", get(handlers::users::get_creators))
         .route("/api/users/creators", options(|| async { "OK" }))
