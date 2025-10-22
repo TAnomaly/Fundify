@@ -27,70 +27,8 @@ async fn cors_middleware(request: Request, next: Next) -> Response {
     let origin = request.headers().get("origin").cloned();
     let method = request.method().clone();
 
-    // Static allowed origins - comprehensive list
-    let static_origins = vec![
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "https://funify.vercel.app",
-        "https://fundify.vercel.app",
-        "https://perfect-happiness-production.up.railway.app",
-        "https://fundify-frontend.vercel.app",
-        "https://fundify-app.vercel.app",
-        "https://fundify.vercel.app",
-        "https://fundify-app.vercel.app",
-        "https://fundify-frontend.vercel.app",
-        "https://fundify.vercel.app",
-        "https://fundify-app.vercel.app",
-        "https://fundify-frontend.vercel.app",
-    ];
-
-    // Get environment origins
-    let env_origins: Vec<String> = [
-        env::var("CORS_ORIGIN").ok(),
-        env::var("FRONTEND_URL").ok(),
-        env::var("NEXT_PUBLIC_FRONTEND_URL").ok(),
-        env::var("NEXT_PUBLIC_SITE_URL").ok(),
-        env::var("ADMIN_DASHBOARD_ORIGIN").ok(),
-        env::var("ALLOWED_ORIGINS").ok(),
-        env::var("CORS_ORIGINS").ok(),
-    ]
-    .into_iter()
-    .flatten()
-    .flat_map(|s| {
-        s.split(',')
-            .map(|s| s.trim().to_string())
-            .collect::<Vec<_>>()
-    })
-    .collect();
-
-    // Check if origin is allowed
-    let is_allowed = if let Some(origin_header) = &origin {
-        let origin_str = origin_header.to_str().unwrap_or("");
-        let normalized = origin_str.trim().to_lowercase();
-
-        // Check static origins
-        let static_allowed = static_origins
-            .iter()
-            .any(|&allowed| allowed.trim().to_lowercase() == normalized);
-
-        // Check environment origins
-        let env_allowed = env_origins
-            .iter()
-            .any(|allowed| allowed.trim().to_lowercase() == normalized);
-
-        // Check wildcard patterns
-        let wildcard_allowed =
-            normalized.ends_with(".vercel.app") || 
-            normalized.ends_with(".railway.app") ||
-            normalized.ends_with(".up.railway.app");
-
-        // Always allow in production for now
-        let production_allow = true;
-
-        static_allowed || env_allowed || wildcard_allowed || production_allow
-    } else {
-        true // Allow requests without origin (like Postman, curl, etc.)
-    };
+    // Always allow all origins for Railway deployment
+    let is_allowed = true;
 
     // Handle preflight requests
     if method == "OPTIONS" {
