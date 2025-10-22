@@ -374,7 +374,7 @@ pub async fn create_article(
         .trim_matches('-')
         .to_string() + &format!("-{}", &article_id.to_string()[..8]);
 
-    let status = data.status.as_deref().unwrap_or("DRAFT");
+    let status = data.status.as_deref().unwrap_or("PUBLISHED");
     let is_public = data.is_public.unwrap_or(true);
     let is_premium = data.is_premium.unwrap_or(false);
     let published_at = if status == "PUBLISHED" {
