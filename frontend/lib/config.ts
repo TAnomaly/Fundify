@@ -4,7 +4,7 @@ export const getApiUrl = () => {
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     return 'https://perfect-happiness-production.up.railway.app/api';
   }
-  
+
   // Development fallback
   return 'http://localhost:4000/api';
 };
