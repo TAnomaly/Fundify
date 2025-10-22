@@ -161,7 +161,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/users/creators", options(|| async { "OK" }))
         .route(
             "/api/users/creators/:username",
-            get(handlers::users::get_creator_by_username),
+            get(handlers::users::get_creator_by_username)
+                .layer(from_fn(crate::middleware::auth::optional_auth_middleware)),
+        )
+        .route(
+            "/api/users/creator/:username",
+            get(handlers::users::get_creator_by_username)
+                .layer(from_fn(crate::middleware::auth::optional_auth_middleware)),
         )
         .route("/api/users/me", get(handlers::users::get_me).layer(from_fn(crate::middleware::auth::auth_middleware)))
         .route("/api/users/become-creator", post(handlers::users::become_creator).layer(from_fn(crate::middleware::auth::auth_middleware)))

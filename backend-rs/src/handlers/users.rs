@@ -239,21 +239,29 @@ pub async fn get_creator_by_username(
             cover_image: camp_row.get("coverImage"),
         })
     } else {
-        // Auto-create campaign if it doesn't exist
-        let slug = format!(
-            "{}-creator-{}",
-            user_name.to_lowercase().replace(' ', "-"),
-            chrono::Utc::now().timestamp()
-        );
-        let campaign_id = uuid::Uuid::new_v4().to_string();
+        // Auto-create campaign if it doesn't exist. The slug includes a UUID suffix to avoid
+        // collisions when multiple requests are made within the same second.
+        let slug_base = user_username
+            .clone()
+            .unwrap_or_else(|| user_name.clone())
+            .to_lowercase()
+            .replace(' ', "-");
+        let slug = format!("{}-creator-{}", slug_base, Uuid::new_v4().simple());
+        let cover_image = user_avatar.clone().unwrap_or_else(|| {
+            "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80".to_string()
+        });
 
-        sqlx::query(
+        let default_images: Vec<String> = Vec::new();
+
+        let inserted_campaign = sqlx::query(
             r#"INSERT INTO "Campaign"
             (id, title, slug, description, story, category, type, status, "goalAmount", "currentAmount",
-             "coverImage", "startDate", "endDate", "creatorId", "createdAt", "updatedAt")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())"#
+             "coverImage", "images", "startDate", "endDate", "creatorId", "createdAt", "updatedAt")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
+            RETURNING id, title, slug, description, story, category, type, status,
+                      "goalAmount", "currentAmount", "coverImage""#
         )
-        .bind(&campaign_id)
+        .bind(Uuid::new_v4().to_string())
         .bind(format!("{}'s Creator Page", user_name))
         .bind(&slug)
         .bind(format!("Support {} and get exclusive content!", user_name))
@@ -263,25 +271,26 @@ pub async fn get_creator_by_username(
         .bind("ACTIVE")
         .bind(0.0)
         .bind(0.0)
-        .bind(user_avatar.clone().unwrap_or_else(|| "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80".to_string()))
+        .bind(&cover_image)
+        .bind(&default_images)
         .bind(chrono::Utc::now().naive_utc())
         .bind((chrono::Utc::now() + chrono::Duration::days(365)).naive_utc())
         .bind(&user_id)
-        .execute(&state.db)
+        .fetch_one(&state.db)
         .await?;
 
         Some(CampaignInfo {
-            id: campaign_id.clone(),
-            title: format!("{}'s Creator Page", user_name),
-            slug: slug.clone(),
-            description: format!("Support {} and get exclusive content!", user_name),
-            story: Some("Welcome to my creator page! Subscribe to get exclusive access to my content and support my work.".to_string()),
-            category: "OTHER".to_string(),
-            campaign_type: "CREATOR".to_string(),
-            status: "ACTIVE".to_string(),
-            goal_amount: 0.0,
-            current_amount: 0.0,
-            cover_image: user_avatar.clone(),
+            id: inserted_campaign.get("id"),
+            title: inserted_campaign.get("title"),
+            slug: inserted_campaign.get("slug"),
+            description: inserted_campaign.get("description"),
+            story: Some(inserted_campaign.get("story")),
+            category: inserted_campaign.get("category"),
+            campaign_type: inserted_campaign.get("type"),
+            status: inserted_campaign.get("status"),
+            goal_amount: inserted_campaign.get("goalAmount"),
+            current_amount: inserted_campaign.get("currentAmount"),
+            cover_image: Some(inserted_campaign.get("coverImage")),
         })
     };
 
@@ -367,12 +376,10 @@ pub async fn become_creator(
     Extension(auth_user): Extension<AuthUser>,
 ) -> AppResult<impl IntoResponse> {
     // Update user to be a creator
-    sqlx::query(
-        r#"UPDATE "User" SET "isCreator" = true WHERE id = $1"#,
-    )
-    .bind(auth_user.id.to_string())
-    .execute(&state.db)
-    .await?;
+    sqlx::query(r#"UPDATE "User" SET "isCreator" = true WHERE id = $1"#)
+        .bind(auth_user.id.to_string())
+        .execute(&state.db)
+        .await?;
 
     // Get updated user data
     let user: User = sqlx::query_as::<_, User>(
