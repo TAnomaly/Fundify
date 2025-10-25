@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from "axios";
+import { getStoredToken } from "./authFetch";
 import {
   Campaign,
   Donation,
@@ -50,26 +51,34 @@ const api: AxiosInstance = axios.create({
   },
 });
 
+export const withAuth = <T extends Record<string, any>>(config: T = {} as T): T => {
+  const token = getStoredToken();
+  if (!token) {
+    return config;
+  }
+
+  return {
+    ...config,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(config.headers || {}),
+    },
+    withCredentials: true,
+  } as T;
+};
+
 // Request interceptor for adding auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("authToken");
-    console.log("🔑 API Request:", config.url);
-    console.log("   Token exists:", !!token);
-    console.log("   Token preview:", token ? token.substring(0, 20) + "..." : "null");
-    console.log("   localStorage keys:", Object.keys(localStorage));
-    
+    const token = getStoredToken();
+    if (typeof window !== "undefined") {
+      console.log("🔑 API Request:", config.url);
+      console.log("   Token exists:", !!token);
+      console.log("   Token preview:", token ? token.substring(0, 20) + "..." : "null");
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log("✅ Authorization header added:", `Bearer ${token.substring(0, 20)}...`);
-      console.log("   Full headers:", config.headers);
-    } else {
-      console.log("❌ No token found in localStorage");
-      console.log("   Available localStorage items:");
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        console.log(`     ${key}: ${localStorage.getItem(key || "")?.substring(0, 50)}...`);
-      }
     }
     return config;
   },
@@ -177,27 +186,27 @@ export const donationApi = {
 // User API functions
 export const userApi = {
   getMe: async (): Promise<ApiResponse<User>> => {
-    const { data } = await api.get("/users/me");
+    const { data } = await api.get("/users/me", withAuth());
     return data;
   },
 
   getById: async (id: string): Promise<ApiResponse<User>> => {
-    const { data } = await api.get(`/users/${id}`);
+    const { data } = await api.get(`/users/${id}`, withAuth());
     return data;
   },
 
   update: async (id: string, userData: Partial<User>): Promise<ApiResponse<User>> => {
-    const { data } = await api.put(`/users/${id}`, userData);
+    const { data } = await api.put(`/users/${id}`, userData, withAuth());
     return data;
   },
 
   getCampaigns: async (userId: string): Promise<ApiResponse<Campaign[]>> => {
-    const { data } = await api.get(`/users/me/campaigns`);
+    const { data } = await api.get(`/users/me/campaigns`, withAuth());
     return data;
   },
 
   becomeCreator: async (payload?: { name?: string; username?: string; email?: string }): Promise<{ success: boolean; data: User; message?: string }> => {
-    const { data } = await api.post("/users/become-creator", payload ?? {});
+    const { data } = await api.post("/users/become-creator", payload ?? {}, withAuth());
     return data;
   },
 };

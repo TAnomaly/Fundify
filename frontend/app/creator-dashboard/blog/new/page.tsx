@@ -12,9 +12,10 @@ const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
   ssr: false, 
   loading: () => <p>Loading editor...</p> 
 });
-import axios from "axios";
 import toast from "react-hot-toast";
 import { ArrowLeft, Save, Eye } from "lucide-react";
+import { withAuth } from "@/lib/api";
+import api from "@/lib/api";
 
 export default function NewArticlePage() {
   const router = useRouter();
@@ -40,8 +41,6 @@ export default function NewArticlePage() {
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("authToken");
-
       // Prepare data
       const dataToSend = {
         ...formData,
@@ -49,12 +48,10 @@ export default function NewArticlePage() {
         scheduledFor: formData.scheduledFor ? new Date(formData.scheduledFor).toISOString() : null,
       };
 
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/articles`,
+      const response = await api.post(
+        "/articles",
         dataToSend,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        withAuth()
       );
 
       if (response.data.success) {
@@ -254,4 +251,3 @@ export default function NewArticlePage() {
     </div>
   );
 }
-

@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { isAuthenticated } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { authFetch } from "@/lib/authFetch";
 
 export default function NewEventPage() {
     const router = useRouter();
@@ -28,7 +27,7 @@ export default function NewEventPage() {
             console.log("🔄 Creating new event...");
 
             // Get current creator ID from localStorage
-            const currentCreatorId = localStorage.getItem("currentCreatorId");
+            const currentCreatorId = getCurrentUser()?.id;
             console.log("🔍 Current creator ID:", currentCreatorId);
 
             if (!currentCreatorId) {
@@ -47,11 +46,8 @@ export default function NewEventPage() {
             };
 
             console.log("📡 Event data:", eventData);
-            const response = await fetch(`${apiUrl}/events`, {
+            const response = await authFetch(`${apiUrl}/events`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(eventData),
             });
             if (response.ok) {
@@ -100,5 +96,3 @@ export default function NewEventPage() {
         </div>
     );
 }
-
-

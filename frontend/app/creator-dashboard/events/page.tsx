@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 import toast from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isAuthenticated, getCurrentUser } from "@/lib/auth";
+import { authFetch } from "@/lib/authFetch";
+import { getCurrentUser } from "@/lib/auth";
 
 interface Event {
   id: string;
@@ -40,8 +40,7 @@ export default function EventsManagement() {
     try {
       console.log("🔄 Loading my events...");
 
-      // Get current creator ID from localStorage
-      const currentCreatorId = localStorage.getItem("currentCreatorId");
+      const currentCreatorId = getCurrentUser()?.id;
       console.log("🔍 Current creator ID:", currentCreatorId);
 
       if (!currentCreatorId) {
@@ -51,7 +50,7 @@ export default function EventsManagement() {
       }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
-      const response = await fetch(`${apiUrl}/events?hostId=${currentCreatorId}&status=PUBLISHED`);
+      const response = await authFetch(`${apiUrl}/events?hostId=${currentCreatorId}&status=PUBLISHED`);
 
       if (response.ok) {
         const data = await response.json();

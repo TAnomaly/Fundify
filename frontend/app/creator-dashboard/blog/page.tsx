@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { authFetch } from "@/lib/authFetch";
+import { getCurrentUser } from "@/lib/auth";
 
 interface Article {
   id: string;
@@ -37,10 +39,16 @@ export default function BlogManagement() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
 
       // Get current creator ID from localStorage
-      const currentCreatorId = localStorage.getItem("currentCreatorId") || "test-creator-123";
+      const currentCreatorId = getCurrentUser()?.id;
       console.log("🔍 Current creator ID:", currentCreatorId);
 
-      const response = await fetch(`${apiUrl}/articles?authorId=${currentCreatorId}`);
+      if (!currentCreatorId) {
+        console.warn("⚠️ No authenticated creator found while loading articles");
+        setArticles([]);
+        return;
+      }
+
+      const response = await authFetch(`${apiUrl}/articles?authorId=${currentCreatorId}`);
 
       if (response.ok) {
         const data = await response.json();

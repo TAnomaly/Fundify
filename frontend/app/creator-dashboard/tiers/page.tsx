@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { API_URL } from "@/lib/config";
+import { authFetch, getStoredToken } from "@/lib/authFetch";
 
 interface Tier {
   id: string;
@@ -41,19 +42,14 @@ export default function TiersPage() {
   const loadTiers = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = getStoredToken();
       if (!token) {
         router.push("/login");
         return;
       }
 
       // Get current user's creator campaign
-      const userResponse = await fetch(
-        `${API_URL}/users/me`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const userResponse = await authFetch(`${API_URL}/users/me`);
       const userData = await userResponse.json();
 
       if (!userData.success || !userData.data.isCreator) {
@@ -63,12 +59,7 @@ export default function TiersPage() {
       }
 
       // Get creator's campaign
-      const campaignsResponse = await fetch(
-        `${API_URL}/campaigns?type=CREATOR`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const campaignsResponse = await authFetch(`${API_URL}/campaigns?type=CREATOR`);
       const campaignsData = await campaignsResponse.json();
 
       const creatorCampaign = campaignsData.data?.campaigns?.find(
@@ -83,11 +74,8 @@ export default function TiersPage() {
       }
 
       // Get tiers for the campaign
-      const tiersResponse = await fetch(
-        `${API_URL}/memberships/campaigns/${creatorCampaign.id}/tiers`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const tiersResponse = await authFetch(
+        `${API_URL}/memberships/campaigns/${creatorCampaign.id}/tiers`
       );
       const tiersData = await tiersResponse.json();
 
@@ -112,24 +100,18 @@ export default function TiersPage() {
     e.preventDefault();
     setIsCreating(true);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = getStoredToken();
       if (!token) {
         toast.error("Please login");
         return;
       }
 
       // Get current user's creator campaign
-      const userResponse = await fetch(
-        `${API_URL}/users/me`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const userResponse = await authFetch(`${API_URL}/users/me`);
       const userData = await userResponse.json();
 
       // Get creator campaign
-      const campaignsResponse = await fetch(
-        `${API_URL}/campaigns?type=CREATOR`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const campaignsResponse = await authFetch(`${API_URL}/campaigns?type=CREATOR`);
       const campaignsData = await campaignsResponse.json();
 
       const creatorCampaign = campaignsData.data?.campaigns?.find(
@@ -142,14 +124,10 @@ export default function TiersPage() {
       }
 
       // Create tier
-      const response = await fetch(
+      const response = await authFetch(
         `${API_URL}/memberships/campaigns/${creatorCampaign.id}/tiers`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({
             name: newTier.name,
             description: newTier.description,

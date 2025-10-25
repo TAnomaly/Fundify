@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import { ArrowLeft, Mail, Search, Filter } from "lucide-react";
+import { authFetch } from "@/lib/authFetch";
 
 export default function SubscribersPage() {
   const router = useRouter();
@@ -25,13 +26,8 @@ export default function SubscribersPage() {
       if (statusFilter !== "all") params.append("status", statusFilter);
       if (search) params.append("search", search);
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/analytics/subscribers?${params}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
+      const response = await authFetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/analytics/subscribers?${params}`
       );
 
       const data = await response.json();
@@ -56,14 +52,10 @@ export default function SubscribersPage() {
     }
 
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/analytics/bulk-message`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
           body: JSON.stringify(bulkMessage),
         }
       );

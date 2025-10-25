@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import { ArrowLeft, Mail, Plus, Trash2, Edit, ToggleLeft, ToggleRight } from "lucide-react";
+import { authFetch } from "@/lib/authFetch";
 
 export default function WelcomeMessagesPage() {
   const router = useRouter();
@@ -28,13 +29,8 @@ export default function WelcomeMessagesPage() {
   const loadWelcomeMessages = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/welcome-messages`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
+      const response = await authFetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/welcome-messages`
       );
 
       const data = await response.json();
@@ -55,14 +51,10 @@ export default function WelcomeMessagesPage() {
     }
 
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/welcome-messages`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
           body: JSON.stringify({
             ...formData,
             tierId: formData.tierId || null,
@@ -92,14 +84,10 @@ export default function WelcomeMessagesPage() {
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/welcome-messages/${id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
           body: JSON.stringify({ isActive: !currentStatus }),
         }
       );
@@ -121,13 +109,10 @@ export default function WelcomeMessagesPage() {
       return;
 
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/welcome-messages/${id}`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
         }
       );
 
