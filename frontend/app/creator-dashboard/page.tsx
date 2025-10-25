@@ -29,13 +29,18 @@ export default function CreatorDashboard() {
 
       // Check if user is already a creator
       const isAlreadyCreator = localStorage.getItem("isCreator") === "true";
+      const currentCreatorId = localStorage.getItem("currentCreatorId");
+      const currentCreatorUsername = localStorage.getItem("currentCreatorUsername");
+      
       console.log("🔍 Checking creator status:", isAlreadyCreator);
       console.log("🔍 localStorage isCreator:", localStorage.getItem("isCreator"));
+      console.log("🔍 currentCreatorId:", currentCreatorId);
+      console.log("🔍 currentCreatorUsername:", currentCreatorUsername);
       
-      if (isAlreadyCreator) {
+      if (isAlreadyCreator && currentCreatorId) {
         setIsCreator(true);
-        setUserName("Creator");
-        console.log("✅ User is already a creator");
+        setUserName(currentCreatorUsername || "Creator");
+        console.log("✅ User is already a creator with ID:", currentCreatorId);
       } else {
         setIsCreator(false);
         setUserName("User");
@@ -117,14 +122,18 @@ export default function CreatorDashboard() {
         console.log("✅ Successfully became creator!", data);
         toast.success("Welcome to the creator program!");
 
-        // Save creator status to localStorage
+        // Save creator status and ID to localStorage
         localStorage.setItem("isCreator", "true");
-
+        localStorage.setItem("currentCreatorId", data.userId);
+        localStorage.setItem("currentCreatorUsername", data.username);
+        
         // Set creator status immediately
         setIsCreator(true);
-        setUserName("Creator");
-
+        setUserName(data.username || "Creator");
+        
         console.log("🎉 Creator status saved to localStorage");
+        console.log("🎉 Creator ID:", data.userId);
+        console.log("🎉 Creator username:", data.username);
 
         // Don't reload, just update the UI
         console.log("✅ Creator dashboard ready!");

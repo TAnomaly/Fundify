@@ -33,10 +33,15 @@ export default function BlogManagement() {
   const loadArticles = async () => {
     setIsLoading(true);
     try {
-      console.log("🔄 Loading articles...");
+      console.log("🔄 Loading my articles...");
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
-      const response = await fetch(`${apiUrl}/articles`);
       
+      // Get current creator ID from localStorage
+      const currentCreatorId = localStorage.getItem("currentCreatorId") || "test-creator-123";
+      console.log("🔍 Current creator ID:", currentCreatorId);
+      
+      const response = await fetch(`${apiUrl}/articles?authorId=${currentCreatorId}`);
+
       if (response.ok) {
         const data = await response.json();
         console.log("📡 Articles response:", data);
@@ -102,11 +107,10 @@ export default function BlogManagement() {
               )}
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    article.status === 'PUBLISHED' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                    article.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${article.status === 'PUBLISHED' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                      article.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
                     {article.status}
                   </span>
                 </div>

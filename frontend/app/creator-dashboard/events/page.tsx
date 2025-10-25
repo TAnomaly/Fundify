@@ -38,17 +38,26 @@ export default function EventsManagement() {
   const loadEvents = async () => {
     setIsLoading(true);
     try {
-      const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
-      if (!token) {
+      console.log("🔄 Loading my events...");
+      
+      // Get current creator ID from localStorage
+      const currentCreatorId = localStorage.getItem("currentCreatorId");
+      console.log("🔍 Current creator ID:", currentCreatorId);
+      
+      if (!currentCreatorId) {
+        console.log("⚠️ No creator ID found, showing empty events list");
         setEvents([]);
-      } else {
-        const me = getCurrentUser();
-        const api = process.env.NEXT_PUBLIC_API_URL;
-        const res = await axios.get(`${api}/events?hostId=${me?.userId || me?.id}&status=PUBLISHED`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = Array.isArray(res.data?.data?.events) ? res.data.data.events : [];
-        setEvents(data);
+        return;
+      }
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
+      const response = await fetch(`${apiUrl}/events?hostId=${currentCreatorId}&status=PUBLISHED`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("📡 Events response:", data);
+        const events = Array.isArray(data?.data?.events) ? data.data.events : [];
+        setEvents(events);
       }
     } catch (error: any) {
       toast.error("Failed to load events");

@@ -22,26 +22,47 @@ export default function NewEventPage() {
     });
 
     const onSubmit = async () => {
-        if (!isAuthenticated()) return toast.error("Please login");
         if (!form.title || !form.startTime || !form.endTime) return toast.error("Fill required fields");
         try {
             setIsSubmitting(true);
-            const token = localStorage.getItem("authToken");
-            const api = process.env.NEXT_PUBLIC_API_URL;
+            console.log("🔄 Creating new event...");
+            
+            // Get current creator ID from localStorage
+            const currentCreatorId = localStorage.getItem("currentCreatorId");
+            console.log("🔍 Current creator ID:", currentCreatorId);
+            
+            if (!currentCreatorId) {
+                toast.error("Please become a creator first");
+                return;
+            }
+            
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
 
             // Convert datetime-local to ISO-8601 format
             const eventData = {
                 ...form,
                 startTime: new Date(form.startTime).toISOString(),
                 endTime: new Date(form.endTime).toISOString(),
+                hostId: currentCreatorId, // Add creator ID
             };
 
-            const res = await axios.post(`${api}/events`, eventData, { headers: { Authorization: `Bearer ${token}` } });
-            if (res.data?.success) {
+            console.log("📡 Event data:", eventData);
+            const response = await fetch(`${apiUrl}/events`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(eventData),
+            });
+            if (response.ok) {
+                const data = await response.json();
+                console.log("✅ Event created successfully:", data);
                 toast.success("Event created");
                 router.push(`/creator-dashboard/events`);
             } else {
-                toast.error("Failed to create event");
+                const errorData = await response.json();
+                console.error("❌ Event creation failed:", errorData);
+                toast.error(errorData.message || "Failed to create event");
             }
         } catch (e: any) {
             toast.error(e?.response?.data?.message || "Error creating event");
