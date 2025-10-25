@@ -39,16 +39,29 @@ export default function LoginPage() {
     setIsLoading(true);
     toast.loading("Signing in...");
     try {
+      console.log("🔄 Attempting login...");
       const response = await authApi.login(data.email, data.password);
+      console.log("📡 Login response:", response);
       toast.dismiss();
+      
       if (response.success && response.data?.token) {
+        console.log("✅ Login successful, saving token...");
+        console.log("   Token:", response.data.token.substring(0, 20) + "...");
         await saveToken(response.data.token);
+        
+        // Verify token was saved
+        const savedToken = localStorage.getItem("authToken");
+        console.log("   Token saved:", !!savedToken);
+        console.log("   Saved token preview:", savedToken ? savedToken.substring(0, 20) + "..." : "null");
+        
         toast.success("Login successful! Welcome back!");
         router.push("/dashboard");
       } else {
+        console.error("❌ Login failed:", response);
         toast.error(response.error || "Login failed. Please try again.");
       }
     } catch (error: any) {
+      console.error("❌ Login error:", error);
       toast.dismiss();
       toast.error(error.response?.data?.error || "Login failed. Please check your credentials.");
     } finally {
