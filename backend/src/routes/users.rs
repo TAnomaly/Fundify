@@ -134,10 +134,10 @@ async fn become_creator(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     println!("🔄 Someone is trying to become a creator (no auth required)");
     
-    // Create a test user if not exists and make them creator
-    let test_user_id = "test-creator-123";
-    let test_username = "testcreator";
-    let test_email = "test@creator.com";
+    // Generate a unique user ID
+    let user_id = uuid::Uuid::new_v4().to_string();
+    let username = format!("creator_{}", chrono::Utc::now().timestamp());
+    let email = format!("creator_{}@fundify.com", chrono::Utc::now().timestamp());
     
     // First, try to insert or update user
     let result = sqlx::query(
@@ -146,10 +146,10 @@ async fn become_creator(
          ON CONFLICT (id) 
          DO UPDATE SET is_creator = true, updated_at = NOW()"
     )
-    .bind(test_user_id)
-    .bind(test_email)
-    .bind(test_username)
-    .bind("Test Creator")
+    .bind(&user_id)
+    .bind(&email)
+    .bind(&username)
+    .bind("Creator")
     .execute(&db.pool)
     .await
     .map_err(|e| {
@@ -163,8 +163,8 @@ async fn become_creator(
     let response = serde_json::json!({
         "success": true,
         "message": "Successfully became a creator",
-        "userId": test_user_id,
-        "username": test_username
+        "userId": user_id,
+        "username": username
     });
     
     Ok(Json(response))

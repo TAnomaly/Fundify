@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::Json,
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use serde::{Deserialize, Serialize};
@@ -120,8 +120,57 @@ async fn get_article_by_slug(
     Ok(Json(article))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct CreateArticleRequest {
+    pub title: String,
+    pub content: String,
+    pub slug: Option<String>,
+}
+
 pub fn articles_routes() -> Router<Database> {
     Router::new()
-        .route("/", get(get_articles))
+        .route("/", get(get_articles).post(create_article))
         .route("/:slug", get(get_article_by_slug))
+}
+
+async fn create_article(
+    State(db): State<Database>,
+    axum::extract::Json(payload): axum::extract::Json<CreateArticleRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    println!("🔄 Creating new article: {}", payload.title);
+    
+    let article_id = Uuid::new_v4();
+    let slug = payload.slug.unwrap_or_else(|| {
+        payload.title
+            .to_lowercase()
+            .replace(' ', "-")
+            .replace(|c: char| !c.is_alphanumeric() && c != '-', "")
+    });
+    
+    let result = sqlx::query(
+        "INSERT INTO articles (id, title, content, slug, author_id, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())"
+    )
+    .bind(article_id)
+    .bind(&payload.title)
+    .bind(&payload.content)
+    .bind(&slug)
+    .bind("test-creator-123") // For now, use test creator ID
+    .execute(&db.pool)
+    .await
+    .map_err(|e| {
+        println!("❌ Error creating article: {:?}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    
+    println!("✅ Article created successfully. Rows affected: {}", result.rows_affected());
+    
+    let response = serde_json::json!({
+        "success": true,
+        "message": "Article created successfully",
+        "articleId": article_id,
+        "slug": slug
+    });
+    
+    Ok(Json(response))
 }
