@@ -129,17 +129,29 @@ async fn get_user_campaigns(
     Ok(Json(response))
 }
 
+#[derive(Debug, Deserialize)]
+struct BecomeCreatorRequest {
+    name: Option<String>,
+    username: Option<String>,
+    email: Option<String>,
+}
+
 async fn become_creator(
     State(db): State<Database>,
+    axum::extract::Json(payload): axum::extract::Json<BecomeCreatorRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     println!("🔄 Someone is trying to become a creator (no auth required)");
+    println!("📝 Received user data: {:?}", payload);
     
-    // Generate a unique user ID with better naming
+    // Generate a unique user ID
     let user_id = uuid::Uuid::new_v4().to_string();
-    let timestamp = chrono::Utc::now().timestamp();
-    let username = format!("creator_{}", timestamp);
-    let email = format!("creator_{}@fundify.com", timestamp);
-    let name = format!("Creator {}", timestamp);
+    
+    // Use provided user data or generate defaults
+    let name = payload.name.unwrap_or_else(|| "Creator".to_string());
+    let username = payload.username.unwrap_or_else(|| "creator".to_string());
+    let email = payload.email.unwrap_or_else(|| "creator@fundify.com".to_string());
+    
+    println!("🎯 Using user data - Name: {}, Username: {}, Email: {}", name, username, email);
     
     // First, try to insert or update user
     let result = sqlx::query(

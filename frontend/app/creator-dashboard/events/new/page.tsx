@@ -26,16 +26,16 @@ export default function NewEventPage() {
         try {
             setIsSubmitting(true);
             console.log("🔄 Creating new event...");
-            
+
             // Get current creator ID from localStorage
             const currentCreatorId = localStorage.getItem("currentCreatorId");
             console.log("🔍 Current creator ID:", currentCreatorId);
-            
+
             if (!currentCreatorId) {
                 toast.error("Please become a creator first");
                 return;
             }
-            
+
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
 
             // Convert datetime-local to ISO-8601 format

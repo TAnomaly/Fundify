@@ -39,20 +39,20 @@ export default function EventsManagement() {
     setIsLoading(true);
     try {
       console.log("🔄 Loading my events...");
-      
+
       // Get current creator ID from localStorage
       const currentCreatorId = localStorage.getItem("currentCreatorId");
       console.log("🔍 Current creator ID:", currentCreatorId);
-      
+
       if (!currentCreatorId) {
         console.log("⚠️ No creator ID found, showing empty events list");
         setEvents([]);
         return;
       }
-      
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
       const response = await fetch(`${apiUrl}/events?hostId=${currentCreatorId}&status=PUBLISHED`);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log("📡 Events response:", data);
@@ -120,15 +120,15 @@ export default function EventsManagement() {
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${event.status === 'PUBLISHED' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                      event.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                        event.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                          'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                    event.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                      event.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                        'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                     }`}>
                     {event.status}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${event.type === 'VIRTUAL' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' :
-                      event.type === 'IN_PERSON' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' :
-                        'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300'
+                    event.type === 'IN_PERSON' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' :
+                      'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300'
                     }`}>
                     {event.type}
                   </span>
