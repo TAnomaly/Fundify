@@ -79,6 +79,7 @@ pub struct CreateUserRequest {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreatePostRequest {
     pub title: String,
     pub content: String,
@@ -97,14 +98,19 @@ pub struct CreatePostRequest {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateProductRequest {
+    #[serde(alias = "title")]
     pub name: String,
     pub description: Option<String>,
     pub price: f64,
     pub currency: Option<String>,
+    #[serde(alias = "coverImage")]
     pub image_url: Option<String>,
     pub is_digital: Option<bool>,
+    #[serde(alias = "fileUrl")]
     pub download_url: Option<String>,
+    pub product_type: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

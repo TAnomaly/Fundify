@@ -142,6 +142,101 @@ impl Database {
 
         sqlx::query(
             r#"
+            CREATE TABLE IF NOT EXISTS events (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                host_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                status VARCHAR(50) DEFAULT 'DRAFT',
+                event_type VARCHAR(50) DEFAULT 'VIRTUAL',
+                cover_image TEXT,
+                start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+                end_time TIMESTAMP WITH TIME ZONE,
+                timezone VARCHAR(100),
+                location TEXT,
+                virtual_link TEXT,
+                max_attendees INTEGER,
+                is_public BOOLEAN DEFAULT TRUE,
+                is_premium BOOLEAN DEFAULT FALSE,
+                price DOUBLE PRECISION DEFAULT 0.0,
+                agenda TEXT,
+                tags TEXT[],
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            "#
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS event_type VARCHAR(50) DEFAULT 'VIRTUAL'")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_image TEXT")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query(
+            "ALTER TABLE events ADD COLUMN IF NOT EXISTS start_time TIMESTAMP WITH TIME ZONE",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TIMESTAMP WITH TIME ZONE")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS timezone VARCHAR(100)")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS virtual_link TEXT")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS max_attendees INTEGER")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT TRUE")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS agenda TEXT")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS tags TEXT[]")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS price DOUBLE PRECISION DEFAULT 0.0")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'DRAFT'")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS location TEXT")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query(
+            r#"
             CREATE TABLE IF NOT EXISTS purchases (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,

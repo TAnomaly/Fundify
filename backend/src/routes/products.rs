@@ -81,8 +81,24 @@ async fn create_product(
     State(db): State<Database>,
     claims: Claims,
     Json(payload): Json<CreateProductRequest>,
-) -> Result<Json<Product>, StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = claims.sub;
+
+    if payload.name.trim().is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let currency = payload
+        .currency
+        .clone()
+        .unwrap_or_else(|| "USD".to_string());
+
+    let is_digital = payload.is_digital.unwrap_or_else(|| {
+        match payload.product_type.as_deref() {
+            Some(product_type) if product_type.eq_ignore_ascii_case("physical") => false,
+            _ => true,
+        }
+    });
 
     let product = sqlx::query_as::<_, Product>(
         r#"
@@ -95,15 +111,18 @@ async fn create_product(
     .bind(&payload.name)
     .bind(&payload.description)
     .bind(&payload.price)
-    .bind(payload.currency.unwrap_or_else(|| "USD".to_string()))
+    .bind(currency)
     .bind(&payload.image_url)
-    .bind(payload.is_digital.unwrap_or(false))
+    .bind(is_digital)
     .bind(&payload.download_url)
     .fetch_one(&db.pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(product))
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "data": product
+    })))
 }
 
 async fn get_product_by_id(
@@ -124,7 +143,7 @@ async fn update_product(
     Path(id): Path<Uuid>,
     claims: Claims,
     Json(payload): Json<CreateProductRequest>,
-) -> Result<Json<Product>, StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = claims.sub;
 
     // Check if user owns the product
@@ -140,6 +159,22 @@ async fn update_product(
         return Err(StatusCode::FORBIDDEN);
     }
 
+    if payload.name.trim().is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let currency = payload
+        .currency
+        .clone()
+        .unwrap_or_else(|| "USD".to_string());
+
+    let is_digital = payload.is_digital.unwrap_or_else(|| {
+        match payload.product_type.as_deref() {
+            Some(product_type) if product_type.eq_ignore_ascii_case("physical") => false,
+            _ => true,
+        }
+    });
+
     let product = sqlx::query_as::<_, Product>(
         r#"
         UPDATE products 
@@ -152,15 +187,18 @@ async fn update_product(
     .bind(&payload.name)
     .bind(&payload.description)
     .bind(&payload.price)
-    .bind(payload.currency.unwrap_or_else(|| "USD".to_string()))
+    .bind(currency)
     .bind(&payload.image_url)
-    .bind(payload.is_digital.unwrap_or(false))
+    .bind(is_digital)
     .bind(&payload.download_url)
     .fetch_one(&db.pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(product))
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "data": product
+    })))
 }
 
 async fn delete_product(

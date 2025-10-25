@@ -31,6 +31,23 @@ pub struct CampaignQuery {
     pub limit: Option<u32>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateCampaignPayload {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub story: Option<String>,
+    #[serde(alias = "goal", alias = "goalAmount")]
+    pub goal_amount: Option<f64>,
+    #[serde(alias = "coverImage", alias = "imageUrl")]
+    pub cover_image: Option<String>,
+    #[serde(alias = "videoUrl")]
+    pub video_url: Option<String>,
+    pub category: Option<String>,
+    #[serde(alias = "endDate")]
+    pub end_date: Option<String>,
+}
+
 pub fn campaign_routes() -> Router<Database> {
     Router::new()
         .route("/", get(get_campaigns))
@@ -79,48 +96,53 @@ async fn get_campaigns(
 async fn create_campaign(
     State(db): State<Database>,
     claims: crate::auth::Claims,
-    Json(payload): Json<serde_json::Value>,
+    Json(payload): Json<CreateCampaignPayload>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     println!("🔄 Creating campaign for user: {}", claims.sub);
-    println!(
-        "📝 Campaign payload: {}",
-        serde_json::to_string(&payload).unwrap_or("Failed to serialize".to_string())
-    );
 
-    // Extract values from payload
     let title = payload
-        .get("title")
-        .and_then(|v| v.as_str())
+        .title
+        .as_deref()
+        .filter(|t| !t.trim().is_empty())
         .unwrap_or("New Campaign");
 
     let description = payload
-        .get("description")
-        .and_then(|v| v.as_str())
+        .description
+        .as_deref()
+        .filter(|d| !d.trim().is_empty())
         .unwrap_or("Campaign description");
 
     let story = payload
-        .get("story")
-        .and_then(|v| v.as_str())
-        .unwrap_or(description);
+        .story
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or(description)
+        .to_string();
 
-    let goal_amount = payload
-        .get("goal_amount")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(1000.0);
+    let goal_amount = payload.goal_amount.unwrap_or(1000.0);
 
     let cover_image = payload
-        .get("cover_image")
-        .and_then(|v| v.as_str())
+        .cover_image
+        .as_deref()
+        .filter(|c| !c.trim().is_empty())
         .unwrap_or("https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=1200&q=80");
 
-    let video_url = payload.get("video_url").and_then(|v| v.as_str());
+    let video_url = payload
+        .video_url
+        .as_deref()
+        .filter(|v| !v.trim().is_empty());
 
     let category = payload
-        .get("category")
-        .and_then(|v| v.as_str())
+        .category
+        .as_deref()
+        .filter(|c| !c.trim().is_empty())
         .unwrap_or("OTHER");
 
-    let end_date = payload.get("end_date").and_then(|v| v.as_str());
+    let parsed_end_date = payload
+        .end_date
+        .as_deref()
+        .and_then(|raw| chrono::DateTime::parse_from_rfc3339(raw).ok())
+        .map(|dt| dt.with_timezone(&Utc));
 
     // Generate a unique slug from title
     let slug = title
@@ -141,7 +163,7 @@ async fn create_campaign(
     .bind(campaign_id)
     .bind(title)
     .bind(description)
-    .bind(story)
+    .bind(&story)
     .bind(goal_amount)
     .bind(&slug)
     .bind("DRAFT")
@@ -149,7 +171,7 @@ async fn create_campaign(
     .bind(cover_image)
     .bind(video_url)
     .bind(category)
-    .bind(end_date)
+    .bind(parsed_end_date)
     .execute(&db.pool)
     .await;
 
