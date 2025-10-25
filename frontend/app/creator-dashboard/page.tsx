@@ -103,7 +103,7 @@ export default function CreatorDashboard() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
       console.log("   Making direct API call to:", `${apiUrl}/users/become-creator`);
       console.log("   Authorization header will be:", `Bearer ${token}`);
-      
+
       const response = await fetch(`${apiUrl}/users/become-creator`, {
         method: 'POST',
         headers: {
