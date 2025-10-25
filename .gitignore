@@ -1,2 +1,6 @@
 backend/.env
 railways_env.md
+frontend/.env.local
+frontend/.env
+*.env
+.env*
