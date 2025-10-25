@@ -94,7 +94,7 @@ export default function CreatorDashboard() {
       // Manual API call with explicit headers
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
       console.log("   Making direct API call to:", `${apiUrl}/users/become-creator`);
-      
+
       const response = await fetch(`${apiUrl}/users/become-creator`, {
         method: 'POST',
         headers: {
