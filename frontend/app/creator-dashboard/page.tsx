@@ -85,29 +85,43 @@ export default function CreatorDashboard() {
       const token = localStorage.getItem("authToken");
       console.log("   Token exists:", !!token);
       console.log("   Token preview:", token ? token.substring(0, 20) + "..." : "null");
+      console.log("   Full token:", token);
 
       // Check if user is logged in
       const currentUser = getCurrentUser();
       console.log("   Current user:", currentUser);
 
-      const response = await userApi.becomeCreator();
-      console.log("📡 Become creator response:", response);
+      // Manual API call with explicit headers
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
+      console.log("   Making direct API call to:", `${apiUrl}/users/become-creator`);
+      
+      const response = await fetch(`${apiUrl}/users/become-creator`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-      if (response.success) {
-        console.log("✅ Successfully became creator!");
+      console.log("📡 Raw response status:", response.status);
+      console.log("📡 Raw response headers:", response.headers);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Successfully became creator!", data);
         toast.success("Welcome to the creator program!");
         // Set creator status immediately
         setIsCreator(true);
         // Force page refresh to ensure state is updated
         window.location.reload();
       } else {
-        console.error("❌ Become creator failed:", response);
-        toast.error(response.message || "Failed to become a creator");
+        const errorData = await response.json();
+        console.error("❌ Become creator failed:", errorData);
+        toast.error(errorData.message || "Failed to become a creator");
       }
     } catch (error: any) {
       console.error("❌ Become creator error:", error);
-      console.error("   Error response:", error.response?.data);
-      toast.error(error.response?.data?.message || "Failed to become a creator");
+      toast.error("Failed to become a creator");
     }
   };
 
