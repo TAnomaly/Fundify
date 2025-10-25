@@ -82,8 +82,17 @@ pub struct CreateUserRequest {
 pub struct CreatePostRequest {
     pub title: String,
     pub content: String,
+    pub excerpt: Option<String>,
     pub media_url: Option<String>,
     pub media_type: Option<String>,
+    #[serde(rename = "type")]
+    pub content_type: Option<String>,
+    pub images: Option<Vec<String>>,
+    pub video_url: Option<String>,
+    pub audio_url: Option<String>,
+    pub is_public: Option<bool>,
+    pub published: Option<bool>,
+    pub published_at: Option<DateTime<Utc>>,
     pub is_premium: Option<bool>,
 }
 

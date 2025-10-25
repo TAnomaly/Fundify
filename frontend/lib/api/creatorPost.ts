@@ -32,7 +32,11 @@ export const creatorPostApi = {
 
   getPost: async (postId: string): Promise<ApiResponse<CreatorPost>> => {
     const response = await api.get(`/posts/${postId}`);
-    return response.data;
+    return {
+      success: response.data.success,
+      data: response.data.data,
+      message: response.data.message,
+    };
   },
 
   update: async (postId: string, data: UpdateCreatorPostInput): Promise<ApiResponse<CreatorPost>> => {

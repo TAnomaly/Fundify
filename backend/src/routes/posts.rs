@@ -5,21 +5,71 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::{
-    auth::Claims,
-    database::Database,
-    models::{CreatePostRequest, Post},
-};
+use crate::{auth::Claims, database::Database, models::CreatePostRequest};
 
 #[derive(Debug, Deserialize)]
 pub struct PostQuery {
     pub page: Option<u32>,
     pub limit: Option<u32>,
     pub user_id: Option<String>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct PostRecord {
+    id: Uuid,
+    user_id: String,
+    title: String,
+    content: Option<String>,
+    media_url: Option<String>,
+    media_type: Option<String>,
+    is_premium: bool,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    author_name: Option<String>,
+    author_username: Option<String>,
+    author_avatar: Option<String>,
+    author_is_creator: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CreatorPostAuthor {
+    id: String,
+    name: Option<String>,
+    username: Option<String>,
+    avatar: Option<String>,
+    #[serde(default)]
+    is_creator: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CreatorPostResponse {
+    id: Uuid,
+    title: String,
+    content: String,
+    excerpt: Option<String>,
+    images: Vec<String>,
+    video_url: Option<String>,
+    audio_url: Option<String>,
+    #[serde(default)]
+    attachments: Option<serde_json::Value>,
+    is_public: bool,
+    #[serde(default)]
+    minimum_tier_id: Option<String>,
+    like_count: i64,
+    comment_count: i64,
+    published: bool,
+    published_at: Option<DateTime<Utc>>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    author: CreatorPostAuthor,
+    has_access: bool,
 }
 
 pub fn post_routes() -> Router<Database> {
@@ -40,7 +90,7 @@ struct PostsResponse {
 
 #[derive(Debug, Serialize)]
 struct PostsData {
-    posts: Vec<Post>,
+    posts: Vec<CreatorPostResponse>,
     pagination: PaginationInfo,
     #[serde(rename = "hasSubscription")]
     has_subscription: bool,
@@ -66,8 +116,28 @@ async fn get_posts(
     let offset_i64 = offset as i64;
 
     let (posts, total) = if let Some(user_id) = params.user_id.clone() {
-        let posts = sqlx::query_as::<_, Post>(
-            "SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+        let posts = sqlx::query_as::<_, PostRecord>(
+            r#"
+            SELECT 
+                p.id,
+                p.user_id,
+                p.title,
+                p.content,
+                p.media_url,
+                p.media_type,
+                p.is_premium,
+                p.created_at,
+                p.updated_at,
+                u.name as author_name,
+                u.username as author_username,
+                u.avatar as author_avatar,
+                u.is_creator as author_is_creator
+            FROM posts p
+            LEFT JOIN users u ON p.user_id = u.id
+            WHERE p.user_id = $1
+            ORDER BY p.created_at DESC
+            LIMIT $2 OFFSET $3
+            "#,
         )
         .bind(&user_id)
         .bind(limit_i64)
@@ -90,8 +160,27 @@ async fn get_posts(
 
         (posts, total as usize)
     } else {
-        let posts = sqlx::query_as::<_, Post>(
-            "SELECT * FROM posts ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+        let posts = sqlx::query_as::<_, PostRecord>(
+            r#"
+            SELECT 
+                p.id,
+                p.user_id,
+                p.title,
+                p.content,
+                p.media_url,
+                p.media_type,
+                p.is_premium,
+                p.created_at,
+                p.updated_at,
+                u.name as author_name,
+                u.username as author_username,
+                u.avatar as author_avatar,
+                u.is_creator as author_is_creator
+            FROM posts p
+            LEFT JOIN users u ON p.user_id = u.id
+            ORDER BY p.created_at DESC
+            LIMIT $1 OFFSET $2
+            "#,
         )
         .bind(limit_i64)
         .bind(offset_i64)
@@ -116,7 +205,7 @@ async fn get_posts(
     let response = PostsResponse {
         success: true,
         data: PostsData {
-            posts,
+            posts: posts.into_iter().map(map_post).collect(),
             pagination: PaginationInfo {
                 page,
                 limit,
@@ -138,8 +227,28 @@ async fn get_posts_by_creator(
     let limit = params.limit.unwrap_or(20);
     let offset = (page - 1) * limit;
 
-    let posts = sqlx::query_as::<_, Post>(
-        "SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+    let posts = sqlx::query_as::<_, PostRecord>(
+        r#"
+        SELECT 
+            p.id,
+            p.user_id,
+            p.title,
+            p.content,
+            p.media_url,
+            p.media_type,
+            p.is_premium,
+            p.created_at,
+            p.updated_at,
+            u.name as author_name,
+            u.username as author_username,
+            u.avatar as author_avatar,
+            u.is_creator as author_is_creator
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        WHERE p.user_id = $1
+        ORDER BY p.created_at DESC
+        LIMIT $2 OFFSET $3
+        "#,
     )
     .bind(&user_id)
     .bind(limit as i64)
@@ -163,7 +272,7 @@ async fn get_posts_by_creator(
     let response = PostsResponse {
         success: true,
         data: PostsData {
-            posts,
+            posts: posts.into_iter().map(map_post).collect(),
             pagination: PaginationInfo {
                 page,
                 limit,
@@ -186,8 +295,28 @@ async fn get_my_posts(
     let offset = (page - 1) * limit;
     let user_id = claims.sub;
 
-    let posts = sqlx::query_as::<_, Post>(
-        "SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+    let posts = sqlx::query_as::<_, PostRecord>(
+        r#"
+        SELECT 
+            p.id,
+            p.user_id,
+            p.title,
+            p.content,
+            p.media_url,
+            p.media_type,
+            p.is_premium,
+            p.created_at,
+            p.updated_at,
+            u.name as author_name,
+            u.username as author_username,
+            u.avatar as author_avatar,
+            u.is_creator as author_is_creator
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        WHERE p.user_id = $1
+        ORDER BY p.created_at DESC
+        LIMIT $2 OFFSET $3
+        "#,
     )
     .bind(&user_id)
     .bind(limit as i64)
@@ -211,7 +340,7 @@ async fn get_my_posts(
     let response = PostsResponse {
         success: true,
         data: PostsData {
-            posts,
+            posts: posts.into_iter().map(map_post).collect(),
             pagination: PaginationInfo {
                 page,
                 limit,
@@ -248,19 +377,53 @@ async fn create_post(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let post = sqlx::query_as::<_, Post>(
+    let media_url = payload
+        .media_url
+        .clone()
+        .or_else(|| {
+            payload
+                .images
+                .as_ref()
+                .and_then(|imgs| imgs.first().cloned())
+        })
+        .or_else(|| payload.video_url.clone())
+        .or_else(|| payload.audio_url.clone());
+
+    let media_type = payload
+        .media_type
+        .clone()
+        .or_else(|| payload.content_type.clone())
+        .or_else(|| {
+            if let Some(images) = &payload.images {
+                if !images.is_empty() {
+                    return Some("image".to_string());
+                }
+            }
+            if payload.video_url.is_some() {
+                return Some("video".to_string());
+            }
+            if payload.audio_url.is_some() {
+                return Some("audio".to_string());
+            }
+            None
+        });
+
+    let is_public = payload.is_public.unwrap_or(true);
+    let is_premium = payload.is_premium.unwrap_or(!is_public);
+
+    let post_id = sqlx::query_scalar::<_, Uuid>(
         r#"
         INSERT INTO posts (user_id, title, content, media_url, media_type, is_premium)
         VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *
+        RETURNING id
         "#,
     )
     .bind(&user_id)
     .bind(&payload.title)
     .bind(&payload.content)
-    .bind(&payload.media_url)
-    .bind(&payload.media_type)
-    .bind(payload.is_premium.unwrap_or(false))
+    .bind(&media_url)
+    .bind(&media_type)
+    .bind(is_premium)
     .fetch_one(&db.pool)
     .await
     .map_err(|e| {
@@ -268,9 +431,11 @@ async fn create_post(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let post = fetch_post_with_author(&db, post_id).await?;
+
     Ok(Json(json!({
         "success": true,
-        "data": post
+        "data": map_post(post)
     })))
 }
 
@@ -278,15 +443,11 @@ async fn get_post_by_id(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let post = sqlx::query_as::<_, Post>("SELECT * FROM posts WHERE id = $1")
-        .bind(id)
-        .fetch_one(&db.pool)
-        .await
-        .map_err(|_| StatusCode::NOT_FOUND)?;
+    let post = fetch_post_with_author(&db, id).await?;
 
     Ok(Json(json!({
         "success": true,
-        "data": post
+        "data": map_post(post)
     })))
 }
 
@@ -298,40 +459,76 @@ async fn update_post(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = claims.sub;
 
-    // Check if user owns the post
-    let existing_post =
-        sqlx::query_as::<_, Post>("SELECT * FROM posts WHERE id = $1 AND user_id = $2")
-            .bind(id)
-            .bind(&user_id)
-            .fetch_optional(&db.pool)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let owns_post = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1 AND user_id = $2)",
+    )
+    .bind(id)
+    .bind(&user_id)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    if existing_post.is_none() {
+    if !owns_post {
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let post = sqlx::query_as::<_, Post>(
+    let media_url = payload
+        .media_url
+        .clone()
+        .or_else(|| {
+            payload
+                .images
+                .as_ref()
+                .and_then(|imgs| imgs.first().cloned())
+        })
+        .or_else(|| payload.video_url.clone())
+        .or_else(|| payload.audio_url.clone());
+
+    let media_type = payload
+        .media_type
+        .clone()
+        .or_else(|| payload.content_type.clone())
+        .or_else(|| {
+            if let Some(images) = &payload.images {
+                if !images.is_empty() {
+                    return Some("image".to_string());
+                }
+            }
+            if payload.video_url.is_some() {
+                return Some("video".to_string());
+            }
+            if payload.audio_url.is_some() {
+                return Some("audio".to_string());
+            }
+            None
+        });
+
+    let is_public = payload.is_public.unwrap_or(true);
+    let is_premium = payload.is_premium.unwrap_or(!is_public);
+
+    let post_id = sqlx::query_scalar::<_, Uuid>(
         r#"
         UPDATE posts 
         SET title = $2, content = $3, media_url = $4, media_type = $5, is_premium = $6, updated_at = NOW()
         WHERE id = $1
-        RETURNING *
+        RETURNING id
         "#
     )
     .bind(id)
     .bind(&payload.title)
     .bind(&payload.content)
-    .bind(&payload.media_url)
-    .bind(&payload.media_type)
-    .bind(payload.is_premium.unwrap_or(false))
+    .bind(&media_url)
+    .bind(&media_type)
+    .bind(is_premium)
     .fetch_one(&db.pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    let post = fetch_post_with_author(&db, post_id).await?;
+
     Ok(Json(json!({
         "success": true,
-        "data": post
+        "data": map_post(post)
     })))
 }
 
@@ -342,16 +539,16 @@ async fn delete_post(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = claims.sub;
 
-    // Check if user owns the post
-    let existing_post =
-        sqlx::query_as::<_, Post>("SELECT * FROM posts WHERE id = $1 AND user_id = $2")
-            .bind(id)
-            .bind(&user_id)
-            .fetch_optional(&db.pool)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let owns_post = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1 AND user_id = $2)",
+    )
+    .bind(id)
+    .bind(&user_id)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    if existing_post.is_none() {
+    if !owns_post {
         return Err(StatusCode::FORBIDDEN);
     }
 
@@ -373,4 +570,109 @@ fn calculate_total_pages(total: usize, limit: u32) -> u32 {
     } else {
         ((total as f64) / (limit as f64)).ceil() as u32
     }
+}
+
+fn map_post(record: PostRecord) -> CreatorPostResponse {
+    let content = record.content.unwrap_or_default();
+    let excerpt = generate_excerpt(&content);
+
+    let images = if record.media_type.as_deref() == Some("image") {
+        record
+            .media_url
+            .clone()
+            .into_iter()
+            .collect::<Vec<String>>()
+    } else {
+        Vec::new()
+    };
+
+    let video_url = if record.media_type.as_deref() == Some("video") {
+        record.media_url.clone()
+    } else {
+        None
+    };
+
+    let audio_url = if record.media_type.as_deref() == Some("audio") {
+        record.media_url.clone()
+    } else {
+        None
+    };
+
+    CreatorPostResponse {
+        id: record.id,
+        title: record.title,
+        content,
+        excerpt,
+        images,
+        video_url,
+        audio_url,
+        attachments: None,
+        is_public: !record.is_premium,
+        minimum_tier_id: None,
+        like_count: 0,
+        comment_count: 0,
+        published: true,
+        published_at: Some(record.created_at),
+        created_at: record.created_at,
+        updated_at: record.updated_at,
+        author: CreatorPostAuthor {
+            id: record.user_id.clone(),
+            name: record
+                .author_name
+                .clone()
+                .or_else(|| record.author_username.clone()),
+            username: record.author_username.clone(),
+            avatar: record.author_avatar.clone(),
+            is_creator: record.author_is_creator.unwrap_or(false),
+        },
+        has_access: true,
+    }
+}
+
+fn generate_excerpt(content: &str) -> Option<String> {
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let mut excerpt: String = trimmed.chars().take(160).collect();
+    if trimmed.chars().count() > 160 {
+        excerpt.push_str("...");
+    }
+    Some(excerpt)
+}
+
+async fn fetch_post_with_author(db: &Database, post_id: Uuid) -> Result<PostRecord, StatusCode> {
+    sqlx::query_as::<_, PostRecord>(
+        r#"
+        SELECT 
+            p.id,
+            p.user_id,
+            p.title,
+            p.content,
+            p.media_url,
+            p.media_type,
+            p.is_premium,
+            p.created_at,
+            p.updated_at,
+            u.name as author_name,
+            u.username as author_username,
+            u.avatar as author_avatar,
+            u.is_creator as author_is_creator
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        WHERE p.id = $1
+        "#,
+    )
+    .bind(post_id)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|e| {
+        if matches!(e, sqlx::Error::RowNotFound) {
+            StatusCode::NOT_FOUND
+        } else {
+            eprintln!("Error fetching post with author: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    })
 }

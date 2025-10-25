@@ -1,12 +1,11 @@
-use axum::ServiceExt;
 use axum::{
-    extract::{Request, State},
+    extract::Request,
     http::{header::AUTHORIZATION, Method, StatusCode},
     middleware::Next,
     response::Response,
 };
 
-use crate::{auth::verify_jwt, config::Config, database::Database};
+use crate::{auth::verify_jwt, config::Config};
 
 pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Response, StatusCode> {
     let path = request.uri().path();
@@ -78,11 +77,11 @@ pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Respons
 
 pub mod auth {
     use axum::{
-        extract::{FromRequestParts, State},
+        extract::FromRequestParts,
         http::{request::Parts, StatusCode},
     };
 
-    use crate::{auth::Claims, database::Database};
+    use crate::auth::Claims;
 
     #[axum::async_trait]
     impl<S> FromRequestParts<S> for Claims

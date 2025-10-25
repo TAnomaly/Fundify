@@ -8,7 +8,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::database::Database;
+use crate::{auth::Claims, database::Database};
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Article {
@@ -59,6 +59,25 @@ async fn get_articles(
 
     eprintln!("Articles API called with params: {:?}", params);
 
+    let total_count = if let Some(author_id) = &params.author_id {
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM articles WHERE author_id = $1")
+            .bind(author_id)
+            .fetch_one(&db.pool)
+            .await
+            .map_err(|e| {
+                eprintln!("Error counting articles: {:?}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+    } else {
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM articles")
+            .fetch_one(&db.pool)
+            .await
+            .map_err(|e| {
+                eprintln!("Error counting articles: {:?}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+    };
+
     let articles = if let Some(author_id) = &params.author_id {
         eprintln!("Filtering articles by author_id: {}", author_id);
         sqlx::query_as::<_, Article>(
@@ -87,7 +106,7 @@ async fn get_articles(
         })?
     };
 
-    let total = articles.len();
+    let total = total_count as usize;
     let response = ArticlesResponse {
         success: true,
         data: articles,
@@ -95,7 +114,7 @@ async fn get_articles(
             page,
             limit,
             total,
-            pages: 1,
+            pages: calculate_total_pages(total, limit),
         },
     };
     Ok(Json(response))
@@ -132,9 +151,23 @@ pub fn articles_routes() -> Router<Database> {
 
 async fn create_article(
     State(db): State<Database>,
+    claims: Claims,
     axum::extract::Json(payload): axum::extract::Json<CreateArticleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    println!("🔄 Creating new article: {}", payload.title);
+    let author_id = claims.sub;
+
+    let is_creator = sqlx::query_scalar::<_, bool>("SELECT is_creator FROM users WHERE id = $1")
+        .bind(&author_id)
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Error checking creator status for articles: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    if !is_creator {
+        return Err(StatusCode::FORBIDDEN);
+    }
 
     let article_id = Uuid::new_v4();
     let slug = payload.slug.unwrap_or_else(|| {
@@ -145,33 +178,39 @@ async fn create_article(
             .replace(|c: char| !c.is_alphanumeric() && c != '-', "")
     });
 
-    let result = sqlx::query(
-        "INSERT INTO articles (id, title, content, slug, author_id, created_at, updated_at) 
-         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())",
+    let article = sqlx::query_as::<_, Article>(
+        "INSERT INTO articles (id, title, content, slug, author_id, published_at, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())
+         RETURNING *"
     )
     .bind(article_id)
     .bind(&payload.title)
     .bind(&payload.content)
     .bind(&slug)
-    .bind("test-creator-123") // For now, use test creator ID
-    .execute(&db.pool)
+    .bind(&author_id)
+    .fetch_one(&db.pool)
     .await
-    .map_err(|e| {
-        println!("❌ Error creating article: {:?}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
+    .map_err(|e| match &e {
+        sqlx::Error::Database(db_err) if db_err.constraint() == Some("articles_slug_key") => {
+            eprintln!("Duplicate slug detected while creating article: {}", db_err);
+            StatusCode::CONFLICT
+        }
+        _ => {
+            eprintln!("Error creating article: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     })?;
 
-    println!(
-        "✅ Article created successfully. Rows affected: {}",
-        result.rows_affected()
-    );
-
-    let response = serde_json::json!({
+    Ok(Json(serde_json::json!({
         "success": true,
-        "message": "Article created successfully",
-        "articleId": article_id,
-        "slug": slug
-    });
+        "data": article
+    })))
+}
 
-    Ok(Json(response))
+fn calculate_total_pages(total: usize, limit: u32) -> u32 {
+    if limit == 0 {
+        0
+    } else {
+        ((total as f64) / (limit as f64)).ceil() as u32
+    }
 }

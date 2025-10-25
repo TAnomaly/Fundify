@@ -8,7 +8,7 @@ use axum::{
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
 use tower_http::{
-    cors::{Any, CorsLayer},
+    cors::{AllowOrigin, CorsLayer},
     trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -49,6 +49,24 @@ async fn main() -> anyhow::Result<()> {
     db.run_migrations().await?;
 
     // Build our application with routes
+    let cors = CorsLayer::new()
+        .allow_origin(AllowOrigin::mirror_request())
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([
+            HeaderName::from_static("content-type"),
+            HeaderName::from_static("authorization"),
+            HeaderName::from_static("accept"),
+            HeaderName::from_static("origin"),
+            HeaderName::from_static("x-requested-with"),
+        ])
+        .allow_credentials(true);
+
     let app = Router::new()
         .route("/health", get(health_check))
         .nest("/api/auth", auth_routes())
@@ -65,24 +83,7 @@ async fn main() -> anyhow::Result<()> {
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
-                .layer(
-                    CorsLayer::new()
-                        .allow_origin(Any)
-                        .allow_methods([
-                            Method::GET,
-                            Method::POST,
-                            Method::PUT,
-                            Method::DELETE,
-                            Method::OPTIONS,
-                        ])
-                        .allow_headers([
-                            HeaderName::from_static("content-type"),
-                            HeaderName::from_static("authorization"),
-                            HeaderName::from_static("accept"),
-                            HeaderName::from_static("origin"),
-                            HeaderName::from_static("x-requested-with"),
-                        ]),
-                )
+                .layer(cors)
                 .layer(axum::middleware::from_fn(middleware::auth_middleware))
                 .layer(DefaultBodyLimit::max(10 * 1024 * 1024)), // 10MB limit
         )
