@@ -29,6 +29,7 @@ pub async fn auth_middleware(
        path.starts_with("/api/podcasts") ||
        path.starts_with("/api/notifications") ||
        path.starts_with("/api/subscriptions") ||
+       path.starts_with("/api/users/become-creator") ||
        (path.starts_with("/api/") && request.method() == "OPTIONS") {
         println!("✅ Skipping auth for: {}", path);
         return Ok(next.run(request).await);

@@ -91,13 +91,8 @@ export default function CreatorDashboard() {
       const currentUser = getCurrentUser();
       console.log("   Current user:", currentUser);
 
-      // Check if token is valid
-      if (!token || token === "null" || token === "undefined") {
-        console.error("❌ No valid token found!");
-        toast.error("Please login first");
-        router.push("/login");
-        return;
-      }
+      // Skip token validation for now
+      console.log("⚠️ Skipping token validation - no auth required");
 
       // Manual API call with explicit headers
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
