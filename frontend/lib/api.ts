@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from "axios";
-import { getStoredToken } from "./authFetch";
+import { authFetch, getStoredToken } from "./authFetch";
 import {
   Campaign,
   Donation,
@@ -206,8 +206,20 @@ export const userApi = {
   },
 
   becomeCreator: async (payload?: { name?: string; username?: string; email?: string }): Promise<{ success: boolean; data: User; message?: string }> => {
-    const { data } = await api.post("/users/become-creator", payload ?? {}, withAuth());
-    return data;
+    const response = await authFetch(`${getApiUrl()}/users/become-creator`, {
+      method: "POST",
+      body: JSON.stringify(payload ?? {}),
+    });
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw {
+        response: {
+          status: response.status,
+          data: errorBody,
+        },
+      };
+    }
+    return response.json();
   },
 };
 

@@ -12,6 +12,15 @@ export const getStoredToken = (): string | null => {
 export const authFetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
   const token = getStoredToken();
 
+  if (!token) {
+    throw {
+      response: {
+        status: 401,
+        data: { message: "Authentication required" },
+      },
+    };
+  }
+
   const headers = new Headers(init.headers || {});
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
