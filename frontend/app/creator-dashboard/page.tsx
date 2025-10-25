@@ -236,7 +236,7 @@ export default function CreatorDashboard() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-8">
         <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] bg-clip-text text-transparent">
-          {userName ? `Welcome back, ${userName}! 👋` : "Creator Dashboard"}
+          {isCreator ? `Welcome back, ${userName}! 👋` : "Start Creating"}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">Manage your supporters and content</p>
       </div>
