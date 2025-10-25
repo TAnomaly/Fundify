@@ -1,0 +1,20 @@
+nohup: ignoring input
+
+> fundify-frontend@2.0.1 dev
+> next dev
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /home/tugmirk/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /home/tugmirk/Desktop/fundify/frontend/package-lock.json
+
+ ⚠ Port 3000 is in use by an unknown process, using available port 3003 instead.
+   ▲ Next.js 15.5.4
+   - Local:        http://localhost:3003
+   - Network:      http://192.168.1.199:3003
+   - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 1925ms

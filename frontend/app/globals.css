@@ -1,0 +1,312 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Monokai Light Theme */
+    --background: 48 17% 92%; /* Light cream background */
+    --foreground: 0 0% 13%; /* Dark gray text */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 13%;
+
+    /* Monokai Vibrant Colors */
+    --primary: 330 100% 71%; /* Pink/Magenta */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 81 97% 55%; /* Monokai Green */
+    --secondary-foreground: 0 0% 13%;
+    --accent: 54 100% 68%; /* Monokai Yellow */
+    --accent-foreground: 0 0% 13%;
+    --destructive: 4 90% 58%; /* Monokai Red */
+    --destructive-foreground: 0 0% 100%;
+
+    --muted: 48 10% 88%;
+    --muted-foreground: 0 0% 45%;
+    --border: 48 10% 85%;
+    --input: 48 10% 85%;
+    --ring: 330 100% 71%;
+    --radius: 0.75rem;
+
+    /* Monokai Chart Colors */
+    --chart-1: 330 100% 71%; /* Pink */
+    --chart-2: 81 97% 55%; /* Green */
+    --chart-3: 54 100% 68%; /* Yellow */
+    --chart-4: 180 97% 53%; /* Cyan */
+    --chart-5: 31 100% 71%; /* Orange */
+
+    /* Monokai Specific Colors */
+    --monokai-pink: 330 100% 71%;
+    --monokai-green: 81 97% 55%;
+    --monokai-yellow: 54 100% 68%;
+    --monokai-orange: 31 100% 71%;
+    --monokai-purple: 261 100% 75%;
+    --monokai-cyan: 180 97% 53%;
+    --monokai-red: 4 90% 58%;
+  }
+
+  .dark {
+    /* Monokai Dark Theme - Classic */
+    --background: 0 0% 13%; /* #272822 Monokai dark background */
+    --foreground: 60 30% 96%; /* #F8F8F2 Monokai light text */
+    --card: 60 7% 17%; /* #2D2A2E Slightly lighter than bg */
+    --card-foreground: 60 30% 96%;
+    --popover: 60 7% 17%;
+    --popover-foreground: 60 30% 96%;
+
+    /* Monokai Vibrant Colors */
+    --primary: 330 100% 71%; /* #F92672 Monokai Pink */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 81 97% 55%; /* #A6E22E Monokai Green */
+    --secondary-foreground: 0 0% 13%;
+    --accent: 54 100% 68%; /* #E6DB74 Monokai Yellow */
+    --accent-foreground: 0 0% 13%;
+    --destructive: 4 90% 58%; /* #F92672 Monokai Red */
+    --destructive-foreground: 0 0% 100%;
+
+    --muted: 60 7% 23%;
+    --muted-foreground: 60 5% 65%;
+    --border: 60 7% 23%;
+    --input: 60 7% 23%;
+    --ring: 330 100% 71%;
+
+    /* Monokai Chart Colors */
+    --chart-1: 330 100% 71%; /* Pink */
+    --chart-2: 81 97% 55%; /* Green */
+    --chart-3: 54 100% 68%; /* Yellow */
+    --chart-4: 180 97% 53%; /* Cyan */
+    --chart-5: 31 100% 71%; /* Orange */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  /* Monokai Gradient Text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-[#F92672] via-[#AE81FF] to-[#66D9EF] bg-clip-text text-transparent;
+  }
+
+  .text-gradient-secondary {
+    @apply bg-gradient-to-r from-[#FD971F] via-[#E6DB74] to-[#A6E22E] bg-clip-text text-transparent;
+  }
+
+  .text-gradient-monokai {
+    @apply bg-gradient-to-r from-[#F92672] via-[#FD971F] to-[#E6DB74] bg-clip-text text-transparent;
+  }
+
+  /* Monokai Background Gradients */
+  .bg-gradient-primary {
+    @apply bg-gradient-to-br from-[#F92672] via-[#AE81FF] to-[#66D9EF];
+  }
+
+  .bg-gradient-monokai {
+    @apply bg-gradient-to-br from-[#272822] via-[#2D2A2E] to-[#1E1E1E] dark:from-[#1E1E1E] dark:via-[#272822] dark:to-[#2D2A2E];
+  }
+
+  .bg-gradient-soft {
+    @apply bg-gradient-to-br from-pink-50 via-purple-50 to-cyan-50 dark:from-[#272822] dark:via-[#2D2A2E] dark:to-[#1E1E1E];
+  }
+
+  /* Glassmorphism with Monokai */
+  .bg-glass {
+    @apply bg-white/80 dark:bg-[#272822]/90 backdrop-blur-xl border border-gray-200/50 dark:border-[#3E3D32]/50;
+  }
+
+  .bg-glass-card {
+    @apply bg-white/90 dark:bg-[#2D2A2E]/95 backdrop-blur-md border border-gray-200 dark:border-[#3E3D32];
+  }
+
+  /* Monokai Shadows */
+  .shadow-soft {
+    box-shadow: 0 4px 24px -2px rgba(249, 38, 114, 0.12),
+                0 2px 8px -2px rgba(166, 226, 46, 0.08);
+  }
+
+  .shadow-soft-hover {
+    box-shadow: 0 8px 32px -4px rgba(249, 38, 114, 0.2),
+                0 4px 16px -4px rgba(174, 129, 255, 0.15);
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 20px rgba(249, 38, 114, 0.3),
+                0 0 40px rgba(174, 129, 255, 0.2);
+  }
+
+  .shadow-glow-green {
+    box-shadow: 0 0 20px rgba(166, 226, 46, 0.3),
+                0 0 40px rgba(166, 226, 46, 0.2);
+  }
+
+  .shadow-glow-cyan {
+    box-shadow: 0 0 20px rgba(102, 217, 239, 0.3),
+                0 0 40px rgba(102, 217, 239, 0.2);
+  }
+
+  /* Monokai Button Styles */
+  .btn-monokai-pink {
+    @apply bg-gradient-to-r from-[#F92672] to-[#FD5C8E] hover:from-[#FD5C8E] hover:to-[#F92672] text-white font-semibold transition-all shadow-lg hover:shadow-glow;
+  }
+
+  .btn-monokai-green {
+    @apply bg-gradient-to-r from-[#A6E22E] to-[#88C425] hover:from-[#88C425] hover:to-[#A6E22E] text-[#272822] font-semibold transition-all shadow-lg hover:shadow-glow-green;
+  }
+
+  .btn-monokai-cyan {
+    @apply bg-gradient-to-r from-[#66D9EF] to-[#4EC9E0] hover:from-[#4EC9E0] hover:to-[#66D9EF] text-[#272822] font-semibold transition-all shadow-lg hover:shadow-glow-cyan;
+  }
+}
+
+/* Custom Monokai scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #F92672, #AE81FF);
+  border-radius: 10px;
+  border: 2px solid hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FD5C8E, #C49BFF);
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Monokai Selection styles */
+::selection {
+  background: rgba(249, 38, 114, 0.3); /* Monokai Pink */
+  color: hsl(var(--foreground));
+}
+
+::-moz-selection {
+  background: rgba(249, 38, 114, 0.3);
+  color: hsl(var(--foreground));
+}
+
+/* Loading animation */
+.loader {
+  border: 4px solid rgba(102, 126, 234, 0.2);
+  border-radius: 50%;
+  border-top: 4px solid rgb(102, 126, 234);
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Shimmer effect for loading states */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.5) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Gradient animation for backgrounds */
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: gradient-x 15s ease infinite;
+}
+
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Card hover effects */
+.card-hover-effect {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.card-hover-effect:hover {
+  @apply transform -translate-y-2 shadow-card-hover;
+}
+
+/* Button ripple effect */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.ripple:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* Blob animation for background orbs */
+@keyframes blob {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}

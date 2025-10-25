@@ -1,0 +1,59 @@
+[package]
+name = "funify-backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web framework
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+hyper = { version = "1.0", features = ["full"] }
+
+# Database
+sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+tokio-postgres = "0.7"
+rustls = "0.20"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Authentication & JWT
+jsonwebtoken = "9.2"
+oauth2 = "4.4"
+reqwest = { version = "0.10", features = ["json"] }
+bcrypt = "0.15"
+
+# Environment variables
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# UUID
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Time
+chrono = { version = "0.4.0", features = ["serde"] }
+
+# Decimal
+rust_decimal = { version = "1.32", features = ["serde"] }
+
+# Redis
+redis = { version = "0.23", features = ["tokio-comp"] }
+
+# Stripe (will use reqwest directly for API calls)
+
+# CloudAMQP (commented out - requires edition2024)
+# lapin = { version = "2.0.0", features = ["tokio"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# HTTP client (already defined above)
+
+# CORS (already defined above)
