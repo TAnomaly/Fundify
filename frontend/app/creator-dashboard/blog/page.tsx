@@ -33,12 +33,28 @@ export default function BlogManagement() {
   const loadArticles = async () => {
     setIsLoading(true);
     try {
-      // TODO: Implement API call to fetch creator's articles
-      // const response = await articleApi.getMyArticles();
-      // setArticles(response.data);
-      setArticles([]);
+      console.log("🔄 Loading articles...");
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
+      const response = await fetch(`${apiUrl}/articles`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("📡 Articles response:", data);
+        if (data.success && data.data) {
+          setArticles(data.data);
+          console.log("✅ Articles loaded:", data.data.length);
+        } else {
+          console.log("⚠️ No articles found");
+          setArticles([]);
+        }
+      } else {
+        console.error("❌ Failed to load articles:", response.status);
+        setArticles([]);
+      }
     } catch (error: any) {
+      console.error("❌ Error loading articles:", error);
       toast.error("Failed to load articles");
+      setArticles([]);
     } finally {
       setIsLoading(false);
     }

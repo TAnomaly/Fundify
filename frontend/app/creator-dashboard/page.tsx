@@ -29,6 +29,9 @@ export default function CreatorDashboard() {
 
       // Check if user is already a creator
       const isAlreadyCreator = localStorage.getItem("isCreator") === "true";
+      console.log("🔍 Checking creator status:", isAlreadyCreator);
+      console.log("🔍 localStorage isCreator:", localStorage.getItem("isCreator"));
+      
       if (isAlreadyCreator) {
         setIsCreator(true);
         setUserName("Creator");
@@ -36,7 +39,7 @@ export default function CreatorDashboard() {
       } else {
         setIsCreator(false);
         setUserName("User");
-        console.log("⚠️ User is not a creator yet");
+        console.log("⚠️ User is not a creator yet - showing become creator page");
       }
 
       console.log("✅ Dashboard loaded successfully");

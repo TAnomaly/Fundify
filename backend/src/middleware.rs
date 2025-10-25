@@ -23,7 +23,7 @@ pub async fn auth_middleware(
        path.starts_with("/api/creators") ||
        (path.starts_with("/api/campaigns") && request.method() == "GET") ||
        path.starts_with("/api/events") ||
-       (path.starts_with("/api/posts") && request.method() == "GET") ||
+       path.starts_with("/api/posts") ||
        path.starts_with("/api/products") ||
        path.starts_with("/api/articles") ||
        path.starts_with("/api/podcasts") ||

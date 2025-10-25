@@ -134,10 +134,12 @@ async fn become_creator(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     println!("🔄 Someone is trying to become a creator (no auth required)");
     
-    // Generate a unique user ID
+    // Generate a unique user ID with better naming
     let user_id = uuid::Uuid::new_v4().to_string();
-    let username = format!("creator_{}", chrono::Utc::now().timestamp());
-    let email = format!("creator_{}@fundify.com", chrono::Utc::now().timestamp());
+    let timestamp = chrono::Utc::now().timestamp();
+    let username = format!("creator_{}", timestamp);
+    let email = format!("creator_{}@fundify.com", timestamp);
+    let name = format!("Creator {}", timestamp);
     
     // First, try to insert or update user
     let result = sqlx::query(
@@ -149,7 +151,7 @@ async fn become_creator(
     .bind(&user_id)
     .bind(&email)
     .bind(&username)
-    .bind("Creator")
+    .bind(&name)
     .execute(&db.pool)
     .await
     .map_err(|e| {
