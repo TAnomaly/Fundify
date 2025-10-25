@@ -91,10 +91,19 @@ export default function CreatorDashboard() {
       const currentUser = getCurrentUser();
       console.log("   Current user:", currentUser);
 
+      // Check if token is valid
+      if (!token || token === "null" || token === "undefined") {
+        console.error("❌ No valid token found!");
+        toast.error("Please login first");
+        router.push("/login");
+        return;
+      }
+
       // Manual API call with explicit headers
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
       console.log("   Making direct API call to:", `${apiUrl}/users/become-creator`);
-
+      console.log("   Authorization header will be:", `Bearer ${token}`);
+      
       const response = await fetch(`${apiUrl}/users/become-creator`, {
         method: 'POST',
         headers: {
