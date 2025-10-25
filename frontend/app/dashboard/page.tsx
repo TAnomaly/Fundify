@@ -58,8 +58,9 @@ export default function DashboardPage() {
       });
 
       // Handle user profile
-      if (userResponse.status === 'fulfilled' && userResponse.value.success) {
+      if (userResponse.status === 'fulfilled' && userResponse.value.success && userResponse.value.data) {
         setUser(userResponse.value.data);
+        localStorage.setItem("user", JSON.stringify(userResponse.value.data));
       }
 
       // Handle campaigns
@@ -272,7 +273,7 @@ export default function DashboardPage() {
               </svg>
             </div>
             <h1 className="text-4xl font-bold">
-              Welcome back, {user?.username || "Friend"}!
+              Welcome back, {user?.username ?? user?.name ?? "Friend"}!
             </h1>
           </div>
           <p className="text-lg text-white/90 max-w-2xl">

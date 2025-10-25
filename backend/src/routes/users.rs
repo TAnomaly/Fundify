@@ -6,6 +6,7 @@ use axum::{
     Router,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::Row;
 
 use crate::{auth::Claims, database::Database, models::User};
@@ -22,27 +23,33 @@ pub fn user_routes() -> Router<Database> {
 async fn get_current_user(
     State(db): State<Database>,
     claims: Claims,
-) -> Result<Json<User>, StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
         .bind(&claims.sub)
         .fetch_one(&db.pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(user))
+    Ok(Json(json!({
+        "success": true,
+        "data": user
+    })))
 }
 
 async fn get_user_by_id(
     State(db): State<Database>,
     Path(id): Path<String>,
-) -> Result<Json<User>, StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
         .bind(&id)
         .fetch_one(&db.pool)
         .await
         .map_err(|_| StatusCode::NOT_FOUND)?;
 
-    Ok(Json(user))
+    Ok(Json(json!({
+        "success": true,
+        "data": user
+    })))
 }
 
 async fn update_user(
@@ -50,7 +57,7 @@ async fn update_user(
     Path(id): Path<String>,
     claims: Claims,
     Json(payload): Json<serde_json::Value>,
-) -> Result<Json<User>, StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     // Only allow users to update their own profile
     if claims.sub != id {
         return Err(StatusCode::FORBIDDEN);
@@ -79,7 +86,10 @@ async fn update_user(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(user))
+    Ok(Json(json!({
+        "success": true,
+        "data": user
+    })))
 }
 
 async fn get_user_campaigns(
@@ -130,55 +140,42 @@ struct BecomeCreatorRequest {
 
 async fn become_creator(
     State(db): State<Database>,
+    claims: Claims,
     axum::extract::Json(payload): axum::extract::Json<BecomeCreatorRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    println!("🔄 Someone is trying to become a creator (no auth required)");
-    println!("📝 Received user data: {:?}", payload);
+    let user_id = claims.sub;
 
-    // Generate a unique user ID
-    let user_id = uuid::Uuid::new_v4().to_string();
-
-    // Use provided user data or generate defaults
-    let name = payload.name.unwrap_or_else(|| "Creator".to_string());
-    let username = payload.username.unwrap_or_else(|| "creator".to_string());
-    let email = payload
-        .email
-        .unwrap_or_else(|| "creator@fundify.com".to_string());
-
-    println!(
-        "🎯 Using user data - Name: {}, Username: {}, Email: {}",
-        name, username, email
-    );
-
-    // First, try to insert or update user
-    let result = sqlx::query(
-        "INSERT INTO users (id, email, username, name, is_creator, created_at, updated_at) 
-         VALUES ($1, $2, $3, $4, true, NOW(), NOW())
-         ON CONFLICT (id) 
-         DO UPDATE SET is_creator = true, updated_at = NOW()",
+    let user = sqlx::query_as::<_, User>(
+        r#"
+        UPDATE users
+        SET 
+            username = COALESCE($2, username),
+            email = COALESCE($3, email),
+            name = COALESCE($4, name),
+            is_creator = true,
+            updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+        "#,
     )
     .bind(&user_id)
-    .bind(&email)
-    .bind(&username)
-    .bind(&name)
-    .execute(&db.pool)
+    .bind(payload.username.as_ref())
+    .bind(payload.email.as_ref())
+    .bind(payload.name.as_ref())
+    .fetch_one(&db.pool)
     .await
     .map_err(|e| {
-        println!("❌ Error creating/updating user: {:?}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
+        println!("❌ Error updating user to creator: {:?}", e);
+        match e {
+            sqlx::Error::RowNotFound => StatusCode::NOT_FOUND,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     })?;
-
-    println!(
-        "✅ User created/updated in database. Rows affected: {}",
-        result.rows_affected()
-    );
-    println!("🎉 Creator status saved to database!");
 
     let response = serde_json::json!({
         "success": true,
         "message": "Successfully became a creator",
-        "userId": user_id,
-        "username": username
+        "data": user
     });
 
     Ok(Json(response))

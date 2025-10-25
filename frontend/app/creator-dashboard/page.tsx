@@ -7,7 +7,7 @@ import { creatorPostApi } from "@/lib/api/creatorPost";
 import { userApi } from "@/lib/api";
 import toast from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAuthenticated } from "@/lib/auth";
 import type { Subscription, CreatorPost } from "@/types/subscription";
 
 export default function CreatorDashboard() {
@@ -22,49 +22,61 @@ export default function CreatorDashboard() {
   const loadDashboard = useCallback(async () => {
     setIsLoading(true);
     try {
-      console.log("🔄 Loading dashboard (no auth required)");
-
-      // Skip auth validation for now
-      console.log("⚠️ Skipping auth validation - no auth required");
-
-      // Check if user is already a creator
-      const isAlreadyCreator = localStorage.getItem("isCreator") === "true";
-      const currentCreatorId = localStorage.getItem("currentCreatorId");
-      const currentCreatorUsername = localStorage.getItem("currentCreatorUsername");
-
-      console.log("🔍 Checking creator status:", isAlreadyCreator);
-      console.log("🔍 localStorage isCreator:", localStorage.getItem("isCreator"));
-      console.log("🔍 currentCreatorId:", currentCreatorId);
-      console.log("🔍 currentCreatorUsername:", currentCreatorUsername);
-
-      if (isAlreadyCreator && currentCreatorId) {
-        setIsCreator(true);
-        setUserName(currentCreatorUsername || "Creator");
-        console.log("✅ User is already a creator with ID:", currentCreatorId);
-      } else {
-        setIsCreator(false);
-        setUserName("User");
-        console.log("⚠️ User is not a creator yet - showing become creator page");
+      if (!isAuthenticated()) {
+        router.push("/login");
+        return;
       }
 
-      console.log("✅ Dashboard loaded successfully");
+      const cachedUser = getCurrentUser();
+      if (!cachedUser?.id) {
+        toast.error("User session not found. Please login again.");
+        router.push("/login");
+        return;
+      }
 
-      // Load creator data
-      const [subscribersRes, postsRes] = await Promise.allSettled([
+      const [profileRes, subscribersRes, postsRes] = await Promise.allSettled([
+        userApi.getMe(),
         subscriptionApi.getMySubscribers(),
         creatorPostApi.getMyPosts(),
       ]);
 
-      if (subscribersRes.status === "fulfilled" && subscribersRes.value.success) {
-        setSubscribers(subscribersRes.value.data.subscriptions || []);
-        setStats(subscribersRes.value.data.stats || { totalSubscribers: 0, monthlyRevenue: 0 });
+      if (profileRes.status === "fulfilled" && profileRes.value.success && profileRes.value.data) {
+        const profile = profileRes.value.data;
+        setIsCreator(profile.is_creator ?? profile.isCreator ?? false);
+        setUserName(profile.username ?? profile.name ?? "Creator");
+        localStorage.setItem("user", JSON.stringify(profile));
+      } else if (profileRes.status === "rejected") {
+        throw profileRes.reason;
       }
 
-      if (postsRes.status === "fulfilled" && postsRes.value.success) {
-        setPosts(postsRes.value.data || []);
+      if (subscribersRes.status === "fulfilled" && subscribersRes.value.success) {
+        setSubscribers(subscribersRes.value.data.subscriptions || []);
+        const statsData = subscribersRes.value.data.stats || { totalSubscribers: 0, monthlyRevenue: 0 };
+        setStats({
+          totalSubscribers: statsData.totalSubscribers ?? 0,
+          monthlyRevenue: statsData.monthlyRevenue ?? 0,
+        });
+      } else if (subscribersRes.status === "rejected") {
+        console.error("Failed to load subscribers:", subscribersRes.reason);
+      }
+
+      if (postsRes.status === "fulfilled" && postsRes.value.success && postsRes.value.data) {
+        setPosts(postsRes.value.data.posts || []);
+      } else if (postsRes.status === "rejected") {
+        console.error("Failed to load posts:", postsRes.reason);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to load creator dashboard");
+      console.error("Failed to load creator dashboard:", error);
+      const status = error?.response?.status;
+      if (status === 401) {
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please login again.");
+        router.push("/login");
+        return;
+      }
+
+      toast.error(error?.response?.data?.message || error?.message || "Failed to load creator dashboard");
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +86,6 @@ export default function CreatorDashboard() {
     void loadDashboard();
 
     const handleStorageChange = () => {
-      console.log("📡 Storage changed, reloading dashboard...");
       loadDashboard();
     };
     window.addEventListener("storage", handleStorageChange);
@@ -85,74 +96,24 @@ export default function CreatorDashboard() {
   }, [loadDashboard]);
   const becomeCreator = async () => {
     try {
-      console.log("🔄 Attempting to become creator...");
-      console.log("   API URL:", process.env.NEXT_PUBLIC_API_URL);
-
-      // Check token in localStorage
-      const token = localStorage.getItem("authToken");
-      console.log("   Token exists:", !!token);
-      console.log("   Token preview:", token ? token.substring(0, 20) + "..." : "null");
-      console.log("   Full token:", token);
-
-      // Check if user is logged in
       const currentUser = getCurrentUser();
-      console.log("   Current user:", currentUser);
-
-      // Skip token validation for now
-      console.log("⚠️ Skipping token validation - no auth required");
-
-      // Manual API call with explicit headers
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
-      console.log("   Making direct API call to:", `${apiUrl}/users/become-creator`);
-      console.log("   Authorization header will be:", `Bearer ${token}`);
-
-      const response = await fetch(`${apiUrl}/users/become-creator`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: currentUser?.name || "Creator",
-          username: currentUser?.username || "creator",
-          email: currentUser?.email || "creator@fundify.com"
-        }),
+      const response = await userApi.becomeCreator({
+        name: currentUser?.name,
+        username: currentUser?.username,
+        email: currentUser?.email,
       });
 
-      console.log("📡 Raw response status:", response.status);
-      console.log("📡 Raw response headers:", response.headers);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("✅ Successfully became creator!", data);
-        toast.success("Welcome to the creator program!");
-
-        // Save creator status and ID to localStorage
-        localStorage.setItem("isCreator", "true");
-        localStorage.setItem("currentCreatorId", data.userId);
-        localStorage.setItem("currentCreatorUsername", data.username);
-
-        // Set creator status immediately
+      if (response.success) {
+        const updatedUser = response.data;
         setIsCreator(true);
-        setUserName(data.username || "Creator");
-
-        console.log("🎉 Creator status saved to localStorage");
-        console.log("🎉 Creator ID:", data.userId);
-        console.log("🎉 Creator username:", data.username);
-
-        // Reload the page to show creator dashboard
-        window.location.reload();
-
-        // Don't reload, just update the UI
-        console.log("✅ Creator dashboard ready!");
+        setUserName(updatedUser.username ?? updatedUser.name ?? "Creator");
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        toast.success(response.message || "Welcome to the creator program!");
       } else {
-        const errorData = await response.json();
-        console.error("❌ Become creator failed:", errorData);
-        toast.error(errorData.message || "Failed to become a creator");
+        toast.error(response.message || "Failed to become a creator");
       }
     } catch (error: any) {
-      console.error("❌ Become creator error:", error);
-      toast.error("Failed to become a creator");
+      toast.error(error?.response?.data?.message || "Failed to become a creator");
     }
   };
 

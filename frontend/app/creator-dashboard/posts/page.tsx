@@ -22,7 +22,7 @@ export default function PostsPage() {
     try {
       const response = await creatorPostApi.getMyPosts();
       if (response.success) {
-        setPosts(response.data || []);
+        setPosts(response.data?.posts || []);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to load posts");

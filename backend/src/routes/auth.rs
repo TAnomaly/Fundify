@@ -94,7 +94,7 @@ async fn github_callback(
     let user = find_or_create_user(&db, &github_user).await?;
 
     // Generate JWT token
-    let token = generate_jwt(&user.id.to_string(), &config.jwt_secret)?;
+    let token = generate_jwt(&user, &config.jwt_secret)?;
 
     Ok(Json(AuthResponse { user, token }))
 }
@@ -191,7 +191,7 @@ async fn login(
     // }
 
     // Generate JWT token
-    let token = generate_jwt(&user.id, &config.jwt_secret)?;
+    let token = generate_jwt(&user, &config.jwt_secret)?;
 
     Ok(Json(AuthResponse { user, token }))
 }
@@ -237,17 +237,20 @@ async fn register(
     .map_err(|_| AppError::DatabaseError("Failed to create user".to_string()))?;
 
     // Generate JWT token
-    let token = generate_jwt(&user.id, &config.jwt_secret)?;
+    let token = generate_jwt(&user, &config.jwt_secret)?;
 
     Ok(Json(AuthResponse { user, token }))
 }
 
-fn generate_jwt(user_id: &str, secret: &str) -> Result<String, AppError> {
+fn generate_jwt(user: &User, secret: &str) -> Result<String, AppError> {
     let now = chrono::Utc::now();
     let exp = now + chrono::Duration::days(7);
 
     let claims = crate::auth::Claims {
-        sub: user_id.to_string(),
+        sub: user.id.clone(),
+        email: Some(user.email.clone()),
+        username: user.username.clone(),
+        name: Some(user.name.clone()),
         exp: exp.timestamp() as usize,
         iat: now.timestamp() as usize,
     };

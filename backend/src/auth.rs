@@ -1,9 +1,12 @@
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String, // user id
+    pub email: Option<String>,
+    pub username: Option<String>,
+    pub name: Option<String>,
     pub exp: usize,
     pub iat: usize,
 }

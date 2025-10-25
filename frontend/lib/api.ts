@@ -196,8 +196,8 @@ export const userApi = {
     return data;
   },
 
-  becomeCreator: async (): Promise<ApiResponse<User>> => {
-    const { data } = await api.post("/users/become-creator");
+  becomeCreator: async (payload?: { name?: string; username?: string; email?: string }): Promise<{ success: boolean; data: User; message?: string }> => {
+    const { data } = await api.post("/users/become-creator", payload ?? {});
     return data;
   },
 };

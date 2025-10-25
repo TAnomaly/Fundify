@@ -2,11 +2,13 @@ export interface User {
   id: string;
   email: string;
   username: string;
+  name?: string;
   firstName?: string;
   lastName?: string;
   avatar?: string;
   bio?: string;
   isCreator?: boolean;
+  is_creator?: boolean;
   creatorBio?: string;
   socialLinks?: any;
   createdAt: string;

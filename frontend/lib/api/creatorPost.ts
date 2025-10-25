@@ -12,14 +12,22 @@ export const creatorPostApi = {
     return response.data;
   },
 
-  getMyPosts: async (): Promise<ApiResponse<CreatorPost[]>> => {
+  getMyPosts: async (): Promise<ApiResponse<{ posts: CreatorPost[]; pagination: any; hasSubscription: boolean }>> => {
     const response = await api.get('/posts/my-posts');
-    return response.data;
+    return {
+      success: response.data.success,
+      data: response.data.data,
+      message: response.data.message,
+    };
   },
 
   getCreatorPosts: async (creatorId: string, params?: { page?: number, limit?: number }): Promise<ApiResponse<{ posts: CreatorPost[], pagination: any, hasSubscription: boolean }>> => {
     const response = await api.get(`/posts/creator/${creatorId}`, { params });
-    return response.data;
+    return {
+      success: response.data.success,
+      data: response.data.data,
+      message: response.data.message,
+    };
   },
 
   getPost: async (postId: string): Promise<ApiResponse<CreatorPost>> => {

@@ -6,6 +6,7 @@ use axum::{
     Router,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use uuid::Uuid;
 
 use crate::{
@@ -226,12 +227,26 @@ async fn get_my_posts(
 
 async fn create_post(
     State(db): State<Database>,
+    claims: Claims,
     Json(payload): Json<CreatePostRequest>,
-) -> Result<Json<Post>, StatusCode> {
-    // For now, use a default user_id for testing
-    let user_id = "550e8400-e29b-41d4-a716-446655440000".to_string();
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user_id = claims.sub;
 
-    println!("Creating post with payload: {:?}", payload);
+    let is_creator = sqlx::query_scalar::<_, bool>("SELECT is_creator FROM users WHERE id = $1")
+        .bind(&user_id)
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Error checking creator status: {:?}", e);
+            match e {
+                sqlx::Error::RowNotFound => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
+
+    if !is_creator {
+        return Err(StatusCode::FORBIDDEN);
+    }
 
     let post = sqlx::query_as::<_, Post>(
         r#"
@@ -240,7 +255,7 @@ async fn create_post(
         RETURNING *
         "#,
     )
-    .bind(user_id)
+    .bind(&user_id)
     .bind(&payload.title)
     .bind(&payload.content)
     .bind(&payload.media_url)
@@ -253,20 +268,26 @@ async fn create_post(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    Ok(Json(post))
+    Ok(Json(json!({
+        "success": true,
+        "data": post
+    })))
 }
 
 async fn get_post_by_id(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
-) -> Result<Json<Post>, StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let post = sqlx::query_as::<_, Post>("SELECT * FROM posts WHERE id = $1")
         .bind(id)
         .fetch_one(&db.pool)
         .await
         .map_err(|_| StatusCode::NOT_FOUND)?;
 
-    Ok(Json(post))
+    Ok(Json(json!({
+        "success": true,
+        "data": post
+    })))
 }
 
 async fn update_post(
@@ -274,7 +295,7 @@ async fn update_post(
     Path(id): Path<Uuid>,
     claims: Claims,
     Json(payload): Json<CreatePostRequest>,
-) -> Result<Json<Post>, StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = claims.sub;
 
     // Check if user owns the post
@@ -308,14 +329,17 @@ async fn update_post(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(post))
+    Ok(Json(json!({
+        "success": true,
+        "data": post
+    })))
 }
 
 async fn delete_post(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
     claims: Claims,
-) -> Result<StatusCode, StatusCode> {
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = claims.sub;
 
     // Check if user owns the post
@@ -337,7 +361,10 @@ async fn delete_post(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(StatusCode::NO_CONTENT)
+    Ok(Json(json!({
+        "success": true,
+        "message": "Post deleted successfully"
+    })))
 }
 
 fn calculate_total_pages(total: usize, limit: u32) -> u32 {

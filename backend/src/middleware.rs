@@ -1,7 +1,7 @@
 use axum::ServiceExt;
 use axum::{
     extract::{Request, State},
-    http::{header::AUTHORIZATION, StatusCode},
+    http::{header::AUTHORIZATION, Method, StatusCode},
     middleware::Next,
     response::Response,
 };
@@ -10,25 +10,26 @@ use crate::{auth::verify_jwt, config::Config, database::Database};
 
 pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Response, StatusCode> {
     let path = request.uri().path();
-    let method = request.method().to_string();
+    let method = request.method().clone();
+    let method_str = method.to_string();
 
-    println!("🔐 Auth middleware: {} {}", method, path);
+    println!("🔐 Auth middleware: {} {}", method_str, path);
 
     // Skip auth for certain paths
-    if path.starts_with("/health")
+    let is_public_route = path.starts_with("/health")
         || path.starts_with("/api/auth")
         || path.starts_with("/api/creators")
-        || (path.starts_with("/api/campaigns") && request.method() == "GET")
-        || path.starts_with("/api/events")
-        || path.starts_with("/api/posts")
-        || path.starts_with("/api/products")
-        || path.starts_with("/api/articles")
-        || path.starts_with("/api/podcasts")
-        || path.starts_with("/api/notifications")
-        || path.starts_with("/api/subscriptions")
-        || path.starts_with("/api/users/become-creator")
-        || (path.starts_with("/api/") && request.method() == "OPTIONS")
-    {
+        || (path.starts_with("/api/campaigns") && method == Method::GET)
+        || (path.starts_with("/api/events") && method == Method::GET)
+        || (path.starts_with("/api/posts") && method == Method::GET)
+        || (path.starts_with("/api/products") && method == Method::GET)
+        || (path.starts_with("/api/articles") && method == Method::GET)
+        || (path.starts_with("/api/podcasts") && method == Method::GET)
+        || (path.starts_with("/api/notifications") && method == Method::GET)
+        || (path.starts_with("/api/subscriptions") && method == Method::GET)
+        || (path.starts_with("/api/") && method == Method::OPTIONS);
+
+    if is_public_route {
         println!("✅ Skipping auth for: {}", path);
         return Ok(next.run(request).await);
     }

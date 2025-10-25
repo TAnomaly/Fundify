@@ -6,10 +6,11 @@ export const AUTH_EVENT = "fundify-auth-change";
 
 interface DecodedToken {
   sub: string;
-  email: string;
-  username: string;
   exp: number;
   iat: number;
+  email?: string;
+  username?: string;
+  name?: string;
 }
 
 // Save token to localStorage and cookie
@@ -31,7 +32,8 @@ export const saveToken = async (token: string): Promise<void> => {
 
     // Backend direkt user object döndürüyor
     if (response.data) {
-      localStorage.setItem("user", JSON.stringify(response.data));
+      const userData = response.data.data ?? response.data;
+      localStorage.setItem("user", JSON.stringify(userData));
     }
   } catch (error) {
     console.error("Failed to fetch user data after login:", error);
@@ -96,17 +98,19 @@ export const getCurrentUser = (): Partial<User> | null => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
-        const userData = JSON.parse(storedUser);
+        const parsed = JSON.parse(storedUser);
+        const userData = parsed?.data ?? parsed;
         // Merge token data with stored user data (stored data takes priority)
         return {
           id: decoded.sub,
-          email: decoded.email,
-          username: userData.username || decoded.username,
-          name: userData.name,
+          email: userData.email ?? decoded.email,
+          username: userData.username || userData.name || decoded.username || decoded.name,
+          name: userData.name ?? decoded.name,
           avatar: userData.avatar,
           bannerImage: userData.bannerImage,
           bio: userData.bio,
           creatorBio: userData.creatorBio,
+          is_creator: userData.is_creator,
         };
       } catch (e) {
         console.error("Failed to parse stored user:", e);
@@ -115,9 +119,10 @@ export const getCurrentUser = (): Partial<User> | null => {
 
     // Fallback to token data only
     return {
-      id: decoded.userId,
+      id: decoded.sub,
       email: decoded.email,
-      username: decoded.username,
+      username: decoded.username || decoded.name,
+      name: decoded.name,
     };
   } catch (error) {
     return null;
