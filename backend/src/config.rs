@@ -36,36 +36,28 @@ impl Config {
                 .unwrap_or_else(|_| "redis://localhost:6379".to_string()),
             cloud_amqp_url: env::var("CLOUD_AMQP")
                 .unwrap_or_else(|_| "amqp://localhost:5672".to_string()),
-            jwt_secret: env::var("JWT_SECRET")
-                .unwrap_or_else(|_| "your-secret-key".to_string()),
-            jwt_expires_in: env::var("JWT_EXPIRES_IN")
-                .unwrap_or_else(|_| "7d".to_string()),
-            github_client_id: env::var("GITHUB_CLIENT_ID")
-                .unwrap_or_else(|_| "".to_string()),
+            jwt_secret: env::var("JWT_SECRET").unwrap_or_else(|_| "your-secret-key".to_string()),
+            jwt_expires_in: env::var("JWT_EXPIRES_IN").unwrap_or_else(|_| "7d".to_string()),
+            github_client_id: env::var("GITHUB_CLIENT_ID").unwrap_or_else(|_| "".to_string()),
             github_client_secret: env::var("GITHUB_CLIENT_SECRET")
                 .unwrap_or_else(|_| "".to_string()),
-            github_callback_url: env::var("GITHUB_CALLBACK_URL")
-                .unwrap_or_else(|_| "".to_string()),
+            github_callback_url: env::var("GITHUB_CALLBACK_URL").unwrap_or_else(|_| "".to_string()),
             frontend_url: env::var("FRONTEND_URL")
                 .unwrap_or_else(|_| "http://localhost:3000".to_string()),
             cors_origin: env::var("CORS_ORIGIN")
                 .unwrap_or_else(|_| "http://localhost:3000".to_string()),
             stripe_publishable_key: env::var("STRIPE_PUBLISHABLE_KEY")
                 .unwrap_or_else(|_| "".to_string()),
-            stripe_secret_key: env::var("STRIPE_SECRET_KEY")
-                .unwrap_or_else(|_| "".to_string()),
+            stripe_secret_key: env::var("STRIPE_SECRET_KEY").unwrap_or_else(|_| "".to_string()),
             stripe_webhook_secret: env::var("STRIPE_WEBHOOK_SECRET")
                 .unwrap_or_else(|_| "".to_string()),
-            supabase_url: env::var("SUPABASE_URL")
-                .unwrap_or_else(|_| "".to_string()),
-            supabase_anon_key: env::var("SUPABASE_ANON_KEY")
-                .unwrap_or_else(|_| "".to_string()),
+            supabase_url: env::var("SUPABASE_URL").unwrap_or_else(|_| "".to_string()),
+            supabase_anon_key: env::var("SUPABASE_ANON_KEY").unwrap_or_else(|_| "".to_string()),
             port: env::var("PORT")
                 .unwrap_or_else(|_| "4000".to_string())
                 .parse()
                 .unwrap_or(4000),
-            node_env: env::var("NODE_ENV")
-                .unwrap_or_else(|_| "development".to_string()),
+            node_env: env::var("NODE_ENV").unwrap_or_else(|_| "development".to_string()),
         })
     }
 }

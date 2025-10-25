@@ -31,8 +31,7 @@ pub struct PodcastQuery {
 }
 
 pub fn podcast_routes() -> Router<Database> {
-    Router::new()
-        .route("/", get(get_podcasts))
+    Router::new().route("/", get(get_podcasts))
 }
 
 #[derive(Debug, Serialize)]
@@ -68,21 +67,19 @@ async fn get_podcasts(
             "user1" => vec![
                 "Rust Programming Deep Dive",
                 "Web Development Tips",
-                "System Design Patterns"
+                "System Design Patterns",
             ],
             "user2" => vec![
                 "JavaScript Mastery",
                 "React Best Practices",
-                "Node.js Performance"
+                "Node.js Performance",
             ],
-            _ => vec![
-                "General Tech Talk",
-                "Industry Insights"
-            ]
+            _ => vec!["General Tech Talk", "Industry Insights"],
         };
-        
-        podcast_titles.into_iter().map(|title| {
-            Podcast {
+
+        podcast_titles
+            .into_iter()
+            .map(|title| Podcast {
                 id: Uuid::new_v4(),
                 title: title.to_string(),
                 description: Some(format!("A podcast episode about {}", title)),
@@ -91,8 +88,8 @@ async fn get_podcasts(
                 total_duration: Some("2h 30m".to_string()),
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
-            }
-        }).collect()
+            })
+            .collect()
     };
 
     let total = podcasts.len();

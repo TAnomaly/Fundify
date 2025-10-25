@@ -5,10 +5,10 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
-use uuid::Uuid;
+use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use uuid::Uuid;
 
 use crate::database::Database;
 
@@ -48,7 +48,7 @@ async fn get_campaigns(
 
     // Use simple SQL query with snake_case table and column names
     let query = "SELECT id, title, description, goal_amount, current_amount, status, slug, created_at, updated_at FROM campaigns ORDER BY created_at DESC LIMIT $1 OFFSET $2";
-    
+
     match sqlx::query_as::<_, Campaign>(query)
         .bind(limit as i64)
         .bind(offset as i64)
@@ -68,7 +68,7 @@ async fn get_campaigns(
                 }
             });
             Ok(Json(response))
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to fetch campaigns: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -82,39 +82,46 @@ async fn create_campaign(
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     println!("🔄 Creating campaign for user: {}", claims.sub);
-    println!("📝 Campaign payload: {}", serde_json::to_string(&payload).unwrap_or("Failed to serialize".to_string()));
-    
+    println!(
+        "📝 Campaign payload: {}",
+        serde_json::to_string(&payload).unwrap_or("Failed to serialize".to_string())
+    );
+
     // Extract values from payload
-    let title = payload.get("title")
+    let title = payload
+        .get("title")
         .and_then(|v| v.as_str())
         .unwrap_or("New Campaign");
-    
-    let description = payload.get("description")
+
+    let description = payload
+        .get("description")
         .and_then(|v| v.as_str())
         .unwrap_or("Campaign description");
-    
-    let story = payload.get("story")
+
+    let story = payload
+        .get("story")
         .and_then(|v| v.as_str())
         .unwrap_or(description);
-    
-    let goal_amount = payload.get("goal_amount")
+
+    let goal_amount = payload
+        .get("goal_amount")
         .and_then(|v| v.as_f64())
         .unwrap_or(1000.0);
-    
-    let cover_image = payload.get("cover_image")
+
+    let cover_image = payload
+        .get("cover_image")
         .and_then(|v| v.as_str())
         .unwrap_or("https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=1200&q=80");
-    
-    let video_url = payload.get("video_url")
-        .and_then(|v| v.as_str());
-    
-    let category = payload.get("category")
+
+    let video_url = payload.get("video_url").and_then(|v| v.as_str());
+
+    let category = payload
+        .get("category")
         .and_then(|v| v.as_str())
         .unwrap_or("OTHER");
-    
-    let end_date = payload.get("end_date")
-        .and_then(|v| v.as_str());
-    
+
+    let end_date = payload.get("end_date").and_then(|v| v.as_str());
+
     // Generate a unique slug from title
     let slug = title
         .to_lowercase()
@@ -124,7 +131,7 @@ async fn create_campaign(
         .chars()
         .filter(|c| c.is_alphanumeric() || *c == '-')
         .collect::<String>();
-    
+
     // Store campaign in database with all fields
     let campaign_id = uuid::Uuid::new_v4();
     let result = sqlx::query(
@@ -145,7 +152,7 @@ async fn create_campaign(
     .bind(end_date)
     .execute(&db.pool)
     .await;
-    
+
     match result {
         Ok(_) => {
             let response = serde_json::json!({
@@ -185,7 +192,7 @@ async fn get_campaign_by_slug(
     .bind(&slug)
     .fetch_one(&db.pool)
     .await;
-    
+
     match campaign {
         Ok(row) => {
             let id: Uuid = row.get("id");
@@ -201,14 +208,14 @@ async fn get_campaign_by_slug(
             let story: Option<String> = row.get("story");
             let category: Option<String> = row.get("category");
             let end_date: Option<DateTime<Utc>> = row.get("end_date");
-            
+
             // Creator info
             let creator_id: Option<Uuid> = row.get("creator_id");
             let username: Option<String> = row.get("username");
             let display_name: Option<String> = row.get("display_name");
             let avatar_url: Option<String> = row.get("avatar_url");
             let bio: Option<String> = row.get("bio");
-            
+
             let response = serde_json::json!({
                 "success": true,
                 "data": {

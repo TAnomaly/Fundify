@@ -18,7 +18,7 @@ impl Database {
 
     pub async fn run_migrations(&self) -> anyhow::Result<()> {
         println!("🔄 Running database migrations...");
-        
+
         // Create tables if they don't exist
         sqlx::query(
             r#"
@@ -128,13 +128,17 @@ impl Database {
             .execute(&self.pool)
             .await?;
 
-        sqlx::query("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'OTHER'")
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'OTHER'",
+        )
+        .execute(&self.pool)
+        .await?;
 
-        sqlx::query("ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS end_date TIMESTAMP WITH TIME ZONE")
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS end_date TIMESTAMP WITH TIME ZONE",
+        )
+        .execute(&self.pool)
+        .await?;
 
         sqlx::query(
             r#"
@@ -162,13 +166,17 @@ impl Database {
             .execute(&self.pool)
             .await?;
 
-        sqlx::query("CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id)")
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id)",
+        )
+        .execute(&self.pool)
+        .await?;
 
-        sqlx::query("CREATE INDEX IF NOT EXISTS idx_subscriptions_creator_id ON subscriptions(creator_id)")
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_subscriptions_creator_id ON subscriptions(creator_id)",
+        )
+        .execute(&self.pool)
+        .await?;
 
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_campaigns_creator_id ON campaigns(creator_id)")
             .execute(&self.pool)
@@ -188,7 +196,11 @@ impl Clone for Database {
 }
 
 impl Database {
-    pub async fn get_campaigns(&self, limit: i64, offset: i64) -> Result<Vec<crate::routes::campaigns::Campaign>, sqlx::Error> {
+    pub async fn get_campaigns(
+        &self,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<crate::routes::campaigns::Campaign>, sqlx::Error> {
         sqlx::query_as::<_, crate::routes::campaigns::Campaign>(
             "SELECT id, title, description, \"goalAmount\", \"currentAmount\", status, \"createdAt\", \"updatedAt\", \"creatorId\" FROM \"Campaign\" ORDER BY \"createdAt\" DESC LIMIT $1 OFFSET $2"
         )
@@ -198,13 +210,18 @@ impl Database {
         .await
     }
 
-    pub async fn get_events(&self, limit: i64, offset: i64, upcoming: bool) -> Result<Vec<crate::routes::events::Event>, sqlx::Error> {
+    pub async fn get_events(
+        &self,
+        limit: i64,
+        offset: i64,
+        upcoming: bool,
+    ) -> Result<Vec<crate::routes::events::Event>, sqlx::Error> {
         let query = if upcoming {
             "SELECT id, title, description, status, \"startTime\" as start_time, \"endTime\" as end_time, location, \"createdAt\" as created_at, \"updatedAt\" as updated_at, \"hostId\" as host_id FROM \"Event\" WHERE \"startTime\" > NOW() ORDER BY \"startTime\" ASC LIMIT $1 OFFSET $2"
         } else {
             "SELECT id, title, description, status, \"startTime\" as start_time, \"endTime\" as end_time, location, \"createdAt\" as created_at, \"updatedAt\" as updated_at, \"hostId\" as host_id FROM \"Event\" ORDER BY \"startTime\" DESC LIMIT $1 OFFSET $2"
         };
-        
+
         sqlx::query_as::<_, crate::routes::events::Event>(query)
             .bind(limit)
             .bind(offset)

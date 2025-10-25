@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::Json,
-    routing::{get, post, put, delete},
+    routing::{delete, get, post, put},
     Router,
 };
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,7 @@ use crate::{
 pub struct PostQuery {
     pub page: Option<u32>,
     pub limit: Option<u32>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<String>,
 }
 
 pub fn post_routes() -> Router<Database> {
@@ -34,8 +34,15 @@ pub fn post_routes() -> Router<Database> {
 #[derive(Debug, Serialize)]
 struct PostsResponse {
     success: bool,
-    data: Vec<Post>,
+    data: PostsData,
+}
+
+#[derive(Debug, Serialize)]
+struct PostsData {
+    posts: Vec<Post>,
     pagination: PaginationInfo,
+    #[serde(rename = "hasSubscription")]
+    has_subscription: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -54,36 +61,68 @@ async fn get_posts(
     let limit = params.limit.unwrap_or(20);
     let offset = (page - 1) * limit;
 
-    let posts = if let Some(user_id) = params.user_id {
-        sqlx::query_as::<_, Post>(
-            "SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
-        )
-        .bind(user_id)
-        .bind(limit as i64)
-        .bind(offset as i64)
-        .fetch_all(&db.pool)
-        .await
-    } else {
-        sqlx::query_as::<_, Post>(
-            "SELECT * FROM posts ORDER BY created_at DESC LIMIT $1 OFFSET $2"
-        )
-        .bind(limit as i64)
-        .bind(offset as i64)
-        .fetch_all(&db.pool)
-        .await
-    }
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let limit_i64 = limit as i64;
+    let offset_i64 = offset as i64;
 
-    // Frontend'in beklediği format
-    let total = posts.len();
+    let (posts, total) = if let Some(user_id) = params.user_id.clone() {
+        let posts = sqlx::query_as::<_, Post>(
+            "SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+        )
+        .bind(&user_id)
+        .bind(limit_i64)
+        .bind(offset_i64)
+        .fetch_all(&db.pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Error fetching posts: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+        let total = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM posts WHERE user_id = $1")
+            .bind(&user_id)
+            .fetch_one(&db.pool)
+            .await
+            .map_err(|e| {
+                eprintln!("Error counting posts: {:?}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+        (posts, total as usize)
+    } else {
+        let posts = sqlx::query_as::<_, Post>(
+            "SELECT * FROM posts ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+        )
+        .bind(limit_i64)
+        .bind(offset_i64)
+        .fetch_all(&db.pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Error fetching posts: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+        let total = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM posts")
+            .fetch_one(&db.pool)
+            .await
+            .map_err(|e| {
+                eprintln!("Error counting posts: {:?}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+        (posts, total as usize)
+    };
+
     let response = PostsResponse {
         success: true,
-        data: posts,
-        pagination: PaginationInfo {
-            page,
-            limit,
-            total,
-            pages: ((total as f64) / (limit as f64)).ceil() as u32,
+        data: PostsData {
+            posts,
+            pagination: PaginationInfo {
+                page,
+                limit,
+                total,
+                pages: calculate_total_pages(total, limit),
+            },
+            has_subscription: false,
         },
     };
     Ok(Json(response))
@@ -99,7 +138,7 @@ async fn get_posts_by_creator(
     let offset = (page - 1) * limit;
 
     let posts = sqlx::query_as::<_, Post>(
-        "SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
+        "SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
     )
     .bind(&user_id)
     .bind(limit as i64)
@@ -111,26 +150,26 @@ async fn get_posts_by_creator(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let total_count = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM posts WHERE user_id = $1"
-    )
-    .bind(&user_id)
-    .fetch_one(&db.pool)
-    .await
-    .map_err(|e| {
-        eprintln!("Error counting posts: {:?}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let total_count = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM posts WHERE user_id = $1")
+        .bind(&user_id)
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Error counting posts: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
-    let total = total_count as usize;
     let response = PostsResponse {
         success: true,
-        data: posts,
-        pagination: PaginationInfo {
-            page,
-            limit,
-            total,
-            pages: ((total as f64) / (limit as f64)).ceil() as u32,
+        data: PostsData {
+            posts,
+            pagination: PaginationInfo {
+                page,
+                limit,
+                total: total_count as usize,
+                pages: calculate_total_pages(total_count as usize, limit),
+            },
+            has_subscription: false,
         },
     };
     Ok(Json(response))
@@ -144,12 +183,12 @@ async fn get_my_posts(
     let page = params.page.unwrap_or(1);
     let limit = params.limit.unwrap_or(20);
     let offset = (page - 1) * limit;
-    let user_id = &claims.sub;
+    let user_id = claims.sub;
 
     let posts = sqlx::query_as::<_, Post>(
-        "SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
+        "SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
     )
-    .bind(user_id)
+    .bind(&user_id)
     .bind(limit as i64)
     .bind(offset as i64)
     .fetch_all(&db.pool)
@@ -159,26 +198,26 @@ async fn get_my_posts(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let total_count = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM posts WHERE user_id = $1"
-    )
-    .bind(user_id)
-    .fetch_one(&db.pool)
-    .await
-    .map_err(|e| {
-        eprintln!("Error counting my posts: {:?}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let total_count = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM posts WHERE user_id = $1")
+        .bind(&user_id)
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Error counting my posts: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
-    let total = total_count as usize;
     let response = PostsResponse {
         success: true,
-        data: posts,
-        pagination: PaginationInfo {
-            page,
-            limit,
-            total,
-            pages: ((total as f64) / (limit as f64)).ceil() as u32,
+        data: PostsData {
+            posts,
+            pagination: PaginationInfo {
+                page,
+                limit,
+                total: total_count as usize,
+                pages: calculate_total_pages(total_count as usize, limit),
+            },
+            has_subscription: false,
         },
     };
 
@@ -199,7 +238,7 @@ async fn create_post(
         INSERT INTO posts (user_id, title, content, media_url, media_type, is_premium)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
-        "#
+        "#,
     )
     .bind(user_id)
     .bind(&payload.title)
@@ -221,13 +260,11 @@ async fn get_post_by_id(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Post>, StatusCode> {
-    let post = sqlx::query_as::<_, Post>(
-        "SELECT * FROM posts WHERE id = $1"
-    )
-    .bind(id)
-    .fetch_one(&db.pool)
-    .await
-    .map_err(|_| StatusCode::NOT_FOUND)?;
+    let post = sqlx::query_as::<_, Post>("SELECT * FROM posts WHERE id = $1")
+        .bind(id)
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|_| StatusCode::NOT_FOUND)?;
 
     Ok(Json(post))
 }
@@ -238,17 +275,16 @@ async fn update_post(
     claims: Claims,
     Json(payload): Json<CreatePostRequest>,
 ) -> Result<Json<Post>, StatusCode> {
-    let user_id = claims.sub.parse::<Uuid>().unwrap();
+    let user_id = claims.sub;
 
     // Check if user owns the post
-    let existing_post = sqlx::query_as::<_, Post>(
-        "SELECT * FROM posts WHERE id = $1 AND user_id = $2"
-    )
-    .bind(id)
-    .bind(user_id)
-    .fetch_optional(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let existing_post =
+        sqlx::query_as::<_, Post>("SELECT * FROM posts WHERE id = $1 AND user_id = $2")
+            .bind(id)
+            .bind(&user_id)
+            .fetch_optional(&db.pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if existing_post.is_none() {
         return Err(StatusCode::FORBIDDEN);
@@ -280,17 +316,16 @@ async fn delete_post(
     Path(id): Path<Uuid>,
     claims: Claims,
 ) -> Result<StatusCode, StatusCode> {
-    let user_id = claims.sub.parse::<Uuid>().unwrap();
+    let user_id = claims.sub;
 
     // Check if user owns the post
-    let existing_post = sqlx::query_as::<_, Post>(
-        "SELECT * FROM posts WHERE id = $1 AND user_id = $2"
-    )
-    .bind(id)
-    .bind(user_id)
-    .fetch_optional(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let existing_post =
+        sqlx::query_as::<_, Post>("SELECT * FROM posts WHERE id = $1 AND user_id = $2")
+            .bind(id)
+            .bind(&user_id)
+            .fetch_optional(&db.pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if existing_post.is_none() {
         return Err(StatusCode::FORBIDDEN);
@@ -303,4 +338,12 @@ async fn delete_post(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+fn calculate_total_pages(total: usize, limit: u32) -> u32 {
+    if total == 0 || limit == 0 {
+        0
+    } else {
+        ((total as f64) / (limit as f64)).ceil() as u32
+    }
 }

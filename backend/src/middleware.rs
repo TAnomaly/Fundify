@@ -1,36 +1,34 @@
+use axum::ServiceExt;
 use axum::{
     extract::{Request, State},
     http::{header::AUTHORIZATION, StatusCode},
     middleware::Next,
     response::Response,
 };
-use axum::ServiceExt;
 
 use crate::{auth::verify_jwt, config::Config, database::Database};
 
-pub async fn auth_middleware(
-    mut request: Request,
-    next: Next,
-) -> Result<Response, StatusCode> {
+pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Response, StatusCode> {
     let path = request.uri().path();
     let method = request.method().to_string();
-    
+
     println!("🔐 Auth middleware: {} {}", method, path);
-    
+
     // Skip auth for certain paths
-    if path.starts_with("/health") || 
-       path.starts_with("/api/auth") ||
-       path.starts_with("/api/creators") ||
-       (path.starts_with("/api/campaigns") && request.method() == "GET") ||
-       path.starts_with("/api/events") ||
-       path.starts_with("/api/posts") ||
-       path.starts_with("/api/products") ||
-       path.starts_with("/api/articles") ||
-       path.starts_with("/api/podcasts") ||
-       path.starts_with("/api/notifications") ||
-       path.starts_with("/api/subscriptions") ||
-       path.starts_with("/api/users/become-creator") ||
-       (path.starts_with("/api/") && request.method() == "OPTIONS") {
+    if path.starts_with("/health")
+        || path.starts_with("/api/auth")
+        || path.starts_with("/api/creators")
+        || (path.starts_with("/api/campaigns") && request.method() == "GET")
+        || path.starts_with("/api/events")
+        || path.starts_with("/api/posts")
+        || path.starts_with("/api/products")
+        || path.starts_with("/api/articles")
+        || path.starts_with("/api/podcasts")
+        || path.starts_with("/api/notifications")
+        || path.starts_with("/api/subscriptions")
+        || path.starts_with("/api/users/become-creator")
+        || (path.starts_with("/api/") && request.method() == "OPTIONS")
+    {
         println!("✅ Skipping auth for: {}", path);
         return Ok(next.run(request).await);
     }
@@ -62,13 +60,12 @@ pub async fn auth_middleware(
         println!("❌ Failed to load config");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    
+
     // Verify JWT token
-    let claims = verify_jwt(token, &config.jwt_secret)
-        .map_err(|e| {
-            println!("❌ JWT verification failed: {}", e);
-            StatusCode::UNAUTHORIZED
-        })?;
+    let claims = verify_jwt(token, &config.jwt_secret).map_err(|e| {
+        println!("❌ JWT verification failed: {}", e);
+        StatusCode::UNAUTHORIZED
+    })?;
 
     println!("✅ JWT verified for user: {}", claims.sub);
 
@@ -93,7 +90,10 @@ pub mod auth {
     {
         type Rejection = StatusCode;
 
-        async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        async fn from_request_parts(
+            parts: &mut Parts,
+            _state: &S,
+        ) -> Result<Self, Self::Rejection> {
             parts
                 .extensions
                 .get::<Claims>()

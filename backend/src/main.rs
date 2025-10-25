@@ -22,7 +22,11 @@ mod routes;
 
 use config::Config;
 use database::Database;
-use routes::{auth::auth_routes, users::user_routes, posts::post_routes, products::product_routes, campaigns::campaign_routes, events::event_routes, creators::creator_routes, articles::articles_routes, podcasts::podcast_routes};
+use routes::{
+    articles::articles_routes, auth::auth_routes, campaigns::campaign_routes,
+    creators::creator_routes, events::event_routes, podcasts::podcast_routes, posts::post_routes,
+    products::product_routes, users::user_routes,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -37,10 +41,10 @@ async fn main() -> anyhow::Result<()> {
 
     // Load configuration
     let config = Config::from_env()?;
-    
+
     // Initialize database
     let db = Database::new(&config.database_url).await?;
-    
+
     // Run migrations
     db.run_migrations().await?;
 
@@ -64,7 +68,13 @@ async fn main() -> anyhow::Result<()> {
                 .layer(
                     CorsLayer::new()
                         .allow_origin(Any)
-                        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
+                        .allow_methods([
+                            Method::GET,
+                            Method::POST,
+                            Method::PUT,
+                            Method::DELETE,
+                            Method::OPTIONS,
+                        ])
                         .allow_headers([
                             HeaderName::from_static("content-type"),
                             HeaderName::from_static("authorization"),
@@ -81,7 +91,7 @@ async fn main() -> anyhow::Result<()> {
     // Run the server
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));
     tracing::info!("Server running on {}", addr);
-    
+
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
 
@@ -98,7 +108,7 @@ async fn get_notifications() -> Result<Json<serde_json::Value>, StatusCode> {
         "success": true,
         "data": []
     });
-    
+
     Ok(Json(response))
 }
 
@@ -110,6 +120,6 @@ async fn get_my_subscribers() -> Result<Json<serde_json::Value>, StatusCode> {
             "subscriptions": []
         }
     });
-    
+
     Ok(Json(response))
 }

@@ -7,8 +7,8 @@ use axum::{
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
 use oauth2::{
-    basic::BasicClient, reqwest::async_http_client, AuthUrl, AuthorizationCode, ClientId, ClientSecret,
-    CsrfToken, RedirectUrl, Scope, TokenResponse, TokenUrl,
+    basic::BasicClient, reqwest::async_http_client, AuthUrl, AuthorizationCode, ClientId,
+    ClientSecret, CsrfToken, RedirectUrl, Scope, TokenResponse, TokenUrl,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -50,7 +50,7 @@ pub fn auth_routes() -> Router<Database> {
 
 async fn github_auth() -> impl IntoResponse {
     let config = Config::from_env().unwrap();
-    
+
     let client = BasicClient::new(
         ClientId::new(config.github_client_id),
         Some(ClientSecret::new(config.github_client_secret)),
@@ -72,7 +72,7 @@ async fn github_callback(
     Query(params): Query<AuthCallbackQuery>,
 ) -> Result<Json<AuthResponse>, AppError> {
     let config = Config::from_env().unwrap();
-    
+
     let client = BasicClient::new(
         ClientId::new(config.github_client_id),
         Some(ClientSecret::new(config.github_client_secret)),
@@ -89,13 +89,13 @@ async fn github_callback(
 
     // Get user info from GitHub
     let github_user = get_github_user(&token.access_token().secret()).await?;
-    
+
     // Find or create user
     let user = find_or_create_user(&db, &github_user).await?;
-    
+
     // Generate JWT token
     let token = generate_jwt(&user.id.to_string(), &config.jwt_secret)?;
-    
+
     Ok(Json(AuthResponse { user, token }))
 }
 
@@ -123,13 +123,11 @@ async fn get_github_user(access_token: &str) -> Result<GitHubUser, AppError> {
 
 async fn find_or_create_user(db: &Database, github_user: &GitHubUser) -> Result<User, AppError> {
     // Try to find existing user by GitHub ID
-    let existing_user = sqlx::query_as::<_, User>(
-        "SELECT * FROM users WHERE github_id = $1"
-    )
-    .bind(github_user.id)
-    .fetch_optional(&db.pool)
-    .await
-    .map_err(|_| AppError::DatabaseError("Failed to query user".to_string()))?;
+    let existing_user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE github_id = $1")
+        .bind(github_user.id)
+        .fetch_optional(&db.pool)
+        .await
+        .map_err(|_| AppError::DatabaseError("Failed to query user".to_string()))?;
 
     if let Some(user) = existing_user {
         return Ok(user);
@@ -141,7 +139,7 @@ async fn find_or_create_user(db: &Database, github_user: &GitHubUser) -> Result<
         INSERT INTO users (github_id, username, email, display_name, avatar_url, bio)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
-        "#
+        "#,
     )
     .bind(github_user.id)
     .bind(&github_user.login)
@@ -160,13 +158,11 @@ async fn get_current_user(
     State(db): State<Database>,
     claims: crate::auth::Claims,
 ) -> Result<Json<User>, AppError> {
-    let user = sqlx::query_as::<_, User>(
-        "SELECT * FROM users WHERE id = $1"
-    )
-    .bind(&claims.sub) // claims.sub zaten String, UUID'ye parse etmeye gerek yok
-    .fetch_one(&db.pool)
-    .await
-    .map_err(|_| AppError::DatabaseError("Failed to fetch user".to_string()))?;
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(&claims.sub) // claims.sub zaten String, UUID'ye parse etmeye gerek yok
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|_| AppError::DatabaseError("Failed to fetch user".to_string()))?;
 
     Ok(Json(user))
 }
@@ -176,15 +172,13 @@ async fn login(
     Json(payload): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, AppError> {
     let config = Config::from_env().unwrap();
-    
+
     // Find user by email
-    let user = sqlx::query_as::<_, User>(
-        "SELECT * FROM users WHERE email = $1"
-    )
-    .bind(&payload.email)
-    .fetch_optional(&db.pool)
-    .await
-    .map_err(|_| AppError::DatabaseError("Failed to query user".to_string()))?;
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
+        .bind(&payload.email)
+        .fetch_optional(&db.pool)
+        .await
+        .map_err(|_| AppError::DatabaseError("Failed to query user".to_string()))?;
 
     let user = user.ok_or_else(|| AppError::AuthError("Invalid credentials".to_string()))?;
 
@@ -195,10 +189,10 @@ async fn login(
     // } else {
     //     return Err(AppError::AuthError("Invalid credentials".to_string()));
     // }
-    
+
     // Generate JWT token
     let token = generate_jwt(&user.id, &config.jwt_secret)?;
-    
+
     Ok(Json(AuthResponse { user, token }))
 }
 
@@ -207,16 +201,15 @@ async fn register(
     Json(payload): Json<RegisterRequest>,
 ) -> Result<Json<AuthResponse>, AppError> {
     let config = Config::from_env().unwrap();
-    
+
     // Check if user already exists
-    let existing_user = sqlx::query_as::<_, User>(
-        "SELECT * FROM users WHERE email = $1 OR username = $2"
-    )
-    .bind(&payload.email)
-    .bind(&payload.username)
-    .fetch_optional(&db.pool)
-    .await
-    .map_err(|_| AppError::DatabaseError("Failed to query user".to_string()))?;
+    let existing_user =
+        sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1 OR username = $2")
+            .bind(&payload.email)
+            .bind(&payload.username)
+            .fetch_optional(&db.pool)
+            .await
+            .map_err(|_| AppError::DatabaseError("Failed to query user".to_string()))?;
 
     if existing_user.is_some() {
         return Err(AppError::ValidationError("User already exists".to_string()));
@@ -232,7 +225,7 @@ async fn register(
         INSERT INTO users (id, email, name, username, is_creator)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING *
-        "#
+        "#,
     )
     .bind(uuid::Uuid::new_v4().to_string())
     .bind(&payload.email)
@@ -245,14 +238,14 @@ async fn register(
 
     // Generate JWT token
     let token = generate_jwt(&user.id, &config.jwt_secret)?;
-    
+
     Ok(Json(AuthResponse { user, token }))
 }
 
 fn generate_jwt(user_id: &str, secret: &str) -> Result<String, AppError> {
     let now = chrono::Utc::now();
     let exp = now + chrono::Duration::days(7);
-    
+
     let claims = crate::auth::Claims {
         sub: user_id.to_string(),
         exp: exp.timestamp() as usize,

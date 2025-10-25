@@ -7,10 +7,7 @@ use axum::{
 };
 use serde::Deserialize;
 
-use crate::{
-    database::Database,
-    models::User,
-};
+use crate::{database::Database, models::User};
 
 #[derive(Debug, Deserialize)]
 pub struct CreatorQuery {
@@ -30,7 +27,7 @@ async fn get_creators(
 ) -> Result<Json<Vec<User>>, StatusCode> {
     let limit = params.limit.unwrap_or(20).min(100); // Max 100 creators
     let offset = params.offset.unwrap_or(0);
-    
+
     let query = r#"
         SELECT id, email, name, username, avatar, bio, is_creator, created_at, updated_at 
         FROM users 
@@ -38,7 +35,7 @@ async fn get_creators(
         ORDER BY created_at DESC 
         LIMIT $1 OFFSET $2
     "#;
-    
+
     match sqlx::query_as::<_, User>(query)
         .bind(limit)
         .bind(offset)
@@ -62,7 +59,7 @@ async fn get_creator_by_username(
         FROM users 
         WHERE username = $1 AND is_creator = true
     "#;
-    
+
     match sqlx::query_as::<_, User>(query)
         .bind(&username)
         .fetch_one(&db.pool)
@@ -76,4 +73,3 @@ async fn get_creator_by_username(
         }
     }
 }
-

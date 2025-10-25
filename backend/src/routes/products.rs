@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::Json,
-    routing::{get, post, put, delete},
+    routing::{delete, get, post, put},
     Router,
 };
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,7 @@ use crate::{
 pub struct ProductQuery {
     pub page: Option<u32>,
     pub limit: Option<u32>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<String>,
     pub creatorId: Option<String>,
 }
 
@@ -39,31 +39,33 @@ async fn get_products(
     let page = params.page.unwrap_or(1);
     let limit = params.limit.unwrap_or(20);
     let offset = (page - 1) * limit;
+    let limit_i64 = limit as i64;
+    let offset_i64 = offset as i64;
 
-    let products = if let Some(creator_id) = params.creatorId {
+    let products = if let Some(creator_id) = params.creatorId.clone() {
         sqlx::query_as::<_, Product>(
-            "SELECT * FROM products WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
+            "SELECT * FROM products WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
         )
         .bind(&creator_id)
-        .bind(limit as i64)
-        .bind(offset as i64)
+        .bind(limit_i64)
+        .bind(offset_i64)
         .fetch_all(&db.pool)
         .await
-    } else if let Some(user_id) = params.user_id {
+    } else if let Some(user_id) = params.user_id.clone() {
         sqlx::query_as::<_, Product>(
-            "SELECT * FROM products WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
+            "SELECT * FROM products WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
         )
-        .bind(user_id)
-        .bind(limit as i64)
-        .bind(offset as i64)
+        .bind(&user_id)
+        .bind(limit_i64)
+        .bind(offset_i64)
         .fetch_all(&db.pool)
         .await
     } else {
         sqlx::query_as::<_, Product>(
-            "SELECT * FROM products ORDER BY created_at DESC LIMIT $1 OFFSET $2"
+            "SELECT * FROM products ORDER BY created_at DESC LIMIT $1 OFFSET $2",
         )
-        .bind(limit as i64)
-        .bind(offset as i64)
+        .bind(limit_i64)
+        .bind(offset_i64)
         .fetch_all(&db.pool)
         .await
     }
@@ -80,7 +82,7 @@ async fn create_product(
     claims: Claims,
     Json(payload): Json<CreateProductRequest>,
 ) -> Result<Json<Product>, StatusCode> {
-    let user_id = claims.sub.parse::<Uuid>().unwrap();
+    let user_id = claims.sub;
 
     let product = sqlx::query_as::<_, Product>(
         r#"
@@ -89,7 +91,7 @@ async fn create_product(
         RETURNING *
         "#
     )
-    .bind(user_id)
+    .bind(&user_id)
     .bind(&payload.name)
     .bind(&payload.description)
     .bind(&payload.price)
@@ -108,13 +110,11 @@ async fn get_product_by_id(
     State(db): State<Database>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Product>, StatusCode> {
-    let product = sqlx::query_as::<_, Product>(
-        "SELECT * FROM products WHERE id = $1"
-    )
-    .bind(id)
-    .fetch_one(&db.pool)
-    .await
-    .map_err(|_| StatusCode::NOT_FOUND)?;
+    let product = sqlx::query_as::<_, Product>("SELECT * FROM products WHERE id = $1")
+        .bind(id)
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|_| StatusCode::NOT_FOUND)?;
 
     Ok(Json(product))
 }
@@ -125,17 +125,16 @@ async fn update_product(
     claims: Claims,
     Json(payload): Json<CreateProductRequest>,
 ) -> Result<Json<Product>, StatusCode> {
-    let user_id = claims.sub.parse::<Uuid>().unwrap();
+    let user_id = claims.sub;
 
     // Check if user owns the product
-    let existing_product = sqlx::query_as::<_, Product>(
-        "SELECT * FROM products WHERE id = $1 AND user_id = $2"
-    )
-    .bind(id)
-    .bind(user_id)
-    .fetch_optional(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let existing_product =
+        sqlx::query_as::<_, Product>("SELECT * FROM products WHERE id = $1 AND user_id = $2")
+            .bind(id)
+            .bind(&user_id)
+            .fetch_optional(&db.pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if existing_product.is_none() {
         return Err(StatusCode::FORBIDDEN);
@@ -169,17 +168,16 @@ async fn delete_product(
     Path(id): Path<Uuid>,
     claims: Claims,
 ) -> Result<StatusCode, StatusCode> {
-    let user_id = claims.sub.parse::<Uuid>().unwrap();
+    let user_id = claims.sub;
 
     // Check if user owns the product
-    let existing_product = sqlx::query_as::<_, Product>(
-        "SELECT * FROM products WHERE id = $1 AND user_id = $2"
-    )
-    .bind(id)
-    .bind(user_id)
-    .fetch_optional(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let existing_product =
+        sqlx::query_as::<_, Product>("SELECT * FROM products WHERE id = $1 AND user_id = $2")
+            .bind(id)
+            .bind(&user_id)
+            .fetch_optional(&db.pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if existing_product.is_none() {
         return Err(StatusCode::FORBIDDEN);
@@ -226,7 +224,7 @@ async fn get_products_meta(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Get product types and counts
     let types = sqlx::query_as::<_, TypeCount>(
-        "SELECT 'DIGITAL' as type, COUNT(*) as count FROM products WHERE is_digital = true"
+        "SELECT 'DIGITAL' as type, COUNT(*) as count FROM products WHERE is_digital = true",
     )
     .fetch_all(&db.pool)
     .await
@@ -234,7 +232,7 @@ async fn get_products_meta(
 
     // Get price range
     let price_range = sqlx::query_as::<_, (Option<f64>, Option<f64>)>(
-        "SELECT MIN(price), MAX(price) FROM products"
+        "SELECT MIN(price), MAX(price) FROM products",
     )
     .fetch_one(&db.pool)
     .await
@@ -247,7 +245,7 @@ async fn get_products_meta(
             COUNT(CASE WHEN is_digital = true THEN 1 END) as featured_count,
             COUNT(DISTINCT user_id) as creator_count,
             COALESCE(SUM(price), 0) as total_revenue
-         FROM products"
+         FROM products",
     )
     .fetch_one(&db.pool)
     .await
@@ -285,27 +283,25 @@ async fn get_products_collections(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Get featured products (digital products)
     let featured = sqlx::query_as::<_, Product>(
-        "SELECT * FROM products WHERE is_digital = true ORDER BY created_at DESC LIMIT 6"
+        "SELECT * FROM products WHERE is_digital = true ORDER BY created_at DESC LIMIT 6",
     )
     .fetch_all(&db.pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Get top selling products (by price, as we don't have sales data)
-    let top_selling = sqlx::query_as::<_, Product>(
-        "SELECT * FROM products ORDER BY price DESC LIMIT 6"
-    )
-    .fetch_all(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let top_selling =
+        sqlx::query_as::<_, Product>("SELECT * FROM products ORDER BY price DESC LIMIT 6")
+            .fetch_all(&db.pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Get new arrivals
-    let new_arrivals = sqlx::query_as::<_, Product>(
-        "SELECT * FROM products ORDER BY created_at DESC LIMIT 6"
-    )
-    .fetch_all(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let new_arrivals =
+        sqlx::query_as::<_, Product>("SELECT * FROM products ORDER BY created_at DESC LIMIT 6")
+            .fetch_all(&db.pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response = serde_json::json!({
         "success": true,

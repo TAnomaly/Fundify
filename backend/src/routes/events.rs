@@ -66,7 +66,7 @@ async fn get_events(
             "SELECT e.id, e.title, e.description, e.status, e.start_time, e.end_time, e.location, e.price, e.created_at, e.updated_at, e.host_id, 'Host' as host_name, NULL as host_avatar, 0 as rsvp_count FROM events e ORDER BY e.start_time DESC LIMIT $1 OFFSET $2"
         }
     };
-    
+
     let result = if let Some(host_id) = host_id {
         sqlx::query_as::<_, Event>(query)
             .bind(host_id)
@@ -81,9 +81,8 @@ async fn get_events(
             .fetch_all(&db.pool)
             .await
     };
-    
-    match result
-    {
+
+    match result {
         Ok(events) => {
             // Frontend'in beklediği format
             let response = serde_json::json!({
@@ -97,7 +96,7 @@ async fn get_events(
                 }
             });
             Ok(Json(response))
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to fetch events: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -110,7 +109,7 @@ async fn get_event_by_id(
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let query = "SELECT e.id, e.title, e.description, e.status, e.start_time, e.end_time, e.location, e.price, e.created_at, e.updated_at, e.host_id, 'Host' as host_name, NULL as host_avatar, 0 as rsvp_count FROM events e WHERE e.id = $1";
-    
+
     match sqlx::query_as::<_, Event>(query)
         .bind(&id)
         .fetch_one(&db.pool)
@@ -122,7 +121,7 @@ async fn get_event_by_id(
                 "data": event
             });
             Ok(Json(response))
-        },
+        }
         Err(sqlx::Error::RowNotFound) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             tracing::error!("Failed to fetch event {}: {}", id, e);

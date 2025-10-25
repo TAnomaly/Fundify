@@ -1,5 +1,5 @@
-pub mod auth;
 pub mod articles;
+pub mod auth;
 pub mod campaigns;
 pub mod creators;
 pub mod events;
