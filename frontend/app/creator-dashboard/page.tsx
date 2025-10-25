@@ -31,12 +31,12 @@ export default function CreatorDashboard() {
       const isAlreadyCreator = localStorage.getItem("isCreator") === "true";
       const currentCreatorId = localStorage.getItem("currentCreatorId");
       const currentCreatorUsername = localStorage.getItem("currentCreatorUsername");
-      
+
       console.log("🔍 Checking creator status:", isAlreadyCreator);
       console.log("🔍 localStorage isCreator:", localStorage.getItem("isCreator"));
       console.log("🔍 currentCreatorId:", currentCreatorId);
       console.log("🔍 currentCreatorUsername:", currentCreatorUsername);
-      
+
       if (isAlreadyCreator && currentCreatorId) {
         setIsCreator(true);
         setUserName(currentCreatorUsername || "Creator");
@@ -101,10 +101,6 @@ export default function CreatorDashboard() {
       // Skip token validation for now
       console.log("⚠️ Skipping token validation - no auth required");
 
-      // Get current user info
-      const currentUser = getCurrentUser();
-      console.log("   Current user info:", currentUser);
-
       // Manual API call with explicit headers
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://perfect-happiness-production.up.railway.app/api";
       console.log("   Making direct API call to:", `${apiUrl}/users/become-creator`);
@@ -135,15 +131,15 @@ export default function CreatorDashboard() {
         localStorage.setItem("isCreator", "true");
         localStorage.setItem("currentCreatorId", data.userId);
         localStorage.setItem("currentCreatorUsername", data.username);
-        
+
         // Set creator status immediately
         setIsCreator(true);
         setUserName(data.username || "Creator");
-        
+
         console.log("🎉 Creator status saved to localStorage");
         console.log("🎉 Creator ID:", data.userId);
         console.log("🎉 Creator username:", data.username);
-        
+
         // Reload the page to show creator dashboard
         window.location.reload();
 
