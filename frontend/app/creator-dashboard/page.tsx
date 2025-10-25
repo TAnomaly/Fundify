@@ -23,13 +23,21 @@ export default function CreatorDashboard() {
     setIsLoading(true);
     try {
       console.log("🔄 Loading dashboard (no auth required)");
-      
+
       // Skip auth validation for now
       console.log("⚠️ Skipping auth validation - no auth required");
       
-      // Set creator status to true by default
-      setIsCreator(true);
-      setUserName("Creator");
+      // Check if user is already a creator
+      const isAlreadyCreator = localStorage.getItem("isCreator") === "true";
+      if (isAlreadyCreator) {
+        setIsCreator(true);
+        setUserName("Creator");
+        console.log("✅ User is already a creator");
+      } else {
+        setIsCreator(false);
+        setUserName("User");
+        console.log("⚠️ User is not a creator yet");
+      }
       
       console.log("✅ Dashboard loaded successfully");
 
@@ -105,10 +113,18 @@ export default function CreatorDashboard() {
         const data = await response.json();
         console.log("✅ Successfully became creator!", data);
         toast.success("Welcome to the creator program!");
+        
+        // Save creator status to localStorage
+        localStorage.setItem("isCreator", "true");
+        
         // Set creator status immediately
         setIsCreator(true);
-        // Force page refresh to ensure state is updated
-        window.location.reload();
+        setUserName("Creator");
+        
+        console.log("🎉 Creator status saved to localStorage");
+        
+        // Don't reload, just update the UI
+        console.log("✅ Creator dashboard ready!");
       } else {
         const errorData = await response.json();
         console.error("❌ Become creator failed:", errorData);

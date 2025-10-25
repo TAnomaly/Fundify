@@ -134,13 +134,37 @@ async fn become_creator(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     println!("🔄 Someone is trying to become a creator (no auth required)");
     
-    // For now, just return success without checking user
-    // In production, you might want to add some other validation
-    println!("✅ Creator status granted (no auth required)");
+    // Create a test user if not exists and make them creator
+    let test_user_id = "test-creator-123";
+    let test_username = "testcreator";
+    let test_email = "test@creator.com";
+    
+    // First, try to insert or update user
+    let result = sqlx::query(
+        "INSERT INTO users (id, email, username, name, is_creator, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, true, NOW(), NOW())
+         ON CONFLICT (id) 
+         DO UPDATE SET is_creator = true, updated_at = NOW()"
+    )
+    .bind(test_user_id)
+    .bind(test_email)
+    .bind(test_username)
+    .bind("Test Creator")
+    .execute(&db.pool)
+    .await
+    .map_err(|e| {
+        println!("❌ Error creating/updating user: {:?}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    
+    println!("✅ User created/updated in database. Rows affected: {}", result.rows_affected());
+    println!("🎉 Creator status saved to database!");
     
     let response = serde_json::json!({
         "success": true,
-        "message": "Successfully became a creator"
+        "message": "Successfully became a creator",
+        "userId": test_user_id,
+        "username": test_username
     });
     
     Ok(Json(response))
