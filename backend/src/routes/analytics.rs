@@ -36,29 +36,25 @@ async fn get_dashboard(
         _ => 30,
     };
 
-    let total_posts = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM posts WHERE user_id = $1",
-    )
-    .bind(&claims.sub)
-    .fetch_one(&db.pool)
-    .await
-    .unwrap_or(0);
+    let total_posts = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM posts WHERE user_id = $1")
+        .bind(&claims.sub)
+        .fetch_one(&db.pool)
+        .await
+        .unwrap_or(0);
 
-    let total_articles = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM articles WHERE author_id = $1",
-    )
-    .bind(&claims.sub)
-    .fetch_one(&db.pool)
-    .await
-    .unwrap_or(0);
+    let total_articles =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM articles WHERE author_id = $1")
+            .bind(&claims.sub)
+            .fetch_one(&db.pool)
+            .await
+            .unwrap_or(0);
 
-    let total_events = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM events WHERE host_id = $1",
-    )
-    .bind(&claims.sub)
-    .fetch_one(&db.pool)
-    .await
-    .unwrap_or(0);
+    let total_events =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM events WHERE host_id = $1")
+            .bind(&claims.sub)
+            .fetch_one(&db.pool)
+            .await
+            .unwrap_or(0);
 
     let recent_posts_rows = sqlx::query(
         r#"
@@ -78,14 +74,14 @@ async fn get_dashboard(
         .into_iter()
         .map(|row| {
             json!({
-                "id": row.get::<Uuid, _>("id"),
-                "title": row.get::<String, _>("title"),
-                "likeCount": 0,
-            "commentCount": 0,
-            "createdAt": row.get::<chrono::DateTime<chrono::Utc>, _>("created_at")
+                    "id": row.get::<Uuid, _>("id"),
+                    "title": row.get::<String, _>("title"),
+                    "likeCount": 0,
+                "commentCount": 0,
+                "createdAt": row.get::<chrono::DateTime<chrono::Utc>, _>("created_at")
+            })
         })
-    })
-    .collect::<Vec<_>>();
+        .collect::<Vec<_>>();
 
     let trend_points = (0..days)
         .rev()

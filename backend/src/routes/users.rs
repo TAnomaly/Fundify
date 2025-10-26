@@ -155,7 +155,13 @@ async fn follow_user(
         .fetch_one(&db.pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
-        .and_then(|count| if count == 0 { Err(StatusCode::NOT_FOUND) } else { Ok(count) })?;
+        .and_then(|count| {
+            if count == 0 {
+                Err(StatusCode::NOT_FOUND)
+            } else {
+                Ok(count)
+            }
+        })?;
 
     let result = sqlx::query(
         r#"
@@ -170,13 +176,12 @@ async fn follow_user(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let follower_count = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM follows WHERE following_id = $1",
-    )
-    .bind(&id)
-    .fetch_one(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let follower_count =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM follows WHERE following_id = $1")
+            .bind(&id)
+            .fetch_one(&db.pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response = json!({
         "success": true,
@@ -194,22 +199,19 @@ async fn unfollow_user(
     Path(id): Path<String>,
     claims: Claims,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let result = sqlx::query(
-        "DELETE FROM follows WHERE follower_id = $1 AND following_id = $2",
-    )
-    .bind(&claims.sub)
-    .bind(&id)
-    .execute(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let result = sqlx::query("DELETE FROM follows WHERE follower_id = $1 AND following_id = $2")
+        .bind(&claims.sub)
+        .bind(&id)
+        .execute(&db.pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let follower_count = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM follows WHERE following_id = $1",
-    )
-    .bind(&id)
-    .fetch_one(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let follower_count =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM follows WHERE following_id = $1")
+            .bind(&id)
+            .fetch_one(&db.pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response = json!({
         "success": true,
@@ -255,13 +257,11 @@ async fn get_followers(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let total = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM follows WHERE following_id = $1",
-    )
-    .bind(&id)
-    .fetch_one(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as usize;
+    let total = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM follows WHERE following_id = $1")
+        .bind(&id)
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as usize;
 
     let response = json!({
         "success": true,
@@ -304,13 +304,11 @@ async fn get_following(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let total = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM follows WHERE follower_id = $1",
-    )
-    .bind(&id)
-    .fetch_one(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as usize;
+    let total = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM follows WHERE follower_id = $1")
+        .bind(&id)
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as usize;
 
     let response = json!({
         "success": true,

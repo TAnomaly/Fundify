@@ -24,8 +24,8 @@ use config::Config;
 use database::Database;
 use routes::{
     analytics::analytics_routes, articles::articles_routes, auth::auth_routes,
-    campaigns::campaign_routes, creators::creator_routes, events::event_routes,
-    feed::feed_routes, podcasts::podcast_routes, posts::post_routes, products::product_routes,
+    campaigns::campaign_routes, creators::creator_routes, events::event_routes, feed::feed_routes,
+    podcasts::podcast_routes, posts::post_routes, products::product_routes,
     referrals::referral_routes, users::user_routes,
 };
 

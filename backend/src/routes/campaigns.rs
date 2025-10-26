@@ -12,6 +12,9 @@ use uuid::Uuid;
 
 use crate::database::Database;
 
+const DEFAULT_COVER_IMAGE: &str =
+    "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=1200&q=80";
+
 #[derive(Debug, sqlx::FromRow)]
 struct CampaignRecord {
     pub id: Uuid,
@@ -47,12 +50,12 @@ struct CampaignResponse {
     pub title: String,
     pub slug: String,
     pub description: String,
-    pub story: Option<String>,
+    pub story: String,
     pub goal: f64,
     pub current_amount: f64,
     pub status: String,
     pub category: Option<String>,
-    pub image_url: Option<String>,
+    pub image_url: String,
     pub video_url: Option<String>,
     pub creator_id: String,
     pub end_date: Option<DateTime<Utc>>,
@@ -81,31 +84,60 @@ impl CampaignResponse {
             updated_at: row.get("updated_at"),
         };
 
-        let creator = row
-            .get::<Option<String>, _>("creator_name")
-            .map(|_| CampaignCreator {
-                id: record.creator_id.clone(),
-                name: row.get("creator_name"),
-                username: row.get("creator_username"),
-                avatar: row.get("creator_avatar"),
-            });
+        let CampaignRecord {
+            id,
+            title,
+            description,
+            story,
+            goal_amount,
+            current_amount,
+            status,
+            slug,
+            cover_image,
+            video_url,
+            category,
+            creator_id,
+            end_date,
+            created_at,
+            updated_at,
+        } = record;
+
+        let creator_name: Option<String> = row.try_get("creator_name").unwrap_or(None);
+        let creator_username: Option<String> = row.try_get("creator_username").unwrap_or(None);
+        let creator_avatar: Option<String> = row.try_get("creator_avatar").unwrap_or(None);
+        let creator =
+            if creator_name.is_some() || creator_username.is_some() || creator_avatar.is_some() {
+                Some(CampaignCreator {
+                    id: creator_id.clone(),
+                    name: creator_name,
+                    username: creator_username,
+                    avatar: creator_avatar,
+                })
+            } else {
+                None
+            };
+
+        let story_value = story.unwrap_or_else(|| description.clone());
+        let image_url = cover_image
+            .filter(|url| !url.trim().is_empty())
+            .unwrap_or_else(|| DEFAULT_COVER_IMAGE.to_string());
 
         CampaignResponse {
-            id: record.id,
-            title: record.title,
-            slug: record.slug,
-            description: record.description,
-            story: record.story,
-            goal: record.goal_amount,
-            current_amount: record.current_amount.unwrap_or(0.0),
-            status: record.status,
-            category: record.category,
-            image_url: record.cover_image,
-            video_url: record.video_url,
-            creator_id: record.creator_id,
-            end_date: record.end_date,
-            created_at: record.created_at,
-            updated_at: record.updated_at,
+            id,
+            title,
+            slug,
+            description,
+            story: story_value,
+            goal: goal_amount,
+            current_amount: current_amount.unwrap_or(0.0),
+            status,
+            category,
+            image_url,
+            video_url,
+            creator_id,
+            end_date,
+            created_at,
+            updated_at,
             creator,
         }
     }
@@ -114,6 +146,7 @@ impl CampaignResponse {
 #[derive(Debug, Deserialize)]
 pub struct CampaignQuery {
     pub page: Option<u32>,
+    #[serde(alias = "pageSize")]
     pub limit: Option<u32>,
 }
 
@@ -145,29 +178,69 @@ async fn get_campaigns(
     State(db): State<Database>,
     Query(params): Query<CampaignQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let page = params.page.unwrap_or(1);
-    let limit = params.limit.unwrap_or(12);
+    let page = params.page.unwrap_or(1).max(1);
+    let limit = params.limit.unwrap_or(12).max(1);
     let offset = (page - 1) * limit;
 
-    // Use simple SQL query with snake_case table and column names
-    let query = "SELECT id, title, description, goal_amount, current_amount, status, slug, created_at, updated_at FROM campaigns ORDER BY created_at DESC LIMIT $1 OFFSET $2";
+    let count_query = "SELECT COUNT(*)::BIGINT FROM campaigns";
+    let total_items = sqlx::query_scalar::<_, i64>(count_query)
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to count campaigns: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
-    match sqlx::query_as::<_, Campaign>(query)
+    let query = r#"
+        SELECT
+            c.id,
+            c.title,
+            c.description,
+            c.story,
+            c.goal_amount,
+            c.current_amount,
+            c.status,
+            c.slug,
+            c.cover_image,
+            c.video_url,
+            c.category,
+            c.creator_id,
+            c.end_date,
+            c.created_at,
+            c.updated_at,
+            u.display_name AS creator_name,
+            u.username AS creator_username,
+            u.avatar_url AS creator_avatar
+        FROM campaigns c
+        LEFT JOIN users u ON c.creator_id = u.id
+        ORDER BY c.created_at DESC
+        LIMIT $1 OFFSET $2
+    "#;
+
+    match sqlx::query(query)
         .bind(limit as i64)
         .bind(offset as i64)
         .fetch_all(&db.pool)
         .await
     {
-        Ok(campaigns) => {
-            // Frontend'in beklediği format
+        Ok(rows) => {
+            let campaigns: Vec<CampaignResponse> =
+                rows.iter().map(CampaignResponse::from_row).collect();
+
+            let total_pages = if limit == 0 {
+                0
+            } else {
+                ((total_items as f64) / (limit as f64)).ceil() as i64
+            };
+
             let response = serde_json::json!({
                 "success": true,
                 "data": campaigns,
                 "pagination": {
                     "page": page,
-                    "limit": limit,
-                    "total": campaigns.len(),
-                    "pages": 1
+                    "pageSize": limit,
+                    "totalItems": total_items,
+                    "totalPages": total_pages
                 }
             });
             Ok(Json(response))
@@ -242,43 +315,93 @@ async fn create_campaign(
 
     // Store campaign in database with all fields
     let campaign_id = uuid::Uuid::new_v4();
-    let result = sqlx::query(
-        "INSERT INTO campaigns (id, title, description, story, goal_amount, slug, status, creator_id, cover_image, video_url, category, end_date, created_at, updated_at) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())"
-    )
-    .bind(campaign_id)
-    .bind(title)
-    .bind(description)
-    .bind(&story)
-    .bind(goal_amount)
-    .bind(&slug)
-    .bind("DRAFT")
-    .bind(&claims.sub)
-    .bind(cover_image)
-    .bind(video_url)
-    .bind(category)
-    .bind(parsed_end_date)
-    .execute(&db.pool)
-    .await;
+    let query = r#"
+        WITH inserted AS (
+            INSERT INTO campaigns (
+                id,
+                title,
+                description,
+                story,
+                goal_amount,
+                slug,
+                status,
+                creator_id,
+                cover_image,
+                video_url,
+                category,
+                end_date,
+                created_at,
+                updated_at
+            )
+            VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW()
+            )
+            RETURNING
+                id,
+                title,
+                description,
+                story,
+                goal_amount,
+                current_amount,
+                status,
+                slug,
+                cover_image,
+                video_url,
+                category,
+                creator_id,
+                end_date,
+                created_at,
+                updated_at
+        )
+        SELECT
+            inserted.id,
+            inserted.title,
+            inserted.description,
+            inserted.story,
+            inserted.goal_amount,
+            inserted.current_amount,
+            inserted.status,
+            inserted.slug,
+            inserted.cover_image,
+            inserted.video_url,
+            inserted.category,
+            inserted.creator_id,
+            inserted.end_date,
+            inserted.created_at,
+            inserted.updated_at,
+            u.display_name AS creator_name,
+            u.username AS creator_username,
+            u.avatar_url AS creator_avatar
+        FROM inserted
+        LEFT JOIN users u ON inserted.creator_id = u.id
+    "#;
 
-    match result {
-        Ok(_) => {
+    match sqlx::query(query)
+        .bind(campaign_id)
+        .bind(title)
+        .bind(description)
+        .bind(&story)
+        .bind(goal_amount)
+        .bind(&slug)
+        .bind("DRAFT")
+        .bind(&claims.sub)
+        .bind(cover_image)
+        .bind(video_url)
+        .bind(category)
+        .bind(parsed_end_date)
+        .fetch_one(&db.pool)
+        .await
+    {
+        Ok(row) => {
+            let campaign = CampaignResponse::from_row(&row);
             let response = serde_json::json!({
                 "success": true,
-                "data": {
-                    "id": campaign_id,
-                    "slug": slug,
-                    "title": title,
-                    "description": description,
-                    "goal_amount": goal_amount,
-                    "current_amount": 0.0,
-                    "status": "DRAFT"
-                }
+                "data": campaign
             });
             Ok(Json(response))
         }
         Err(e) => {
-            eprintln!("Error creating campaign: {:?}", e);
+            tracing::error!("Error creating campaign: {:?}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
@@ -288,78 +411,50 @@ async fn get_campaign_by_slug(
     State(db): State<Database>,
     Path(slug): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    // Query campaign from database by slug with all fields
-    let campaign = sqlx::query(
-        "SELECT c.id, c.title, c.description, c.goal_amount, c.current_amount, c.status, c.slug, c.created_at, c.updated_at,
-                c.cover_image, c.video_url, c.story, c.category, c.end_date,
-                u.id as creator_id, u.username, u.display_name, u.avatar_url, u.bio
-         FROM campaigns c
-         LEFT JOIN users u ON c.creator_id = u.id
-         WHERE c.slug = $1"
-    )
-    .bind(&slug)
-    .fetch_one(&db.pool)
-    .await;
+    let query = r#"
+        SELECT
+            c.id,
+            c.title,
+            c.description,
+            c.story,
+            c.goal_amount,
+            c.current_amount,
+            c.status,
+            c.slug,
+            c.cover_image,
+            c.video_url,
+            c.category,
+            c.creator_id,
+            c.end_date,
+            c.created_at,
+            c.updated_at,
+            u.display_name AS creator_name,
+            u.username AS creator_username,
+            u.avatar_url AS creator_avatar
+        FROM campaigns c
+        LEFT JOIN users u ON c.creator_id = u.id
+        WHERE c.slug = $1
+        LIMIT 1
+    "#;
 
-    match campaign {
-        Ok(row) => {
-            let id: Uuid = row.get("id");
-            let title: String = row.get("title");
-            let description: String = row.get("description");
-            let goal_amount: f64 = row.get("goal_amount");
-            let current_amount: Option<f64> = row.get("current_amount");
-            let status: String = row.get("status");
-            let slug: String = row.get("slug");
-            let created_at: DateTime<Utc> = row.get("created_at");
-            let cover_image: Option<String> = row.get("cover_image");
-            let video_url: Option<String> = row.get("video_url");
-            let story: Option<String> = row.get("story");
-            let category: Option<String> = row.get("category");
-            let end_date: Option<DateTime<Utc>> = row.get("end_date");
-
-            // Creator info
-            let creator_id: Option<Uuid> = row.get("creator_id");
-            let username: Option<String> = row.get("username");
-            let display_name: Option<String> = row.get("display_name");
-            let avatar_url: Option<String> = row.get("avatar_url");
-            let bio: Option<String> = row.get("bio");
-
+    match sqlx::query(query)
+        .bind(&slug)
+        .fetch_optional(&db.pool)
+        .await
+    {
+        Ok(Some(row)) => {
+            let campaign = CampaignResponse::from_row(&row);
             let response = serde_json::json!({
                 "success": true,
-                "data": {
-                    "id": id,
-                    "slug": slug,
-                    "title": title,
-                    "description": description,
-                    "story": story.unwrap_or(description),
-                    "goal": goal_amount,
-                    "goalAmount": goal_amount,
-                    "currentAmount": current_amount.unwrap_or(0.0),
-                    "status": status,
-                    "category": category.unwrap_or("OTHER".to_string()),
-                    "imageUrl": cover_image.unwrap_or("https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=1200&q=80".to_string()),
-                    "videoUrl": video_url,
-                    "endDate": end_date,
-                    "createdAt": created_at,
-                    "creator": creator_id.map(|_| {
-                        serde_json::json!({
-                            "id": creator_id,
-                            "username": username,
-                            "firstName": display_name,
-                            "lastName": "",
-                            "avatar": avatar_url,
-                            "bio": bio
-                        })
-                    }),
-                    "creatorId": creator_id,
-                    "backers": 0
-                }
+                "data": campaign
             });
+
             Ok(Json(response))
         }
+        Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
-            eprintln!("Error fetching campaign: {:?}", e);
-            Err(StatusCode::NOT_FOUND)
+            tracing::error!("Failed to fetch campaign by slug: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }

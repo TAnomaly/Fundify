@@ -28,14 +28,12 @@ pub struct BookmarkPayload {
 }
 
 pub fn feed_routes() -> Router<Database> {
-    Router::new()
-        .route("/", get(get_feed))
-        .route(
-            "/bookmarks",
-            get(get_bookmarks)
-                .post(add_bookmark)
-                .delete(remove_bookmark),
-        )
+    Router::new().route("/", get(get_feed)).route(
+        "/bookmarks",
+        get(get_bookmarks)
+            .post(add_bookmark)
+            .delete(remove_bookmark),
+    )
 }
 
 async fn get_feed(

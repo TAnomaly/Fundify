@@ -87,7 +87,10 @@ pub fn articles_routes() -> Router<Database> {
         .route("/", get(get_articles).post(create_article))
         .route("/:slug", get(get_article_by_slug))
         .route("/:id/like", post(toggle_article_like))
-        .route("/:id/comments", get(get_article_comments).post(create_article_comment))
+        .route(
+            "/:id/comments",
+            get(get_article_comments).post(create_article_comment),
+        )
 }
 
 async fn get_articles(
@@ -282,13 +285,12 @@ async fn toggle_article_like(
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
 
-    let like_count = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM article_likes WHERE article_id = $1",
-    )
-    .bind(article_id)
-    .fetch_one(&db.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let like_count =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM article_likes WHERE article_id = $1")
+            .bind(article_id)
+            .fetch_one(&db.pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(ResponseJson(json!({
         "success": true,
@@ -305,13 +307,11 @@ async fn get_article_comments(
 ) -> Result<ResponseJson<serde_json::Value>, StatusCode> {
     let article_id = match Uuid::parse_str(&id_or_slug) {
         Ok(uuid) => uuid,
-        Err(_) => {
-            sqlx::query_scalar::<_, Uuid>("SELECT id FROM articles WHERE slug = $1")
-                .bind(&id_or_slug)
-                .fetch_one(&db.pool)
-                .await
-                .map_err(|_| StatusCode::NOT_FOUND)?
-        }
+        Err(_) => sqlx::query_scalar::<_, Uuid>("SELECT id FROM articles WHERE slug = $1")
+            .bind(&id_or_slug)
+            .fetch_one(&db.pool)
+            .await
+            .map_err(|_| StatusCode::NOT_FOUND)?,
     };
 
     let comments = sqlx::query(

@@ -6,7 +6,7 @@ pub mod creators;
 pub mod events;
 pub mod feed;
 pub mod podcasts;
-pub mod referrals;
 pub mod posts;
 pub mod products;
+pub mod referrals;
 pub mod users;

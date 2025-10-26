@@ -1,4 +1,4 @@
-use sqlx::{postgres::PgPoolOptions, PgPool, Row};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::time::Duration;
 
 pub struct Database {
@@ -210,14 +210,16 @@ impl Database {
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
-            "#
+            "#,
         )
         .execute(&self.pool)
         .await?;
 
-        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS event_type VARCHAR(50) DEFAULT 'VIRTUAL'")
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "ALTER TABLE events ADD COLUMN IF NOT EXISTS event_type VARCHAR(50) DEFAULT 'VIRTUAL'",
+        )
+        .execute(&self.pool)
+        .await?;
 
         sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_image TEXT")
             .execute(&self.pool)
@@ -229,9 +231,11 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TIMESTAMP WITH TIME ZONE")
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TIMESTAMP WITH TIME ZONE",
+        )
+        .execute(&self.pool)
+        .await?;
 
         sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS timezone VARCHAR(100)")
             .execute(&self.pool)
@@ -261,13 +265,17 @@ impl Database {
             .execute(&self.pool)
             .await?;
 
-        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS price DOUBLE PRECISION DEFAULT 0.0")
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "ALTER TABLE events ADD COLUMN IF NOT EXISTS price DOUBLE PRECISION DEFAULT 0.0",
+        )
+        .execute(&self.pool)
+        .await?;
 
-        sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'DRAFT'")
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'DRAFT'",
+        )
+        .execute(&self.pool)
+        .await?;
 
         sqlx::query("ALTER TABLE events ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()")
             .execute(&self.pool)
@@ -323,9 +331,11 @@ impl Database {
             .execute(&self.pool)
             .await?;
 
-        sqlx::query("CREATE INDEX IF NOT EXISTS idx_article_likes_article ON article_likes(article_id)")
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_article_likes_article ON article_likes(article_id)",
+        )
+        .execute(&self.pool)
+        .await?;
 
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_article_comments_article ON article_comments(article_id)")
             .execute(&self.pool)
@@ -340,7 +350,7 @@ impl Database {
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 UNIQUE(follower_id, following_id)
             )
-            "#
+            "#,
         )
         .execute(&self.pool)
         .await?;
@@ -368,14 +378,16 @@ impl Database {
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
-            "#
+            "#,
         )
         .execute(&self.pool)
         .await?;
 
-        sqlx::query("CREATE INDEX IF NOT EXISTS idx_referrals_creator ON referral_codes(creator_id)")
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_referrals_creator ON referral_codes(creator_id)",
+        )
+        .execute(&self.pool)
+        .await?;
 
         println!("✅ Database migrations completed successfully!");
         Ok(())
@@ -391,20 +403,6 @@ impl Clone for Database {
 }
 
 impl Database {
-    pub async fn get_campaigns(
-        &self,
-        limit: i64,
-        offset: i64,
-    ) -> Result<Vec<crate::routes::campaigns::Campaign>, sqlx::Error> {
-        sqlx::query_as::<_, crate::routes::campaigns::Campaign>(
-            "SELECT id, title, description, \"goalAmount\", \"currentAmount\", status, \"createdAt\", \"updatedAt\", \"creatorId\" FROM \"Campaign\" ORDER BY \"createdAt\" DESC LIMIT $1 OFFSET $2"
-        )
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&self.pool)
-        .await
-    }
-
     pub async fn get_events(
         &self,
         limit: i64,

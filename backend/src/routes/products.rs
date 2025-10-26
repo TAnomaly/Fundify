@@ -94,12 +94,12 @@ async fn create_product(
         .clone()
         .unwrap_or_else(|| "USD".to_string());
 
-    let is_digital = payload.is_digital.unwrap_or_else(|| {
-        match payload.product_type.as_deref() {
+    let is_digital = payload
+        .is_digital
+        .unwrap_or_else(|| match payload.product_type.as_deref() {
             Some(product_type) if product_type.eq_ignore_ascii_case("physical") => false,
             _ => true,
-        }
-    });
+        });
 
     let product = sqlx::query_as::<_, Product>(
         r#"
@@ -187,12 +187,12 @@ async fn update_product(
         .clone()
         .unwrap_or_else(|| "USD".to_string());
 
-    let is_digital = payload.is_digital.unwrap_or_else(|| {
-        match payload.product_type.as_deref() {
+    let is_digital = payload
+        .is_digital
+        .unwrap_or_else(|| match payload.product_type.as_deref() {
             Some(product_type) if product_type.eq_ignore_ascii_case("physical") => false,
             _ => true,
-        }
-    });
+        });
 
     let product = sqlx::query_as::<_, Product>(
         r#"
