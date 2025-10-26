@@ -17,7 +17,34 @@ import EventPaymentModal from "@/components/EventPaymentModal";
 import { Calendar, Clock, MapPin, Video, Users, Ticket, ArrowLeft, Share2, CheckCircle, HelpCircle, XCircle, Heart } from "lucide-react";
 
 // Interfaces
-interface Event { id: string; title: string; description: string; type: "VIRTUAL" | "IN_PERSON" | "HYBRID"; status: string; start_time: string; end_time: string; location?: string; virtualLink?: string; coverImage?: string; maxAttendees?: number; price?: number; isPremium: boolean; agenda?: any; tags: string[]; host_name: string; host_avatar?: string; host_id: string; rsvp_count: number; userRSVPStatus?: "GOING" | "MAYBE" | "NOT_GOING"; userRSVPIsPaid?: boolean; }
+interface EventHost {
+    id: string;
+    name: string;
+    username?: string | null;
+    avatar?: string | null;
+}
+
+interface Event {
+    id: string;
+    title: string;
+    description?: string;
+    type: "VIRTUAL" | "IN_PERSON" | "HYBRID";
+    status: string;
+    startTime: string;
+    endTime: string;
+    location?: string;
+    virtualLink?: string;
+    coverImage?: string;
+    maxAttendees?: number;
+    price: number;
+    isPremium: boolean;
+    agenda?: any;
+    tags: string[];
+    host: EventHost;
+    rsvpCount: number;
+    userRSVPStatus?: "GOING" | "MAYBE" | "NOT_GOING";
+    userRSVPIsPaid?: boolean;
+}
 interface RSVP { status: "GOING" | "MAYBE" | "NOT_GOING"; isPaid?: boolean; }
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -46,9 +73,36 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events/${resolvedParams.id}`, { headers });
 
             if (response.data.success) {
-                const eventData = response.data.data;
-                setEvent(eventData);
-                setUserRSVP(eventData.userRSVPStatus ? { status: eventData.userRSVPStatus, isPaid: eventData.userRSVPIsPaid || false } : null);
+                const raw = response.data.data;
+                const host = raw.host ?? {};
+                const normalized: Event = {
+                    id: raw.id,
+                    title: raw.title,
+                    description: raw.description ?? "",
+                    type: (raw.type || raw.event_type || "VIRTUAL") as Event["type"],
+                    status: raw.status ?? "PUBLISHED",
+                    startTime: raw.start_time ?? raw.startTime,
+                    endTime: raw.end_time ?? raw.endTime ?? raw.start_time,
+                    location: raw.location ?? undefined,
+                    virtualLink: raw.virtual_link ?? undefined,
+                    coverImage: raw.cover_image ?? undefined,
+                    maxAttendees: raw.max_attendees ?? undefined,
+                    price: typeof raw.price === "number" ? raw.price : Number(raw.price ?? 0),
+                    isPremium: Boolean(raw.is_premium ?? raw.isPremium),
+                    agenda: raw.agenda ?? undefined,
+                    tags: raw.tags ?? [],
+                    host: {
+                        id: host.id ?? raw.host_id ?? "",
+                        name: host.name ?? raw.host_name ?? raw.host_username ?? "Host",
+                        username: host.username ?? raw.host_username ?? null,
+                        avatar: host.avatar ?? raw.host_avatar ?? null,
+                    },
+                    rsvpCount: raw._count?.rsvps ?? raw.rsvp_count ?? 0,
+                    userRSVPStatus: raw.userRSVPStatus,
+                    userRSVPIsPaid: raw.userRSVPIsPaid,
+                };
+                setEvent(normalized);
+                setUserRSVP(normalized.userRSVPStatus ? { status: normalized.userRSVPStatus, isPaid: normalized.userRSVPIsPaid || false } : null);
             } else {
                 throw new Error("Event not found");
             }
@@ -87,7 +141,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (isLoading) return <EventSkeleton />;
     if (!event) return null;
 
-    const isPastEvent = new Date(event.end_time) < new Date();
+    const isPastEvent = new Date(event.endTime) < new Date();
 
     return (
         <div className="bg-background min-h-screen">
@@ -134,38 +188,48 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                                 <div className="flex items-center gap-3">
                                     <Calendar className="w-5 h-5 text-primary" />
                                     <div>
-                                        <p className="font-semibold">{formatDate(event.start_time)}</p>
-                                        <p className="text-sm text-muted-foreground">{formatTime(event.start_time)} - {formatTime(event.end_time)}</p>
+                                        <p className="font-semibold">{formatDate(event.startTime)}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <MapPin className="w-5 h-5 text-primary" />
-                                    <p className="font-semibold">{event.type === 'VIRTUAL' ? 'Online' : event.location}</p>
+                                    <p className="font-semibold">{event.type === "VIRTUAL" ? "Online" : event.location}</p>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <Users className="w-5 h-5 text-primary" />
-                                    <p className="font-semibold">{event.rsvp_count || 0} going {event.maxAttendees ? `/ ${event.maxAttendees}` : ''}</p>
+                                    <p className="font-semibold">
+                                        {event.rsvpCount || 0} going {event.maxAttendees ? `/ ${event.maxAttendees}` : ""}
+                                    </p>
                                 </div>
                             </div>
                         </BlurFade>
 
                         <BlurFade delay={0.65} inView>
                             <div className="p-6 bg-card/80 backdrop-blur-sm rounded-2xl border border-border/30 space-y-4">
-                                <Link href={`/creators/${event.host_id}`} className="flex items-center gap-3 group">
-                                    {event.host_avatar ? (
-                                        <Image src={getFullMediaUrl(event.host_avatar)!} alt={event.host_name} width={40} height={40} className="rounded-full bg-muted" />
+                                <Link href={`/creators/${event.host.id}`} className="flex items-center gap-3 group">
+                                    {event.host.avatar ? (
+                                        <Image src={getFullMediaUrl(event.host.avatar)!} alt={event.host.name} width={40} height={40} className="rounded-full bg-muted" />
                                     ) : (
                                         <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-bold">
-                                            {event.host_name.charAt(0)}
+                                            {(event.host.name || "H").charAt(0).toUpperCase()}
                                         </div>
                                     )}
                                     <div>
                                         <p className="text-sm text-muted-foreground">Hosted by</p>
-                                        <p className="font-semibold text-foreground group-hover:text-primary transition-colors">{event.host_name}</p>
+                                        <p className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                            {event.host.name}
+                                        </p>
                                     </div>
                                 </Link>
                                 <div className="flex items-center gap-2">
-                                    <SocialShare url={window.location.href} title={event.title} trigger={<Button variant="outline" className="w-full"><Share2 className="w-4 h-4 mr-2" />Share</Button>} />
+                                    <SocialShare
+                                        url={typeof window !== "undefined" ? window.location.href : ""}
+                                        title={event.title}
+                                        trigger={<Button variant="outline" className="w-full"><Share2 className="w-4 h-4 mr-2" />Share</Button>}
+                                    />
                                     <Button variant="outline" className="w-full"><Heart className="w-4 h-4 mr-2" />Follow</Button>
                                 </div>
                             </div>

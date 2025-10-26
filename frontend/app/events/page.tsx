@@ -18,11 +18,19 @@ import {
   Filter,
 } from "lucide-react";
 
+interface EventHost {
+  id: string;
+  name: string;
+  username?: string | null;
+  avatar?: string | null;
+}
+
 interface Event {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   type: "VIRTUAL" | "IN_PERSON" | "HYBRID";
+  status: string;
   startTime: string;
   endTime: string;
   location?: string;
@@ -30,13 +38,9 @@ interface Event {
   coverImage?: string;
   maxAttendees?: number;
   price: number;
-  host: {
-    name: string;
-    avatar?: string;
-  };
-  _count: {
-    rsvps: number;
-  };
+  isPremium: boolean;
+  host: EventHost;
+  rsvpCount: number;
 }
 
 export default function EventsPage() {
@@ -59,13 +63,37 @@ export default function EventsPage() {
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
       console.log('Events API URL:', apiUrl);
-      const response = await axios.get(
-        `${apiUrl}/events?${params.toString()}`
-      );
+      const response = await axios.get(`${apiUrl}/events?${params.toString()}`);
       console.log('Events API Response:', response.data);
 
       if (response.data.success) {
-        setEvents(response.data.data);
+        const normalized: Event[] = (response.data.data || []).map((raw: any) => {
+          const host = raw.host ?? {};
+          const hostName = host.name ?? raw.host_name ?? raw.host_username ?? "Host";
+          return {
+            id: raw.id,
+            title: raw.title,
+            description: raw.description ?? "",
+            type: (raw.type || raw.event_type || "VIRTUAL") as Event["type"],
+            status: raw.status ?? "PUBLISHED",
+            startTime: raw.start_time ?? raw.startTime,
+            endTime: raw.end_time ?? raw.endTime ?? raw.start_time,
+            location: raw.location ?? undefined,
+            virtualLink: raw.virtual_link ?? undefined,
+            coverImage: raw.cover_image ?? undefined,
+            maxAttendees: raw.max_attendees ?? undefined,
+            price: typeof raw.price === "number" ? raw.price : Number(raw.price ?? 0),
+            isPremium: Boolean(raw.is_premium ?? raw.isPremium),
+            host: {
+              id: host.id ?? raw.host_id ?? "",
+              name: hostName,
+              username: host.username ?? raw.host_username ?? null,
+              avatar: host.avatar ?? raw.host_avatar ?? null,
+            },
+            rsvpCount: raw._count?.rsvps ?? raw.rsvp_count ?? 0,
+          };
+        });
+        setEvents(normalized);
       } else {
         console.log('Events API failed:', response.data);
         setEvents([]);
@@ -256,23 +284,25 @@ export default function EventsPage() {
                   {/* Host & Stats */}
                   <div className="flex items-center justify-between pt-4 border-t">
                     <div className="flex items-center gap-2">
-                      {event.host_avatar ? (
+                      {event.host.avatar ? (
                         <img
-                          src={event.host_avatar}
-                          alt={event.host_name || 'Host'}
+                          src={event.host.avatar}
+                          alt={event.host.name}
                           className="w-8 h-8 rounded-full"
                         />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-bold">
-                          {(event.host_name || 'H').charAt(0)}
+                          {(event.host.name || "H").charAt(0).toUpperCase()}
                         </div>
                       )}
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{event.host_name || 'Host'}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {event.host.name}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-1 text-sm text-muted-foreground text-gray-600 dark:text-gray-400">
                       <Users className="w-4 h-4" />
-                      <span>{Math.floor(Math.random() * 50) + 1} going</span>
+                      <span>{event.rsvpCount} going</span>
                     </div>
                   </div>
 
