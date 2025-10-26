@@ -248,21 +248,60 @@ async fn ensure_event_rsvps_table(db: &Database) -> Result<(), StatusCode> {
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    sqlx::query("CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_id ON event_rsvps(event_id)")
-        .execute(&db.pool)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to create index idx_event_rsvps_event_id: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    if let Err(error) =
+        sqlx::query("ALTER TABLE event_rsvps DROP CONSTRAINT IF EXISTS event_rsvps_event_id_fkey")
+            .execute(&db.pool)
+            .await
+    {
+        tracing::warn!("Unable to drop legacy event_id FK: {}", error);
+    }
 
-    sqlx::query("CREATE INDEX IF NOT EXISTS idx_event_rsvps_user_id ON event_rsvps(user_id)")
+    if let Err(error) =
+        sqlx::query("ALTER TABLE event_rsvps DROP CONSTRAINT IF EXISTS event_rsvps_user_id_fkey")
+            .execute(&db.pool)
+            .await
+    {
+        tracing::warn!("Unable to drop legacy user_id FK: {}", error);
+    }
+
+    if let Err(error) =
+        sqlx::query("ALTER TABLE event_rsvps ALTER COLUMN event_id TYPE TEXT USING event_id::TEXT")
+            .execute(&db.pool)
+            .await
+    {
+        tracing::warn!("Unable to align event_id column type: {}", error);
+    }
+
+    if let Err(error) =
+        sqlx::query("ALTER TABLE event_rsvps ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT")
+            .execute(&db.pool)
+            .await
+    {
+        tracing::warn!("Unable to align user_id column type: {}", error);
+    }
+
+    if let Err(error) = sqlx::query("UPDATE event_rsvps SET status = UPPER(status)")
         .execute(&db.pool)
         .await
-        .map_err(|e| {
-            tracing::error!("Failed to create index idx_event_rsvps_user_id: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    {
+        tracing::warn!("Failed to normalize RSVP statuses: {}", error);
+    }
+
+    if let Err(error) =
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_event_rsvps_event ON event_rsvps(event_id)")
+            .execute(&db.pool)
+            .await
+    {
+        tracing::warn!("Failed to ensure event_rsvps event index: {}", error);
+    }
+
+    if let Err(error) =
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_event_rsvps_user ON event_rsvps(user_id)")
+            .execute(&db.pool)
+            .await
+    {
+        tracing::warn!("Failed to ensure event_rsvps user index: {}", error);
+    }
 
     Ok(())
 }
@@ -364,6 +403,7 @@ pub fn event_routes() -> Router<Database> {
     Router::new()
         .route("/", get(get_events).post(create_event))
         .route("/:id", get(get_event_by_id))
+        .route("/:id/ticket", get(get_event_ticket))
         .route("/:id/rsvp", post(handle_rsvp))
 }
 
@@ -641,6 +681,181 @@ async fn get_event_by_id(
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
+}
+
+async fn get_event_ticket(
+    State(db): State<Database>,
+    Path(id): Path<String>,
+    claims: Claims,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    ensure_event_rsvps_table(&db).await?;
+
+    let event_identifier = id.clone();
+    let user_id = claims.sub.clone();
+
+    let query = r#"
+        SELECT
+            e.id,
+            e.title,
+            e.description,
+            e.status,
+            e.event_type,
+            e.cover_image,
+            e.start_time,
+            e.end_time,
+            e.timezone,
+            e.location,
+            e.virtual_link,
+            e.max_attendees,
+            e.is_public,
+            e.is_premium,
+            e.price,
+            e.agenda,
+            e.tags,
+            e.created_at,
+            e.updated_at,
+            e.host_id,
+            u.display_name AS host_name,
+            u.username AS host_username,
+            u.avatar_url AS host_avatar,
+            COALESCE(rsvp_counts.count, 0) AS rsvp_count,
+            NULL::TEXT AS user_rsvp_status,
+            NULL::BOOLEAN AS user_rsvp_is_paid
+        FROM events e
+        LEFT JOIN users u ON e.host_id = u.id
+        LEFT JOIN (
+            SELECT event_id, COUNT(*)::BIGINT AS count
+            FROM event_rsvps
+            WHERE status = 'GOING'
+            GROUP BY event_id
+        ) rsvp_counts ON rsvp_counts.event_id = e.id::TEXT
+        WHERE e.id::TEXT = $1
+        LIMIT 1
+    "#;
+
+    let event_row = sqlx::query(query)
+        .bind(&event_identifier)
+        .fetch_optional(&db.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to load event {}: {}", id, e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let Some(row) = event_row else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+
+    let mut event = EventResponse::from_row(&row);
+
+    let rsvp_row = sqlx::query(
+        r#"
+        SELECT status, is_paid
+        FROM event_rsvps
+        WHERE event_id = $1 AND user_id = $2
+        "#,
+    )
+    .bind(&event_identifier)
+    .bind(&user_id)
+    .fetch_optional(&db.pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to load RSVP for ticket {}: {}", id, e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let Some(rsvp_row) = rsvp_row else {
+        return Err(StatusCode::FORBIDDEN);
+    };
+
+    let status: String = rsvp_row.get("status");
+    let is_paid: bool = rsvp_row
+        .try_get("is_paid")
+        .unwrap_or(Some(false))
+        .unwrap_or(false);
+
+    if status.to_uppercase() != "GOING" {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    if event.price > 0.0 && !is_paid {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    event.user_rsvp_status = Some(status.to_uppercase());
+    event.user_rsvp_is_paid = Some(is_paid);
+
+    let host_name = event
+        .host
+        .as_ref()
+        .and_then(|host| host.name.clone())
+        .or(event.host_name.clone())
+        .unwrap_or_else(|| "Event Organizer".to_string());
+
+    let host_email = event
+        .host
+        .as_ref()
+        .and_then(|host| host.username.clone())
+        .or(event.host_username.clone())
+        .unwrap_or_else(|| "organizer@fundify.com".to_string());
+
+    let attendee_name = claims
+        .name
+        .clone()
+        .or(claims.username.clone())
+        .unwrap_or_else(|| "Guest Attendee".to_string());
+
+    let attendee_email = claims.email.clone().unwrap_or_else(|| "".to_string());
+
+    let short_event = event_identifier
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .take(6)
+        .collect::<String>()
+        .to_uppercase();
+    let short_user = user_id
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .take(6)
+        .collect::<String>()
+        .to_uppercase();
+    let ticket_code = format!("TCK-{}-{}", short_event, short_user);
+
+    let event_json = json!({
+        "id": event.id,
+        "title": event.title,
+        "startTime": event.start_time,
+        "endTime": event.end_time,
+        "location": event.location,
+        "virtualLink": event.virtual_link,
+        "type": event.event_type,
+        "coverImage": event.cover_image,
+        "host": {
+            "name": host_name,
+            "email": host_email,
+        },
+    });
+
+    let ticket_json = json!({
+        "id": format!("{}:{}", event_identifier, user_id.clone()),
+        "ticketCode": ticket_code,
+        "status": "GOING",
+        "checkedIn": false,
+        "checkedInAt": serde_json::Value::Null,
+        "isPaid": is_paid,
+        "event": event_json,
+        "user": {
+            "id": user_id,
+            "name": attendee_name,
+            "email": attendee_email,
+            "avatar": serde_json::Value::Null,
+        },
+    });
+
+    Ok(Json(json!({
+        "success": true,
+        "data": ticket_json
+    })))
 }
 
 async fn create_event(

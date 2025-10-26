@@ -366,6 +366,26 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        sqlx::query("ALTER TABLE event_rsvps DROP CONSTRAINT IF EXISTS event_rsvps_event_id_fkey")
+            .execute(&self.pool)
+            .await
+            .ok();
+
+        sqlx::query("ALTER TABLE event_rsvps DROP CONSTRAINT IF EXISTS event_rsvps_user_id_fkey")
+            .execute(&self.pool)
+            .await
+            .ok();
+
+        sqlx::query("ALTER TABLE event_rsvps ALTER COLUMN event_id TYPE TEXT USING event_id::TEXT")
+            .execute(&self.pool)
+            .await
+            .ok();
+
+        sqlx::query("ALTER TABLE event_rsvps ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT")
+            .execute(&self.pool)
+            .await
+            .ok();
+
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_event_rsvps_event ON event_rsvps(event_id)")
             .execute(&self.pool)
             .await?;
