@@ -2,8 +2,13 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::time::Duration;
 use tracing::warn;
 
+use crate::amqp_client::AmqpClient;
+use crate::redis_client::RedisClient;
+
 pub struct Database {
     pub pool: PgPool,
+    pub redis: Option<RedisClient>,
+    pub amqp: Option<AmqpClient>,
 }
 
 impl Database {
@@ -14,7 +19,60 @@ impl Database {
             .connect(database_url)
             .await?;
 
-        Ok(Database { pool })
+        Ok(Database { pool, redis: None, amqp: None })
+    }
+
+    pub async fn with_redis(database_url: &str, redis_url: &str) -> anyhow::Result<Self> {
+        let pool = PgPoolOptions::new()
+            .max_connections(10)
+            .acquire_timeout(Duration::from_secs(30))
+            .connect(database_url)
+            .await?;
+
+        let redis = match RedisClient::new(redis_url).await {
+            Ok(client) => {
+                tracing::info!("✅ Redis connected successfully");
+                Some(client)
+            }
+            Err(e) => {
+                tracing::warn!("⚠️  Failed to connect to Redis: {}. Continuing without cache.", e);
+                None
+            }
+        };
+
+        Ok(Database { pool, redis, amqp: None })
+    }
+
+    pub async fn with_all(database_url: &str, redis_url: &str, amqp_url: &str) -> anyhow::Result<Self> {
+        let pool = PgPoolOptions::new()
+            .max_connections(10)
+            .acquire_timeout(Duration::from_secs(30))
+            .connect(database_url)
+            .await?;
+
+        let redis = match RedisClient::new(redis_url).await {
+            Ok(client) => {
+                tracing::info!("✅ Redis connected successfully");
+                Some(client)
+            }
+            Err(e) => {
+                tracing::warn!("⚠️  Failed to connect to Redis: {}. Continuing without cache.", e);
+                None
+            }
+        };
+
+        let amqp = match AmqpClient::new(amqp_url).await {
+            Ok(client) => {
+                tracing::info!("✅ CloudAMQP connected successfully");
+                Some(client)
+            }
+            Err(e) => {
+                tracing::warn!("⚠️  Failed to connect to CloudAMQP: {}. Continuing without job queue.", e);
+                None
+            }
+        };
+
+        Ok(Database { pool, redis, amqp })
     }
 
     pub async fn run_migrations(&self) -> anyhow::Result<()> {
@@ -544,6 +602,8 @@ impl Clone for Database {
     fn clone(&self) -> Self {
         Database {
             pool: self.pool.clone(),
+            redis: self.redis.clone(),
+            amqp: self.amqp.clone(),
         }
     }
 }

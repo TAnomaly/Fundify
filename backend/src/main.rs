@@ -16,11 +16,13 @@ use tower_http::{
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod amqp_client;
 mod auth;
 mod config;
 mod database;
 mod middleware;
 mod models;
+mod redis_client;
 mod routes;
 
 use config::Config;
@@ -47,8 +49,8 @@ async fn main() -> anyhow::Result<()> {
     // Load configuration
     let config = Config::from_env()?;
 
-    // Initialize database
-    let db = Database::new(&config.database_url).await?;
+    // Initialize database with Redis and CloudAMQP
+    let db = Database::with_all(&config.database_url, &config.redis_url, &config.cloud_amqp_url).await?;
 
     // Run migrations (log and continue if they fail so healthcheck can still succeed)
     if let Err(error) = db.run_migrations().await {

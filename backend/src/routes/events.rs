@@ -12,6 +12,43 @@ use uuid::Uuid;
 
 use crate::{auth::Claims, database::Database, middleware::optional_auth::MaybeClaims};
 
+// Redis cache keys
+const CACHE_TTL_EVENT_LIST: usize = 60; // 1 minute for list
+const CACHE_TTL_EVENT_DETAIL: usize = 300; // 5 minutes for detail
+const CACHE_TTL_RSVP_COUNT: usize = 30; // 30 seconds for RSVP count
+
+fn event_list_cache_key(page: u32, limit: u32, upcoming: bool, past: bool, status: &Option<String>, host_id: &Option<String>) -> String {
+    format!(
+        "events:list:{}:{}:{}:{}:{}:{}",
+        page,
+        limit,
+        upcoming,
+        past,
+        status.as_deref().unwrap_or("all"),
+        host_id.as_deref().unwrap_or("all")
+    )
+}
+
+fn event_detail_cache_key(event_id: &str) -> String {
+    format!("event:detail:{}", event_id)
+}
+
+fn event_rsvp_count_cache_key(event_id: &str) -> String {
+    format!("event:rsvp_count:{}", event_id)
+}
+
+async fn invalidate_event_cache(db: &Database, event_id: &str) {
+    if let Some(redis) = &db.redis {
+        let mut redis_clone = redis.clone();
+        // Invalidate event detail cache
+        let _ = redis_clone.del(&event_detail_cache_key(event_id)).await;
+        // Invalidate RSVP count cache
+        let _ = redis_clone.del(&event_rsvp_count_cache_key(event_id)).await;
+        // Invalidate all list caches (pattern match)
+        let _ = redis_clone.del_pattern("events:list:*").await;
+    }
+}
+
 const DEFAULT_EVENT_COVER: &str =
     "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&q=80";
 
@@ -410,6 +447,9 @@ async fn handle_rsvp(
             })?;
     }
 
+    // Invalidate cache after RSVP change
+    invalidate_event_cache(&db, &event_id).await;
+
     Ok(Json(json!({
         "success": true,
         "data": {
@@ -426,6 +466,8 @@ pub fn event_routes() -> Router<Database> {
         .route("/:id", get(get_event_by_id))
         .route("/:id/ticket", get(get_event_ticket))
         .route("/:id/rsvp", post(handle_rsvp))
+        .route("/:id/payment-intent", post(create_event_payment_intent))
+        .route("/:id/complete-rsvp", post(complete_event_rsvp))
 }
 
 async fn get_events(
@@ -656,7 +698,7 @@ async fn get_event_by_id(
         LEFT JOIN (
             SELECT event_id, COUNT(*)::BIGINT AS count
             FROM event_rsvps
-            WHERE UPPER(status) = 'GOING'
+            WHERE UPPER(TRIM(status)) = 'GOING'
             GROUP BY event_id
         ) rsvp_counts ON rsvp_counts.event_id = e.id::TEXT
         WHERE e.id::TEXT = $1
@@ -747,7 +789,7 @@ async fn get_event_ticket(
         LEFT JOIN (
             SELECT event_id, COUNT(*)::BIGINT AS count
             FROM event_rsvps
-            WHERE UPPER(status) = 'GOING'
+            WHERE UPPER(TRIM(status)) = 'GOING'
             GROUP BY event_id
         ) rsvp_counts ON rsvp_counts.event_id = e.id::TEXT
         WHERE e.id::TEXT = $1
@@ -876,6 +918,225 @@ async fn get_event_ticket(
     Ok(Json(json!({
         "success": true,
         "data": ticket_json
+    })))
+}
+
+async fn create_event_payment_intent(
+    State(db): State<Database>,
+    Path(id): Path<String>,
+    claims: Claims,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let event_identifier = id.clone();
+
+    // Get the event to check price
+    let event_row = sqlx::query(
+        r#"
+        SELECT id, title, price, is_premium
+        FROM events
+        WHERE id::TEXT = $1
+        LIMIT 1
+        "#,
+    )
+    .bind(&event_identifier)
+    .fetch_optional(&db.pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to load event {}: {}", id, e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let Some(row) = event_row else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+
+    let price: f64 = row.try_get("price").unwrap_or(0.0);
+    let is_premium: bool = row.try_get("is_premium").unwrap_or(false);
+
+    if price <= 0.0 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    // Get Stripe secret key
+    let stripe_secret = std::env::var("STRIPE_SECRET_KEY")
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if stripe_secret.trim().is_empty() {
+        tracing::error!("Stripe secret key not configured");
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    // Create payment intent via Stripe API
+    let amount_cents = (price * 100.0) as i64;
+    let client = reqwest::Client::new();
+
+    let params = [
+        ("amount", amount_cents.to_string()),
+        ("currency", "usd".to_string()),
+        ("metadata[event_id]", event_identifier.clone()),
+        ("metadata[user_id]", claims.sub.clone()),
+        ("automatic_payment_methods[enabled]", "true".to_string()),
+    ];
+
+    let response = client
+        .post("https://api.stripe.com/v1/payment_intents")
+        .header("Authorization", format!("Bearer {}", stripe_secret))
+        .form(&params)
+        .send()
+        .await
+        .map_err(|err| {
+            tracing::error!("Failed to create Stripe payment intent: {:?}", err);
+            StatusCode::BAD_GATEWAY
+        })?;
+
+    if !response.status().is_success() {
+        let body = response.text().await.unwrap_or_default();
+        tracing::error!("Stripe returned error: {}", body);
+        return Err(StatusCode::BAD_GATEWAY);
+    }
+
+    let payment_intent: serde_json::Value = response.json().await.map_err(|err| {
+        tracing::error!("Failed to parse Stripe response: {:?}", err);
+        StatusCode::BAD_GATEWAY
+    })?;
+
+    let client_secret = payment_intent
+        .get("client_secret")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| {
+            tracing::error!("No client_secret in Stripe response");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(json!({
+        "success": true,
+        "data": {
+            "clientSecret": client_secret
+        }
+    })))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CompleteRsvpRequest {
+    payment_intent_id: String,
+}
+
+async fn complete_event_rsvp(
+    State(db): State<Database>,
+    Path(id): Path<String>,
+    claims: Claims,
+    Json(payload): Json<CompleteRsvpRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    ensure_event_rsvps_table(&db).await?;
+
+    let event_identifier = id.clone();
+    let user_id = claims.sub.clone();
+
+    // Verify the payment with Stripe
+    let stripe_secret = std::env::var("STRIPE_SECRET_KEY")
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if stripe_secret.trim().is_empty() {
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    let client = reqwest::Client::new();
+    let response = client
+        .get(format!(
+            "https://api.stripe.com/v1/payment_intents/{}",
+            payload.payment_intent_id
+        ))
+        .header("Authorization", format!("Bearer {}", stripe_secret))
+        .send()
+        .await
+        .map_err(|err| {
+            tracing::error!("Failed to verify payment intent: {:?}", err);
+            StatusCode::BAD_GATEWAY
+        })?;
+
+    if !response.status().is_success() {
+        let body = response.text().await.unwrap_or_default();
+        tracing::error!("Stripe returned error: {}", body);
+        return Err(StatusCode::BAD_GATEWAY);
+    }
+
+    let payment_intent: serde_json::Value = response.json().await.map_err(|err| {
+        tracing::error!("Failed to parse Stripe response: {:?}", err);
+        StatusCode::BAD_GATEWAY
+    })?;
+
+    let payment_status = payment_intent
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    if payment_status != "succeeded" {
+        tracing::error!("Payment not succeeded, status: {}", payment_status);
+        return Err(StatusCode::PAYMENT_REQUIRED);
+    }
+
+    // Update or create RSVP with is_paid=true
+    sqlx::query(
+        r#"
+        INSERT INTO event_rsvps (event_id, user_id, status, is_paid, created_at, updated_at)
+        VALUES ($1, $2, 'GOING', true, NOW(), NOW())
+        ON CONFLICT (event_id, user_id)
+        DO UPDATE SET
+            status = 'GOING',
+            is_paid = true,
+            updated_at = NOW()
+        "#,
+    )
+    .bind(&event_identifier)
+    .bind(&user_id)
+    .execute(&db.pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to update RSVP after payment: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Get updated RSVP count
+    let rsvp_count = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*)::BIGINT FROM event_rsvps WHERE event_id = $1 AND UPPER(TRIM(status)) = 'GOING'",
+    )
+    .bind(&event_identifier)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to count RSVPs: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Invalidate cache after payment completion
+    invalidate_event_cache(&db, &event_identifier).await;
+
+    // Send payment confirmation notification via AMQP
+    if let Some(amqp) = &db.amqp {
+        let price: f64 = sqlx::query_scalar("SELECT price FROM events WHERE id::TEXT = $1")
+            .bind(&event_identifier)
+            .fetch_optional(&db.pool)
+            .await
+            .unwrap_or(None)
+            .unwrap_or(0.0);
+
+        if let Err(e) = amqp.send_payment_confirmation(
+            event_identifier.clone(),
+            user_id.clone(),
+            price,
+        ).await {
+            tracing::warn!("Failed to send payment confirmation notification: {}", e);
+        }
+    }
+
+    Ok(Json(json!({
+        "success": true,
+        "data": {
+            "status": "GOING",
+            "isPaid": true,
+            "rsvpCount": rsvp_count
+        }
     })))
 }
 
