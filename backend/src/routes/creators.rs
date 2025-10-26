@@ -30,7 +30,7 @@ async fn get_creators(
     let offset = params.offset.unwrap_or(0);
 
     let query = r#"
-        SELECT id, email, name, username, avatar, bio, is_creator, created_at, updated_at 
+        SELECT id, email, name, username, avatar, bio, password_hash, is_creator, created_at, updated_at 
         FROM users 
         WHERE is_creator = true 
         ORDER BY created_at DESC 
@@ -57,7 +57,7 @@ async fn get_creator_by_username(
     MaybeClaims(maybe_claims): MaybeClaims,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let query = r#"
-        SELECT id, email, name, username, avatar, bio, is_creator, created_at, updated_at 
+        SELECT id, email, name, username, avatar, bio, password_hash, is_creator, created_at, updated_at 
         FROM users 
         WHERE username = $1 AND is_creator = true
     "#;
