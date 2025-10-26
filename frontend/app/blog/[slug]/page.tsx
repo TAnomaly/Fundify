@@ -27,6 +27,20 @@ interface Article {
     published_at?: string;
     created_at: string;
     updated_at: string;
+    authorName?: string | null;
+    authorUsername?: string | null;
+    authorAvatar?: string | null;
+    author?: {
+        id: string;
+        name?: string | null;
+        username?: string | null;
+        avatar?: string | null;
+    };
+    _count?: {
+        likes: number;
+        comments: number;
+    };
+    hasLiked?: boolean;
 }
 interface Comment { id: string; content: string; createdAt: string; user: { name: string; avatar?: string; }; }
 
@@ -129,6 +143,14 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
     if (isLoading) return <ArticleSkeleton />;
     if (!article) return <div>Article not found</div>;
 
+    const authorName = article.author?.name ?? article.authorName ?? "Unknown Author";
+    const authorUsername = article.author?.username ?? article.authorUsername ?? "";
+    const authorAvatar = article.author?.avatar ?? article.authorAvatar ?? null;
+    const authorInitial = (authorName || authorUsername || article.author_id)
+        .toString()
+        .charAt(0)
+        .toUpperCase();
+
     return (
         <div className="bg-background min-h-screen">
             {/* Floating Action Bar */}
@@ -158,10 +180,23 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
                             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground mb-4">{article.title}</h1>
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                                    <span className="text-lg font-semibold">{article.author_id.charAt(0).toUpperCase()}</span>
+                                    {authorAvatar ? (
+                                        <Image
+                                            src={authorAvatar}
+                                            alt={authorName}
+                                            width={48}
+                                            height={48}
+                                            className="w-12 h-12 rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <span className="text-lg font-semibold">{authorInitial}</span>
+                                    )}
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-foreground">Author {article.author_id}</p>
+                                    <p className="font-semibold text-foreground">{authorName}</p>
+                                    {authorUsername && (
+                                        <p className="text-sm text-muted-foreground">@{authorUsername}</p>
+                                    )}
                                     <p className="text-sm text-muted-foreground">
                                         {new Date(article.published_at || article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                                     </p>

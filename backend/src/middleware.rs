@@ -8,7 +8,7 @@ use axum::{
 use crate::{auth::verify_jwt, config::Config};
 
 pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Response, StatusCode> {
-    let path = request.uri().path();
+    let path = request.uri().path().to_owned();
     let method = request.method().clone();
     let method_str = method.to_string();
 
@@ -30,6 +30,19 @@ pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Respons
         || (path.starts_with("/api/") && method == Method::OPTIONS);
 
     if is_public_route {
+        if let Some(auth_header) = request
+            .headers()
+            .get(AUTHORIZATION)
+            .and_then(|header| header.to_str().ok())
+        {
+            if let Some(token) = auth_header.strip_prefix("Bearer ") {
+                if let Ok(config) = Config::from_env() {
+                    if let Ok(claims) = verify_jwt(token, &config.jwt_secret) {
+                        request.extensions_mut().insert(claims);
+                    }
+                }
+            }
+        }
         println!("✅ Skipping auth for: {}", path);
         return Ok(next.run(request).await);
     }
@@ -100,6 +113,32 @@ pub mod auth {
                 .get::<Claims>()
                 .cloned()
                 .ok_or(StatusCode::UNAUTHORIZED)
+        }
+    }
+}
+
+pub mod optional_auth {
+    use std::convert::Infallible;
+
+    use axum::{extract::FromRequestParts, http::request::Parts};
+
+    use crate::auth::Claims;
+
+    #[derive(Clone, Debug)]
+    pub struct MaybeClaims(pub Option<Claims>);
+
+    #[axum::async_trait]
+    impl<S> FromRequestParts<S> for MaybeClaims
+    where
+        S: Send + Sync,
+    {
+        type Rejection = Infallible;
+
+        async fn from_request_parts(
+            parts: &mut Parts,
+            _state: &S,
+        ) -> Result<Self, Self::Rejection> {
+            Ok(MaybeClaims(parts.extensions.get::<Claims>().cloned()))
         }
     }
 }

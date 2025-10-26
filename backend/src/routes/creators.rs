@@ -6,8 +6,9 @@ use axum::{
     Router,
 };
 use serde::Deserialize;
+use serde_json::json;
 
-use crate::{database::Database, models::User};
+use crate::{database::Database, middleware::optional_auth::MaybeClaims, models::User};
 
 #[derive(Debug, Deserialize)]
 pub struct CreatorQuery {
@@ -53,23 +54,71 @@ async fn get_creators(
 async fn get_creator_by_username(
     State(db): State<Database>,
     Path(username): Path<String>,
-) -> Result<Json<User>, StatusCode> {
+    MaybeClaims(maybe_claims): MaybeClaims,
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let query = r#"
         SELECT id, email, name, username, avatar, bio, is_creator, created_at, updated_at 
         FROM users 
         WHERE username = $1 AND is_creator = true
     "#;
 
-    match sqlx::query_as::<_, User>(query)
+    let creator = sqlx::query_as::<_, User>(query)
         .bind(&username)
         .fetch_one(&db.pool)
         .await
-    {
-        Ok(creator) => Ok(Json(creator)),
-        Err(sqlx::Error::RowNotFound) => Err(StatusCode::NOT_FOUND),
-        Err(e) => {
-            tracing::error!("Failed to fetch creator {}: {}", username, e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
-        }
-    }
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => StatusCode::NOT_FOUND,
+            other => {
+                tracing::error!("Failed to fetch creator {}: {}", username, other);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        })?;
+
+    let follower_count =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM follows WHERE following_id = $1")
+            .bind(&creator.id)
+            .fetch_one(&db.pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to count followers for {}: {}", username, e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+    let following_count =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM follows WHERE follower_id = $1")
+            .bind(&creator.id)
+            .fetch_one(&db.pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to count following for {}: {}", username, e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+    let is_following = if let Some(claims) = maybe_claims {
+        sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2)",
+        )
+        .bind(&claims.sub)
+        .bind(&creator.id)
+        .fetch_one(&db.pool)
+        .await
+        .unwrap_or(false)
+    } else {
+        false
+    };
+
+    Ok(Json(json!({
+        "id": creator.id,
+        "email": creator.email,
+        "name": creator.name,
+        "username": creator.username,
+        "avatar": creator.avatar,
+        "bio": creator.bio,
+        "isCreator": creator.is_creator,
+        "createdAt": creator.created_at,
+        "updatedAt": creator.updated_at,
+        "followerCount": follower_count,
+        "followingCount": following_count,
+        "isFollowing": is_following
+    })))
 }

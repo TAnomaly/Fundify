@@ -216,20 +216,32 @@ async fn get_events(
     let host_id = params.host_id.clone();
 
     let mut count_builder = QueryBuilder::<Postgres>::new("SELECT COUNT(*)::BIGINT FROM events e");
-    {
-        let mut separated = count_builder.separated(" WHERE ");
-        if let Some(ref host_id) = host_id {
-            separated.push("e.host_id = ").push_bind(host_id);
-        }
-        if upcoming && !past {
-            separated.push("e.start_time >= NOW()");
-        }
-        if past && !upcoming {
-            separated.push("e.start_time < NOW()");
-        }
-        if let Some(ref status) = status {
-            separated.push("e.status = ").push_bind(status);
-        }
+    let mut has_count_filter = false;
+    if let Some(ref host_id) = host_id {
+        count_builder
+            .push(if has_count_filter { " AND " } else { " WHERE " })
+            .push("e.host_id = ")
+            .push_bind(host_id);
+        has_count_filter = true;
+    }
+    if upcoming && !past {
+        count_builder
+            .push(if has_count_filter { " AND " } else { " WHERE " })
+            .push("e.start_time >= NOW()");
+        has_count_filter = true;
+    }
+    if past && !upcoming {
+        count_builder
+            .push(if has_count_filter { " AND " } else { " WHERE " })
+            .push("e.start_time < NOW()");
+        has_count_filter = true;
+    }
+    if let Some(ref status) = status {
+        count_builder
+            .push(if has_count_filter { " AND " } else { " WHERE " })
+            .push("e.status = ")
+            .push_bind(status);
+        has_count_filter = true;
     }
 
     let total_row = count_builder
@@ -274,20 +286,32 @@ async fn get_events(
         "#,
     );
 
-    {
-        let mut separated = list_builder.separated(" WHERE ");
-        if let Some(ref host_id) = host_id {
-            separated.push("e.host_id = ").push_bind(host_id);
-        }
-        if upcoming && !past {
-            separated.push("e.start_time >= NOW()");
-        }
-        if past && !upcoming {
-            separated.push("e.start_time < NOW()");
-        }
-        if let Some(ref status) = status {
-            separated.push("e.status = ").push_bind(status);
-        }
+    let mut has_list_filter = false;
+    if let Some(ref host_id) = host_id {
+        list_builder
+            .push(if has_list_filter { " AND " } else { " WHERE " })
+            .push("e.host_id = ")
+            .push_bind(host_id);
+        has_list_filter = true;
+    }
+    if upcoming && !past {
+        list_builder
+            .push(if has_list_filter { " AND " } else { " WHERE " })
+            .push("e.start_time >= NOW()");
+        has_list_filter = true;
+    }
+    if past && !upcoming {
+        list_builder
+            .push(if has_list_filter { " AND " } else { " WHERE " })
+            .push("e.start_time < NOW()");
+        has_list_filter = true;
+    }
+    if let Some(ref status) = status {
+        list_builder
+            .push(if has_list_filter { " AND " } else { " WHERE " })
+            .push("e.status = ")
+            .push_bind(status);
+        has_list_filter = true;
     }
 
     list_builder.push(" ORDER BY e.start_time ");

@@ -125,29 +125,35 @@ export default function CreatorProfilePage() {
     const loadCreatorProfile = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/creators/${username}`);
-        // Backend direkt user object döndürüyor
+        const token = isAuthenticated() ? localStorage.getItem("authToken") : null;
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/creators/${username}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        );
         const userData = response.data;
+        const followerCount = userData.followerCount ?? 0;
+        const followingCount = userData.followingCount ?? 0;
+        const isFollowingUser = userData.isFollowing ?? false;
         const profileData: CreatorProfile = {
           user: {
             id: userData.id,
             name: userData.name,
-            username: userData.username,
-            avatar: userData.avatar,
+            username: userData.username ?? undefined,
+            avatar: userData.avatar ?? undefined,
             bannerImage: null,
-            creatorBio: userData.bio,
+            creatorBio: userData.bio ?? undefined,
             socialLinks: {},
-            createdAt: userData.created_at,
-            followerCount: 0,
-            followingCount: 0,
-            isFollowing: false,
+            createdAt: userData.createdAt ?? userData.created_at,
+            followerCount,
+            followingCount,
+            isFollowing: isFollowingUser,
           },
           campaign: null,
           tiers: [],
         };
         setProfile(profileData);
-        setIsFollowing(false);
-        setFollowerCount(0);
+        setIsFollowing(isFollowingUser);
+        setFollowerCount(followerCount);
       } catch (error: any) {
         toast.error(error.message || "Creator not found");
         router.push("/explore");

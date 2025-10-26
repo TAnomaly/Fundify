@@ -10,7 +10,7 @@ use serde_json::json;
 use sqlx::Row;
 use uuid::Uuid;
 
-use crate::{auth::Claims, database::Database};
+use crate::{auth::Claims, database::Database, middleware::optional_auth::MaybeClaims};
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Article {
@@ -153,6 +153,7 @@ async fn get_articles(
 async fn get_article_by_slug(
     State(db): State<Database>,
     Path(slug): Path<String>,
+    MaybeClaims(maybe_claims): MaybeClaims,
 ) -> Result<ResponseJson<serde_json::Value>, StatusCode> {
     let row = sqlx::query(
         r#"
@@ -190,8 +191,22 @@ async fn get_article_by_slug(
     .await
     .map_err(|_| StatusCode::NOT_FOUND)?;
 
+    let article_id = row.get::<Uuid, _>("id");
+    let has_liked = if let Some(claims) = maybe_claims {
+        sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM article_likes WHERE article_id = $1 AND user_id = $2)",
+        )
+        .bind(article_id)
+        .bind(&claims.sub)
+        .fetch_one(&db.pool)
+        .await
+        .unwrap_or(false)
+    } else {
+        false
+    };
+
     Ok(ResponseJson(json!({
-        "id": row.get::<Uuid, _>("id"),
+        "id": article_id,
         "title": row.get::<String, _>("title"),
         "content": row.get::<Option<String>, _>("content"),
         "slug": row.get::<String, _>("slug"),
@@ -212,7 +227,7 @@ async fn get_article_by_slug(
             likes: row.get::<i64, _>("like_count"),
             comments: row.get::<i64, _>("comment_count")
         },
-        "hasLiked": false
+        "hasLiked": has_liked
     })))
 }
 
