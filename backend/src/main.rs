@@ -48,14 +48,20 @@ async fn main() -> anyhow::Result<()> {
     // Initialize database
     let db = Database::new(&config.database_url).await?;
 
-    // Run migrations
-    db.run_migrations().await?;
+    // Run migrations (log and continue if they fail so healthcheck can still succeed)
+    if let Err(error) = db.run_migrations().await {
+        tracing::error!("Database migrations failed: {}", error);
+    }
 
     // Prepare upload directories
     let upload_dir = std::env::var("UPLOAD_DIR").unwrap_or_else(|_| "uploads".to_string());
     let upload_path = PathBuf::from(&upload_dir);
-    tokio::fs::create_dir_all(upload_path.join("images")).await?;
-    tokio::fs::create_dir_all(upload_path.join("videos")).await?;
+    if let Err(error) = tokio::fs::create_dir_all(upload_path.join("images")).await {
+        tracing::warn!("Failed to create images upload directory: {}", error);
+    }
+    if let Err(error) = tokio::fs::create_dir_all(upload_path.join("videos")).await {
+        tracing::warn!("Failed to create videos upload directory: {}", error);
+    }
 
     // Build our application with routes
     let cors = CorsLayer::new()
