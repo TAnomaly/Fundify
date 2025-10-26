@@ -61,6 +61,9 @@ impl Database {
                 content TEXT,
                 media_url TEXT,
                 media_type VARCHAR(50),
+                image_urls TEXT[],
+                video_url TEXT,
+                audio_url TEXT,
                 is_premium BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -69,6 +72,18 @@ impl Database {
         )
         .execute(&self.pool)
         .await?;
+
+        sqlx::query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_urls TEXT[]")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS video_url TEXT")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS audio_url TEXT")
+            .execute(&self.pool)
+            .await?;
 
         sqlx::query(
             r#"

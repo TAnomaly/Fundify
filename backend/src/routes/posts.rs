@@ -27,6 +27,9 @@ struct PostRecord {
     content: Option<String>,
     media_url: Option<String>,
     media_type: Option<String>,
+    image_urls: Option<Vec<String>>,
+    video_url: Option<String>,
+    audio_url: Option<String>,
     is_premium: bool,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -125,6 +128,9 @@ async fn get_posts(
                 p.content,
                 p.media_url,
                 p.media_type,
+                p.image_urls,
+                p.video_url,
+                p.audio_url,
                 p.is_premium,
                 p.created_at,
                 p.updated_at,
@@ -169,6 +175,9 @@ async fn get_posts(
                 p.content,
                 p.media_url,
                 p.media_type,
+                p.image_urls,
+                p.video_url,
+                p.audio_url,
                 p.is_premium,
                 p.created_at,
                 p.updated_at,
@@ -236,6 +245,9 @@ async fn get_posts_by_creator(
             p.content,
             p.media_url,
             p.media_type,
+            p.image_urls,
+            p.video_url,
+            p.audio_url,
             p.is_premium,
             p.created_at,
             p.updated_at,
@@ -304,6 +316,9 @@ async fn get_my_posts(
             p.content,
             p.media_url,
             p.media_type,
+            p.image_urls,
+            p.video_url,
+            p.audio_url,
             p.is_premium,
             p.created_at,
             p.updated_at,
@@ -377,36 +392,35 @@ async fn create_post(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let media_url = payload
-        .media_url
-        .clone()
-        .or_else(|| {
-            payload
-                .images
-                .as_ref()
-                .and_then(|imgs| imgs.first().cloned())
-        })
-        .or_else(|| payload.video_url.clone())
-        .or_else(|| payload.audio_url.clone());
+    let image_urls = sanitize_urls(payload.images.clone());
+    let video_url = sanitize_url(payload.video_url.clone());
+    let audio_url = sanitize_url(payload.audio_url.clone());
+    let primary_media_url = sanitize_url(payload.media_url.clone());
+
+    let media_url = primary_media_url
+        .or_else(|| image_urls.as_ref().and_then(|imgs| imgs.first().cloned()))
+        .or_else(|| video_url.clone())
+        .or_else(|| audio_url.clone());
+
+    let inferred_media_type = if video_url.is_some() {
+        Some("video".to_string())
+    } else if audio_url.is_some() {
+        Some("audio".to_string())
+    } else if image_urls
+        .as_ref()
+        .map(|imgs| !imgs.is_empty())
+        .unwrap_or(false)
+    {
+        Some("image".to_string())
+    } else {
+        None
+    };
 
     let media_type = payload
         .media_type
         .clone()
         .or_else(|| payload.content_type.clone())
-        .or_else(|| {
-            if let Some(images) = &payload.images {
-                if !images.is_empty() {
-                    return Some("image".to_string());
-                }
-            }
-            if payload.video_url.is_some() {
-                return Some("video".to_string());
-            }
-            if payload.audio_url.is_some() {
-                return Some("audio".to_string());
-            }
-            None
-        })
+        .or(inferred_media_type)
         .map(normalize_media_type);
 
     let is_public = payload.is_public.unwrap_or(true);
@@ -414,17 +428,20 @@ async fn create_post(
 
     let post_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        INSERT INTO posts (user_id, title, content, media_url, media_type, is_premium)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO posts (user_id, title, content, media_url, media_type, is_premium, image_urls, video_url, audio_url)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id
         "#,
     )
     .bind(&user_id)
     .bind(&payload.title)
     .bind(&payload.content)
-    .bind(&media_url)
-    .bind(&media_type)
+    .bind(media_url.clone())
+    .bind(media_type.clone())
     .bind(is_premium)
+    .bind(image_urls.clone())
+    .bind(video_url.clone())
+    .bind(audio_url.clone())
     .fetch_one(&db.pool)
     .await
     .map_err(|e| {
@@ -473,36 +490,35 @@ async fn update_post(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let media_url = payload
-        .media_url
-        .clone()
-        .or_else(|| {
-            payload
-                .images
-                .as_ref()
-                .and_then(|imgs| imgs.first().cloned())
-        })
-        .or_else(|| payload.video_url.clone())
-        .or_else(|| payload.audio_url.clone());
+    let image_urls = sanitize_urls(payload.images.clone());
+    let video_url = sanitize_url(payload.video_url.clone());
+    let audio_url = sanitize_url(payload.audio_url.clone());
+    let primary_media_url = sanitize_url(payload.media_url.clone());
+
+    let media_url = primary_media_url
+        .or_else(|| image_urls.as_ref().and_then(|imgs| imgs.first().cloned()))
+        .or_else(|| video_url.clone())
+        .or_else(|| audio_url.clone());
+
+    let inferred_media_type = if video_url.is_some() {
+        Some("video".to_string())
+    } else if audio_url.is_some() {
+        Some("audio".to_string())
+    } else if image_urls
+        .as_ref()
+        .map(|imgs| !imgs.is_empty())
+        .unwrap_or(false)
+    {
+        Some("image".to_string())
+    } else {
+        None
+    };
 
     let media_type = payload
         .media_type
         .clone()
         .or_else(|| payload.content_type.clone())
-        .or_else(|| {
-            if let Some(images) = &payload.images {
-                if !images.is_empty() {
-                    return Some("image".to_string());
-                }
-            }
-            if payload.video_url.is_some() {
-                return Some("video".to_string());
-            }
-            if payload.audio_url.is_some() {
-                return Some("audio".to_string());
-            }
-            None
-        })
+        .or(inferred_media_type)
         .map(normalize_media_type);
 
     let is_public = payload.is_public.unwrap_or(true);
@@ -511,7 +527,7 @@ async fn update_post(
     let post_id = sqlx::query_scalar::<_, Uuid>(
         r#"
         UPDATE posts 
-        SET title = $2, content = $3, media_url = $4, media_type = $5, is_premium = $6, updated_at = NOW()
+        SET title = $2, content = $3, media_url = $4, media_type = $5, is_premium = $6, image_urls = $7, video_url = $8, audio_url = $9, updated_at = NOW()
         WHERE id = $1
         RETURNING id
         "#
@@ -519,9 +535,12 @@ async fn update_post(
     .bind(id)
     .bind(&payload.title)
     .bind(&payload.content)
-    .bind(&media_url)
-    .bind(&media_type)
+    .bind(media_url.clone())
+    .bind(media_type.clone())
     .bind(is_premium)
+    .bind(image_urls.clone())
+    .bind(video_url.clone())
+    .bind(audio_url.clone())
     .fetch_one(&db.pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -591,63 +610,110 @@ fn matches_media_type(media_type: Option<&str>, target: &str) -> bool {
     media_type
         .map(|mt| {
             let lowered = mt.trim().to_ascii_lowercase();
+            if lowered == "mixed" {
+                return matches!(target, "image" | "video" | "audio");
+            }
             lowered == target || lowered.starts_with(&format!("{}/", target))
         })
         .unwrap_or(false)
 }
 
+fn sanitize_url(input: Option<String>) -> Option<String> {
+    input.and_then(|value| {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
+}
+
+fn sanitize_urls(input: Option<Vec<String>>) -> Option<Vec<String>> {
+    input
+        .map(|values| {
+            values
+                .into_iter()
+                .filter_map(|value| {
+                    let trimmed = value.trim();
+                    if trimmed.is_empty() {
+                        None
+                    } else {
+                        Some(trimmed.to_string())
+                    }
+                })
+                .collect::<Vec<String>>()
+        })
+        .filter(|values| !values.is_empty())
+}
+
 fn map_post(record: PostRecord) -> CreatorPostResponse {
-    let content = record.content.unwrap_or_default();
+    let PostRecord {
+        id,
+        user_id,
+        title,
+        content,
+        media_url,
+        media_type,
+        image_urls,
+        video_url,
+        audio_url,
+        is_premium,
+        created_at,
+        updated_at,
+        author_name,
+        author_username,
+        author_avatar,
+        author_is_creator,
+    } = record;
+
+    let content = content.unwrap_or_default();
     let excerpt = generate_excerpt(&content);
 
-    let images = if matches_media_type(record.media_type.as_deref(), "image") {
-        record
-            .media_url
-            .as_ref()
-            .map(|url| vec![url.clone()])
-            .unwrap_or_default()
-    } else {
-        Vec::new()
+    let mut images = image_urls.unwrap_or_default();
+    if images.is_empty() && matches_media_type(media_type.as_deref(), "image") {
+        if let Some(url) = media_url.clone() {
+            images.push(url);
+        }
+    }
+
+    let video_url = match (video_url, media_type.as_deref()) {
+        (Some(url), _) => Some(url),
+        (None, mt) if matches_media_type(mt, "video") => media_url.clone(),
+        _ => None,
     };
 
-    let video_url = if matches_media_type(record.media_type.as_deref(), "video") {
-        record.media_url.clone()
-    } else {
-        None
+    let audio_url = match (audio_url, media_type.as_deref()) {
+        (Some(url), _) => Some(url),
+        (None, mt) if matches_media_type(mt, "audio") => media_url.clone(),
+        _ => None,
     };
 
-    let audio_url = if matches_media_type(record.media_type.as_deref(), "audio") {
-        record.media_url.clone()
-    } else {
-        None
-    };
+    let author_display_name = author_name.clone().or_else(|| author_username.clone());
 
     CreatorPostResponse {
-        id: record.id,
-        title: record.title,
+        id,
+        title,
         content,
         excerpt,
         images,
         video_url,
         audio_url,
         attachments: None,
-        is_public: !record.is_premium,
+        is_public: !is_premium,
         minimum_tier_id: None,
         like_count: 0,
         comment_count: 0,
         published: true,
-        published_at: Some(record.created_at),
-        created_at: record.created_at,
-        updated_at: record.updated_at,
+        published_at: Some(created_at),
+        created_at,
+        updated_at,
         author: CreatorPostAuthor {
-            id: record.user_id.clone(),
-            name: record
-                .author_name
-                .clone()
-                .or_else(|| record.author_username.clone()),
-            username: record.author_username.clone(),
-            avatar: record.author_avatar.clone(),
-            is_creator: record.author_is_creator.unwrap_or(false),
+            id: user_id,
+            name: author_display_name,
+            username: author_username,
+            avatar: author_avatar,
+            is_creator: author_is_creator.unwrap_or(false),
         },
         has_access: true,
     }
@@ -676,6 +742,9 @@ async fn fetch_post_with_author(db: &Database, post_id: Uuid) -> Result<PostReco
             p.content,
             p.media_url,
             p.media_type,
+            p.image_urls,
+            p.video_url,
+            p.audio_url,
             p.is_premium,
             p.created_at,
             p.updated_at,
