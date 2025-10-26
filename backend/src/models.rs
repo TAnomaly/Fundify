@@ -61,9 +61,10 @@ pub struct Subscription {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Purchase {
     pub id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: String,
     pub product_id: Uuid,
     pub stripe_payment_intent_id: Option<String>,
+    pub stripe_checkout_session_id: Option<String>,
     pub amount: f64,
     pub currency: String,
     pub status: String,

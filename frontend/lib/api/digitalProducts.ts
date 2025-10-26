@@ -44,13 +44,27 @@ export interface Purchase {
     productId: string;
     userId: string;
     amount: number;
+    currency: string;
     status: "PENDING" | "COMPLETED" | "FAILED";
     paymentMethod?: string;
     transactionId?: string;
     purchasedAt: string;
     downloadCount?: number;
     lastDownloadAt?: string | null;
+    stripePaymentIntentId?: string | null;
+    stripeCheckoutSessionId?: string | null;
     product?: DigitalProduct;
+}
+
+export interface PurchaseInitResponse {
+    purchaseId: string;
+    status: "PENDING" | "COMPLETED" | "FAILED";
+    productId: string;
+    amount: number;
+    currency: string;
+    checkoutUrl?: string;
+    stripeSessionId?: string;
+    stripePaymentIntentId?: string | null;
 }
 
 export interface ProductMeta {
@@ -126,11 +140,15 @@ export const digitalProductsApi = {
     },
     purchase: async (id: string, payload: { paymentMethod?: string; transactionId?: string }) => {
         const { data } = await api.post(`/products/${id}/purchase`, payload);
-        return data as { success: boolean; data: Purchase };
+        return data as { success: boolean; data: PurchaseInitResponse };
     },
     myPurchases: async () => {
         const { data } = await api.get("/purchases/me");
         return data as { success: boolean; data: Purchase[] };
+    },
+    confirmPurchase: async (sessionId: string) => {
+        const { data } = await api.post("/purchases/confirm", { sessionId });
+        return data as { success: boolean; data: Purchase };
     },
     getDownloadInfo: async (id: string) => {
         const { data } = await api.get(`/products/${id}/download`);

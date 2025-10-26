@@ -421,15 +421,36 @@ impl Database {
                 user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
                 stripe_payment_intent_id VARCHAR(255),
-                amount DECIMAL(10,2) NOT NULL,
+                stripe_checkout_session_id VARCHAR(255),
+                amount DOUBLE PRECISION NOT NULL,
                 currency VARCHAR(3) DEFAULT 'USD',
                 status VARCHAR(50) NOT NULL,
-                created_at TIMESTAMP DEFAULT NOW()
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
             "#,
         )
         .execute(&self.pool)
         .await?;
+
+        sqlx::query(
+            "ALTER TABLE purchases ADD COLUMN IF NOT EXISTS stripe_checkout_session_id VARCHAR(255)",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "ALTER TABLE purchases ALTER COLUMN amount TYPE DOUBLE PRECISION USING amount::DOUBLE PRECISION",
+        )
+        .execute(&self.pool)
+        .await
+        .ok();
+
+        sqlx::query(
+            "ALTER TABLE purchases ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE USING created_at AT TIME ZONE 'UTC'",
+        )
+        .execute(&self.pool)
+        .await
+        .ok();
 
         // Create indexes
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id)")

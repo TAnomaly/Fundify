@@ -21,7 +21,10 @@ pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Respons
         || (path.starts_with("/api/campaigns") && method == Method::GET)
         || (path.starts_with("/api/events") && method == Method::GET)
         || (path.starts_with("/api/posts") && method == Method::GET && !path.contains("/my-posts"))
-        || (path.starts_with("/api/products") && method == Method::GET && !path.contains("/me"))
+        || (path.starts_with("/api/products")
+            && method == Method::GET
+            && !path.contains("/me")
+            && !path.contains("/download"))
         || (path.starts_with("/api/articles") && method == Method::GET)
         || (path.starts_with("/api/referrals/validate") && method == Method::GET)
         || (path.starts_with("/api/podcasts") && method == Method::GET)

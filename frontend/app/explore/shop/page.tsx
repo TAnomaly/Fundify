@@ -160,10 +160,19 @@ export default function ShopPage() {
                 router.push("/login");
                 return;
             }
-            const { success } = await digitalProductsApi.purchase(product.id, { paymentMethod: "INTERNAL" });
-            if (success) {
-                toast.success("Purchase completed");
-                await loadProducts();
+            const { success, data } = await digitalProductsApi.purchase(product.id, { paymentMethod: "STRIPE" });
+            if (success && data) {
+                if (data.checkoutUrl) {
+                    window.location.href = data.checkoutUrl;
+                    return;
+                }
+
+                if (data.status === "COMPLETED") {
+                    toast.success("Purchase completed");
+                    await loadProducts();
+                } else {
+                    toast.success("Checkout initialized. Complete payment to finish your purchase.");
+                }
             }
         } catch (err: any) {
             console.error(err);

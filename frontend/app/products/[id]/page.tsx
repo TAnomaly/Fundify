@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -19,6 +19,7 @@ import { ArrowRight, Download, Heart, ShoppingCart, CheckCircle, FileText, Shiel
 export default function ProductDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const id = params.id as string;
 
     const [product, setProduct] = useState<DigitalProduct | null>(null);
@@ -26,6 +27,7 @@ export default function ProductDetailPage() {
     const [loading, setLoading] = useState(true);
     const [purchased, setPurchased] = useState(false);
     const [buying, setBuying] = useState(false);
+    const [confirmingPurchase, setConfirmingPurchase] = useState(false);
     const [activeImage, setActiveImage] = useState<string | null>(null);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -34,6 +36,39 @@ export default function ProductDetailPage() {
             loadProduct();
         }
     }, [id]);
+
+    const confirmStripePurchase = useCallback(async (sessionId: string) => {
+        if (!sessionId || confirmingPurchase) {
+            return;
+        }
+        setConfirmingPurchase(true);
+        try {
+            const { success, data } = await digitalProductsApi.confirmPurchase(sessionId);
+            if (success) {
+                toast.success("Payment confirmed! Thank you for your purchase.");
+                setPurchased(data.status === "COMPLETED");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("We could not verify your payment. Please contact support if the issue persists.");
+        } finally {
+            setConfirmingPurchase(false);
+            router.replace(`/products/${id}`);
+        }
+    }, [confirmingPurchase, id, router]);
+
+    useEffect(() => {
+        const sessionId = searchParams.get("session_id");
+        if (sessionId) {
+            void confirmStripePurchase(sessionId);
+            return;
+        }
+
+        if (searchParams.get("cancelled")) {
+            toast.error("Payment was cancelled.");
+            router.replace(`/products/${id}`);
+        }
+    }, [confirmStripePurchase, id, router, searchParams]);
 
     const loadProduct = async () => {
         try {
@@ -82,8 +117,29 @@ export default function ProductDetailPage() {
         }
         try {
             setBuying(true);
-            const { success } = await digitalProductsApi.purchase(id, { paymentMethod: "INTERNAL" });
-            if (success) {
+            const { success, data } = await digitalProductsApi.purchase(id, { paymentMethod: "STRIPE" });
+            if (success && data) {
+                if (data.checkoutUrl) {
+                    window.location.href = data.checkoutUrl;
+                    return;
+                }
+
+                if (data.status === "COMPLETED") {
+                    toast.success("Purchase completed!");
+                    setPurchased(true);
+                } else {
+                    toast.success("Checkout initialized. Please follow the Stripe instructions to complete your purchase.");
+                }
+            } else {
+                toast.error("Unable to start checkout. Please try again.");
+            }
+        } catch (e: any) {
+            toast.error(e.response?.data?.message || "Purchase failed");
+        } finally {
+            setBuying(false);
+        }
+    };
+
                 toast.success("Purchase completed!");
                 setPurchased(true);
             }
