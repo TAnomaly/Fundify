@@ -45,8 +45,11 @@ impl Database {
 
     pub async fn with_all(database_url: &str, redis_url: &str, amqp_url: &str) -> anyhow::Result<Self> {
         let pool = PgPoolOptions::new()
-            .max_connections(10)
+            .max_connections(20) // Increased for better concurrency
+            .min_connections(5)  // Keep some connections warm
             .acquire_timeout(Duration::from_secs(30))
+            .idle_timeout(Duration::from_secs(300)) // 5 minutes
+            .max_lifetime(Duration::from_secs(1800)) // 30 minutes
             .connect(database_url)
             .await?;
 
@@ -589,6 +592,43 @@ impl Database {
 
         sqlx::query(
             "CREATE INDEX IF NOT EXISTS idx_referrals_creator ON referral_codes(creator_id)",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Performance indexes for common queries
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_events_start_time ON events(start_time DESC)",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_events_host_id ON events(host_id)",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_event_rsvps_status ON event_rsvps(status) WHERE UPPER(TRIM(status)) = 'GOING'",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_status ON event_rsvps(event_id, status)",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_posts_media_type ON posts(media_type) WHERE media_type IS NOT NULL",
         )
         .execute(&self.pool)
         .await?;

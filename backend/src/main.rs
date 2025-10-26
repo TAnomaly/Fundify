@@ -9,6 +9,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use tower::ServiceBuilder;
 use tower_http::{
+    compression::CompressionLayer,
     cors::{AllowOrigin, CorsLayer},
     services::ServeDir,
     set_header::SetResponseHeaderLayer,
@@ -115,6 +116,7 @@ async fn main() -> anyhow::Result<()> {
         .nest_service("/uploads", uploads_service)
         .layer(
             ServiceBuilder::new()
+                .layer(CompressionLayer::new()) // Compress responses (gzip, br, deflate)
                 .layer(TraceLayer::new_for_http())
                 .layer(cors)
                 .layer(axum::middleware::from_fn(middleware::auth_middleware))

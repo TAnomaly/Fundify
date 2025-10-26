@@ -67,12 +67,14 @@ async fn get_feed(
     // Latest posts
     let post_rows = sqlx::query(
         r#"
-        SELECT 
+        SELECT
             p.id,
             p.title,
             p.content,
             p.media_url,
             p.media_type,
+            p.image_urls,
+            p.video_url,
             p.is_premium,
             p.created_at,
             u.id AS creator_id,
@@ -104,6 +106,16 @@ async fn get_feed(
         let created_at: chrono::DateTime<chrono::Utc> =
             row.try_get("created_at").unwrap_or(Utc::now());
         let media_url: Option<String> = row.try_get("media_url").ok();
+        let image_urls: Option<Vec<String>> = row.try_get("image_urls").ok();
+        let video_url: Option<String> = row.try_get("video_url").ok();
+
+        // Use first image from image_urls, or video_url, or media_url as cover
+        let cover_image = image_urls
+            .as_ref()
+            .and_then(|imgs| imgs.first().cloned())
+            .or_else(|| video_url.clone())
+            .or_else(|| media_url.clone());
+
         let content: Option<String> = row.try_get("content").ok();
         let title: String = row
             .try_get("title")
@@ -137,7 +149,7 @@ async fn get_feed(
                 "title": title,
                 "summary": summary,
                 "preview": content,
-                "coverImage": media_url,
+                "coverImage": cover_image,
                 "publishedAt": created_at,
                 "link": format!("/creators/{}", creator_username.clone().unwrap_or_else(|| creator_id.clone())),
                 "creator": {

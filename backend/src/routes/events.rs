@@ -488,6 +488,20 @@ async fn get_events(
         }
     }
 
+    // Try to get from cache first
+    let cache_key = event_list_cache_key(page, limit, upcoming, past, &status, &host_id_param);
+    if let Some(redis) = &db.redis {
+        let mut redis_clone = redis.clone();
+        if let Ok(Some(cached)) = redis_clone.get(&cache_key).await {
+            tracing::debug!("Cache HIT for events list: {}", cache_key);
+            if let Ok(cached_value) = serde_json::from_str::<serde_json::Value>(&cached) {
+                return Ok(Json(cached_value));
+            }
+        } else {
+            tracing::debug!("Cache MISS for events list: {}", cache_key);
+        }
+    }
+
     ensure_event_rsvps_table(&db).await?;
 
     let mut count_builder = QueryBuilder::<Postgres>::new("SELECT COUNT(*)::BIGINT FROM events e");
@@ -644,7 +658,7 @@ async fn get_events(
     let events: Vec<EventResponse> = rows.iter().map(EventResponse::from_row).collect();
     let total_pages = ((total_items as f64) / (limit as f64)).ceil() as i64;
 
-    Ok(Json(json!({
+    let response = json!({
         "success": true,
         "data": events,
         "pagination": {
@@ -653,7 +667,18 @@ async fn get_events(
             "totalItems": total_items,
             "totalPages": total_pages.max(1)
         }
-    })))
+    });
+
+    // Cache the response
+    if let Some(redis) = &db.redis {
+        let mut redis_clone = redis.clone();
+        if let Ok(response_str) = serde_json::to_string(&response) {
+            let _ = redis_clone.set_ex(&cache_key, &response_str, CACHE_TTL_EVENT_LIST).await;
+            tracing::debug!("Cached events list: {}", cache_key);
+        }
+    }
+
+    Ok(Json(response))
 }
 
 async fn get_event_by_id(
@@ -662,6 +687,22 @@ async fn get_event_by_id(
     MaybeClaims(maybe_claims): MaybeClaims,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let event_identifier = id.clone();
+
+    // Try cache first (only for non-authenticated requests to avoid leaking user data)
+    if maybe_claims.is_none() {
+        let cache_key = event_detail_cache_key(&event_identifier);
+        if let Some(redis) = &db.redis {
+            let mut redis_clone = redis.clone();
+            if let Ok(Some(cached)) = redis_clone.get(&cache_key).await {
+                tracing::debug!("Cache HIT for event detail: {}", cache_key);
+                if let Ok(cached_value) = serde_json::from_str::<serde_json::Value>(&cached) {
+                    return Ok(Json(cached_value));
+                }
+            } else {
+                tracing::debug!("Cache MISS for event detail: {}", cache_key);
+            }
+        }
+    }
 
     ensure_event_rsvps_table(&db).await?;
 
@@ -713,7 +754,7 @@ async fn get_event_by_id(
         Ok(Some(row)) => {
             let mut event = EventResponse::from_row(&row);
 
-            if let Some(claims) = maybe_claims {
+            let has_user_data = if let Some(claims) = maybe_claims {
                 if let Ok(Some(rsvp_row)) = sqlx::query(
                     r#"
                     SELECT status, is_paid
@@ -730,13 +771,32 @@ async fn get_event_by_id(
                     let is_paid: Option<bool> = rsvp_row.try_get("is_paid").unwrap_or(None);
                     event.user_rsvp_status = Some(status);
                     event.user_rsvp_is_paid = is_paid;
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+
+            let response = json!({
+                "success": true,
+                "data": event
+            });
+
+            // Cache only if no user-specific data
+            if !has_user_data {
+                let cache_key = event_detail_cache_key(&event_identifier);
+                if let Some(redis) = &db.redis {
+                    let mut redis_clone = redis.clone();
+                    if let Ok(response_str) = serde_json::to_string(&response) {
+                        let _ = redis_clone.set_ex(&cache_key, &response_str, CACHE_TTL_EVENT_DETAIL).await;
+                        tracing::debug!("Cached event detail: {}", cache_key);
+                    }
                 }
             }
 
-            Ok(Json(json!({
-                "success": true,
-                "data": event
-            })))
+            Ok(Json(response))
         }
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
