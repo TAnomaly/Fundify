@@ -19,6 +19,8 @@ pub struct Config {
     pub stripe_webhook_secret: String,
     pub supabase_url: String,
     pub supabase_anon_key: String,
+    pub supabase_service_role_key: String,
+    pub supabase_bucket: String,
     pub port: u16,
     pub node_env: String,
 }
@@ -53,6 +55,9 @@ impl Config {
                 .unwrap_or_else(|_| "".to_string()),
             supabase_url: env::var("SUPABASE_URL").unwrap_or_else(|_| "".to_string()),
             supabase_anon_key: env::var("SUPABASE_ANON_KEY").unwrap_or_else(|_| "".to_string()),
+            supabase_service_role_key: env::var("SUPABASE_SERVICE_ROLE_KEY")
+                .unwrap_or_else(|_| "".to_string()),
+            supabase_bucket: env::var("SUPABASE_BUCKET").unwrap_or_else(|_| "media".to_string()),
             port: env::var("PORT")
                 .unwrap_or_else(|_| "4000".to_string())
                 .parse()

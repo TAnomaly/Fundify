@@ -1,4 +1,4 @@
-use std::{path::PathBuf, time::SystemTime};
+use std::time::SystemTime;
 
 use axum::{
     extract::{Multipart, State},
@@ -7,11 +7,11 @@ use axum::{
     routing::post,
     Router,
 };
+use reqwest::{Client, StatusCode as ReqwestStatusCode};
 use serde_json::json;
-use tokio::{fs, io::AsyncWriteExt};
 use uuid::Uuid;
 
-use crate::{auth::Claims, database::Database};
+use crate::{auth::Claims, config::Config, database::Database};
 
 type UploadResponse = Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)>;
 
@@ -26,13 +26,7 @@ async fn upload_image(
     _claims: Claims,
     multipart: Multipart,
 ) -> UploadResponse {
-    handle_upload(
-        multipart,
-        "images",
-        &["image/"],
-        5 * 1024 * 1024, // 5MB
-    )
-    .await
+    handle_upload(multipart, "images", &["image/"], 5 * 1024 * 1024).await
 }
 
 async fn upload_video(
@@ -40,13 +34,7 @@ async fn upload_video(
     _claims: Claims,
     multipart: Multipart,
 ) -> UploadResponse {
-    handle_upload(
-        multipart,
-        "videos",
-        &["video/"],
-        500 * 1024 * 1024, // 500MB
-    )
-    .await
+    handle_upload(multipart, "videos", &["video/"], 300 * 1024 * 1024).await
 }
 
 async fn handle_upload(
@@ -55,19 +43,23 @@ async fn handle_upload(
     allowed_mime_prefixes: &[&str],
     max_size_bytes: usize,
 ) -> UploadResponse {
+    let mut bytes: Vec<u8> = Vec::new();
+    let mut file_name: Option<String> = None;
+    let mut content_type: Option<String> = None;
+
     while let Some(field) = multipart
         .next_field()
         .await
         .map_err(|_| json_error(StatusCode::BAD_REQUEST, "Invalid multipart payload"))?
     {
-        let content_type = field
+        let field_content_type = field
             .content_type()
             .map(|mime| mime.to_string())
             .unwrap_or_default();
 
         if !allowed_mime_prefixes
             .iter()
-            .any(|prefix| content_type.starts_with(prefix))
+            .any(|prefix| field_content_type.starts_with(prefix))
         {
             return Err(json_error(
                 StatusCode::UNSUPPORTED_MEDIA_TYPE,
@@ -75,31 +67,20 @@ async fn handle_upload(
             ));
         }
 
-        let extension = guess_extension(&content_type, field.file_name());
+        let extension = guess_extension(&field_content_type, field.file_name());
         let file_id = Uuid::new_v4();
         let timestamp = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .map(|duration| duration.as_secs())
             .unwrap_or_default();
-        let file_name = format!("{}_{}.{}", timestamp, file_id, extension);
+        let generated_name = format!("{}_{}.{}", timestamp, file_id, extension);
 
-        let upload_root =
-            PathBuf::from(std::env::var("UPLOAD_DIR").unwrap_or_else(|_| "uploads".to_string()));
-        let target_dir = upload_root.join(folder);
-        fs::create_dir_all(&target_dir).await.map_err(|_| {
-            json_error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to prepare storage",
-            )
-        })?;
+        file_name = Some(generated_name);
+        content_type = Some(field_content_type);
 
-        let file_path = target_dir.join(&file_name);
-        let mut file = fs::File::create(&file_path)
-            .await
-            .map_err(|_| json_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to create file"))?;
-
-        let mut total_bytes: usize = 0;
         let mut field = field;
+        let mut total_bytes: usize = 0;
+
         while let Some(chunk) = field
             .chunk()
             .await
@@ -107,38 +88,98 @@ async fn handle_upload(
         {
             total_bytes += chunk.len();
             if total_bytes > max_size_bytes {
-                drop(file);
-                let _ = fs::remove_file(&file_path).await;
                 return Err(json_error(
                     StatusCode::PAYLOAD_TOO_LARGE,
                     "Uploaded file exceeds size limit",
                 ));
             }
-            file.write_all(&chunk).await.map_err(|_| {
-                json_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to save file")
-            })?;
+            bytes.extend_from_slice(&chunk);
         }
 
         if total_bytes == 0 {
-            let _ = fs::remove_file(&file_path).await;
             return Err(json_error(StatusCode::BAD_REQUEST, "Empty file upload"));
         }
-
-        let relative_url = format!("/uploads/{}/{}", folder, file_name);
-        return Ok(Json(json!({
-            "success": true,
-            "data": {
-                "url": relative_url,
-                "contentType": content_type,
-                "size": total_bytes,
-            }
-        })));
     }
 
-    Err(json_error(
-        StatusCode::BAD_REQUEST,
-        "No file found in upload payload",
-    ))
+    let file_name = file_name
+        .ok_or_else(|| json_error(StatusCode::BAD_REQUEST, "No file found in upload payload"))?;
+    let content_type = content_type.unwrap_or_else(|| "application/octet-stream".to_string());
+
+    let config = Config::from_env().map_err(|_| {
+        json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to load configuration",
+        )
+    })?;
+
+    if config.supabase_url.is_empty() || config.supabase_service_role_key.is_empty() {
+        return Err(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Supabase credentials are not configured",
+        ));
+    }
+
+    let storage_path = format!("{}/{}", folder, file_name);
+    let storage_endpoint = format!(
+        "{}/storage/v1/object/{}/{}",
+        config.supabase_url.trim_end_matches('/'),
+        config.supabase_bucket,
+        storage_path
+    );
+
+    let client = Client::new();
+    let response = client
+        .post(&storage_endpoint)
+        .header(
+            "Authorization",
+            format!("Bearer {}", config.supabase_service_role_key),
+        )
+        .header("Content-Type", &content_type)
+        .header("Content-Length", bytes.len())
+        .header("X-Upsert", "true")
+        .body(bytes)
+        .send()
+        .await
+        .map_err(|error| {
+            tracing::error!("Supabase upload failed: {}", error);
+            json_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to upload media")
+        })?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+        tracing::error!(
+            "Supabase upload error (status {}): {}",
+            status.as_u16(),
+            error_text
+        );
+
+        let http_status = if status == ReqwestStatusCode::UNAUTHORIZED {
+            StatusCode::UNAUTHORIZED
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR
+        };
+
+        return Err(json_error(http_status, "Failed to upload media"));
+    }
+
+    let public_url = format!(
+        "{}/storage/v1/object/public/{}/{}",
+        config.supabase_url.trim_end_matches('/'),
+        config.supabase_bucket,
+        storage_path
+    );
+
+    Ok(Json(json!({
+        "success": true,
+        "data": {
+            "url": public_url,
+            "contentType": content_type,
+        }
+    })))
 }
 
 fn json_error(status: StatusCode, message: &str) -> (StatusCode, Json<serde_json::Value>) {
