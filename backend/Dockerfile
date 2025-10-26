@@ -1,5 +1,5 @@
-# Use an older stable Rust version for better compatibility
-FROM rust:1.75-slim
+# Use latest stable Rust
+FROM rust:slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -11,13 +11,13 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy Cargo files first for better caching
-COPY Cargo.toml Cargo.lock ./
+# Copy Cargo.toml only (let Cargo.lock be generated)
+COPY Cargo.toml ./
 
 # Copy the actual source code
 COPY src ./src
 
-# Build the application
+# Build the application (Cargo will resolve dependencies)
 RUN cargo build --release
 
 # Expose port
