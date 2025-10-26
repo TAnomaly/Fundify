@@ -353,8 +353,8 @@ impl Database {
             r#"
             CREATE TABLE IF NOT EXISTS event_rsvps (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                event_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
                 status VARCHAR(20) NOT NULL,
                 is_paid BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

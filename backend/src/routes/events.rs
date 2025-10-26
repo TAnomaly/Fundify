@@ -231,8 +231,8 @@ async fn ensure_event_rsvps_table(db: &Database) -> Result<(), StatusCode> {
         r#"
         CREATE TABLE IF NOT EXISTS event_rsvps (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            event_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
             status VARCHAR(20) NOT NULL,
             is_paid BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -243,11 +243,28 @@ async fn ensure_event_rsvps_table(db: &Database) -> Result<(), StatusCode> {
     )
     .execute(&db.pool)
     .await
-    .map(|_| ())
     .map_err(|e| {
         tracing::error!("Failed to ensure event_rsvps table exists: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
-    })
+    })?;
+
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_id ON event_rsvps(event_id)")
+        .execute(&db.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to create index idx_event_rsvps_event_id: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_event_rsvps_user_id ON event_rsvps(user_id)")
+        .execute(&db.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to create index idx_event_rsvps_user_id: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(())
 }
 
 async fn handle_rsvp(
@@ -257,22 +274,23 @@ async fn handle_rsvp(
     Json(payload): Json<RsvpRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     ensure_event_rsvps_table(&db).await?;
-    let event_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let event_id = id.clone();
     let normalized_status = payload.status.to_uppercase();
 
     if !["GOING", "MAYBE", "NOT_GOING"].contains(&normalized_status.as_str()) {
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let event_exists =
-        sqlx::query_scalar::<_, Option<Uuid>>("SELECT id FROM events WHERE id = $1 LIMIT 1")
-            .bind(event_id)
-            .fetch_optional(&db.pool)
-            .await
-            .map_err(|e| {
-                tracing::error!("Failed to verify event {}: {}", id, e);
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
+    let event_exists = sqlx::query_scalar::<_, Option<String>>(
+        "SELECT id::TEXT FROM events WHERE id::TEXT = $1 LIMIT 1",
+    )
+    .bind(&event_id)
+    .fetch_optional(&db.pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to verify event {}: {}", id, e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     if event_exists.is_none() {
         return Err(StatusCode::NOT_FOUND);
@@ -280,7 +298,7 @@ async fn handle_rsvp(
 
     if normalized_status == "NOT_GOING" {
         sqlx::query("DELETE FROM event_rsvps WHERE event_id = $1 AND user_id = $2")
-            .bind(event_id)
+            .bind(&event_id)
             .bind(&claims.sub)
             .execute(&db.pool)
             .await
@@ -300,7 +318,7 @@ async fn handle_rsvp(
                 updated_at = NOW()
             "#,
         )
-        .bind(event_id)
+        .bind(&event_id)
         .bind(&claims.sub)
         .bind(&normalized_status)
         .bind(payload.is_paid.unwrap_or(false))
@@ -315,7 +333,7 @@ async fn handle_rsvp(
     let rsvp_count = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*)::BIGINT FROM event_rsvps WHERE event_id = $1 AND status = 'GOING'",
     )
-    .bind(event_id)
+    .bind(&event_id)
     .fetch_one(&db.pool)
     .await
     .map_err(|e| {
@@ -456,7 +474,7 @@ async fn get_events(
             FROM event_rsvps
             WHERE status = 'GOING'
             GROUP BY event_id
-        ) rsvp_counts ON rsvp_counts.event_id = e.id
+        ) rsvp_counts ON rsvp_counts.event_id = e.id::TEXT
         "#,
     );
 
@@ -540,7 +558,7 @@ async fn get_event_by_id(
     Path(id): Path<String>,
     MaybeClaims(maybe_claims): MaybeClaims,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let event_uuid = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let event_identifier = id.clone();
 
     ensure_event_rsvps_table(&db).await?;
 
@@ -579,13 +597,13 @@ async fn get_event_by_id(
             FROM event_rsvps
             WHERE status = 'GOING'
             GROUP BY event_id
-        ) rsvp_counts ON rsvp_counts.event_id = e.id
-        WHERE e.id = $1
+        ) rsvp_counts ON rsvp_counts.event_id = e.id::TEXT
+        WHERE e.id::TEXT = $1
         LIMIT 1
     "#;
 
     match sqlx::query(query)
-        .bind(event_uuid)
+        .bind(&event_identifier)
         .fetch_optional(&db.pool)
         .await
     {
@@ -600,7 +618,7 @@ async fn get_event_by_id(
                     WHERE event_id = $1 AND user_id = $2
                     "#,
                 )
-                .bind(event_uuid)
+                .bind(&event_identifier)
                 .bind(&claims.sub)
                 .fetch_optional(&db.pool)
                 .await
