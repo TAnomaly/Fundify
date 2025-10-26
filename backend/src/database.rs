@@ -19,6 +19,10 @@ impl Database {
     pub async fn run_migrations(&self) -> anyhow::Result<()> {
         println!("🔄 Running database migrations...");
 
+        sqlx::query(r#"CREATE EXTENSION IF NOT EXISTS "pgcrypto""#)
+            .execute(&self.pool)
+            .await?;
+
         // Create tables if they don't exist
         sqlx::query(
             r#"
