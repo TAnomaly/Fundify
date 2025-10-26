@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::{env, path::PathBuf, time::SystemTime};
 
 use axum::{
     extract::{Multipart, State},
@@ -9,6 +9,7 @@ use axum::{
 };
 use reqwest::{Client, StatusCode as ReqwestStatusCode};
 use serde_json::json;
+use tokio::{fs, io::AsyncWriteExt};
 use uuid::Uuid;
 
 use crate::{auth::Claims, config::Config, database::Database};
@@ -112,11 +113,38 @@ async fn handle_upload(
         )
     })?;
 
-    if config.supabase_url.is_empty() || config.supabase_service_role_key.is_empty() {
-        return Err(json_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Supabase credentials are not configured",
-        ));
+    let supabase_configured =
+        !config.supabase_url.is_empty() && !config.supabase_service_role_key.is_empty();
+
+    if !supabase_configured {
+        let upload_root =
+            PathBuf::from(env::var("UPLOAD_DIR").unwrap_or_else(|_| "uploads".to_string()));
+        let target_dir = upload_root.join(folder);
+        fs::create_dir_all(&target_dir).await.map_err(|_| {
+            json_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to prepare storage",
+            )
+        })?;
+
+        let file_path = target_dir.join(&file_name);
+        let mut file = fs::File::create(&file_path)
+            .await
+            .map_err(|_| json_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to create file"))?;
+
+        file.write_all(&bytes)
+            .await
+            .map_err(|_| json_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to save file"))?;
+
+        let public_url = format!("/uploads/{}/{}", folder, file_name);
+
+        return Ok(Json(json!({
+            "success": true,
+            "data": {
+                "url": public_url,
+                "contentType": content_type,
+            }
+        })));
     }
 
     let storage_path = format!("{}/{}", folder, file_name);

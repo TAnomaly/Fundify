@@ -287,6 +287,13 @@ async fn ensure_event_rsvps_table(db: &Database) -> Result<(), StatusCode> {
         tracing::warn!("Failed to normalize RSVP statuses: {}", error);
     }
 
+    if let Err(error) = sqlx::query("UPDATE event_rsvps SET status = UPPER(status)")
+        .execute(&db.pool)
+        .await
+    {
+        tracing::warn!("Failed to normalize RSVP statuses: {}", error);
+    }
+
     if let Err(error) =
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_event_rsvps_event ON event_rsvps(event_id)")
             .execute(&db.pool)
@@ -370,7 +377,7 @@ async fn handle_rsvp(
     }
 
     let rsvp_count = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*)::BIGINT FROM event_rsvps WHERE event_id = $1 AND status = 'GOING'",
+        "SELECT COUNT(*)::BIGINT FROM event_rsvps WHERE event_id = $1 AND UPPER(status) = 'GOING'",
     )
     .bind(&event_id)
     .fetch_one(&db.pool)
@@ -512,7 +519,7 @@ async fn get_events(
         LEFT JOIN (
             SELECT event_id, COUNT(*)::BIGINT AS count
             FROM event_rsvps
-            WHERE status = 'GOING'
+            WHERE UPPER(status) = 'GOING'
             GROUP BY event_id
         ) rsvp_counts ON rsvp_counts.event_id = e.id::TEXT
         "#,
@@ -635,7 +642,7 @@ async fn get_event_by_id(
         LEFT JOIN (
             SELECT event_id, COUNT(*)::BIGINT AS count
             FROM event_rsvps
-            WHERE status = 'GOING'
+            WHERE UPPER(status) = 'GOING'
             GROUP BY event_id
         ) rsvp_counts ON rsvp_counts.event_id = e.id::TEXT
         WHERE e.id::TEXT = $1
@@ -726,7 +733,7 @@ async fn get_event_ticket(
         LEFT JOIN (
             SELECT event_id, COUNT(*)::BIGINT AS count
             FROM event_rsvps
-            WHERE status = 'GOING'
+            WHERE UPPER(status) = 'GOING'
             GROUP BY event_id
         ) rsvp_counts ON rsvp_counts.event_id = e.id::TEXT
         WHERE e.id::TEXT = $1
