@@ -346,7 +346,7 @@ impl Database {
             CREATE TABLE IF NOT EXISTS event_rsvps (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-                user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 status VARCHAR(20) NOT NULL,
                 is_paid BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
