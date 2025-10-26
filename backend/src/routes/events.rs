@@ -26,6 +26,8 @@ pub struct EventQuery {
     pub limit: Option<u32>,
     #[serde(alias = "hostId")]
     pub host_id: Option<String>,
+    #[serde(alias = "hostUsername")]
+    pub host_username: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -213,15 +215,33 @@ async fn get_events(
     let upcoming = params.upcoming.unwrap_or(false);
     let past = params.past.unwrap_or(false);
     let status = params.status.clone();
-    let host_id = params.host_id.clone();
+    let host_id_param = params.host_id.clone();
+    let mut host_username_param = params.host_username.clone();
+    if let (Some(ref host_id), Some(ref host_username)) = (&host_id_param, &host_username_param) {
+        if host_id == host_username {
+            host_username_param = None;
+        }
+    }
 
     let mut count_builder = QueryBuilder::<Postgres>::new("SELECT COUNT(*)::BIGINT FROM events e");
     let mut has_count_filter = false;
-    if let Some(ref host_id) = host_id {
+    if let Some(ref host_id) = host_id_param {
         count_builder
             .push(if has_count_filter { " AND " } else { " WHERE " })
+            .push("(")
             .push("e.host_id = ")
-            .push_bind(host_id);
+            .push_bind(host_id.as_str())
+            .push(" OR EXISTS (SELECT 1 FROM users u WHERE u.id = e.host_id AND u.username = ")
+            .push_bind(host_id.as_str())
+            .push("))");
+        has_count_filter = true;
+    }
+    if let Some(ref host_username) = host_username_param {
+        count_builder
+            .push(if has_count_filter { " AND " } else { " WHERE " })
+            .push("EXISTS (SELECT 1 FROM users u WHERE u.id = e.host_id AND u.username = ")
+            .push_bind(host_username.as_str())
+            .push(")");
         has_count_filter = true;
     }
     if upcoming && !past {
@@ -287,11 +307,22 @@ async fn get_events(
     );
 
     let mut has_list_filter = false;
-    if let Some(ref host_id) = host_id {
+    if let Some(ref host_id) = host_id_param {
         list_builder
             .push(if has_list_filter { " AND " } else { " WHERE " })
+            .push("(")
             .push("e.host_id = ")
-            .push_bind(host_id);
+            .push_bind(host_id.as_str())
+            .push(" OR COALESCE(u.username, '') = ")
+            .push_bind(host_id.as_str())
+            .push(")");
+        has_list_filter = true;
+    }
+    if let Some(ref host_username) = host_username_param {
+        list_builder
+            .push(if has_list_filter { " AND " } else { " WHERE " })
+            .push("COALESCE(u.username, '') = ")
+            .push_bind(host_username.as_str());
         has_list_filter = true;
     }
     if upcoming && !past {

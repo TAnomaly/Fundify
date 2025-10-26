@@ -55,8 +55,12 @@ export default function EventsManagement() {
       if (response.ok) {
         const data = await response.json();
         console.log("📡 Events response:", data);
-        const events = Array.isArray(data?.data?.events) ? data.data.events : [];
-        setEvents(events);
+        const eventsArray = Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data?.data?.events)
+            ? data.data.events
+            : [];
+        setEvents(eventsArray);
       }
     } catch (error: any) {
       toast.error("Failed to load events");

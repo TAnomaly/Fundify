@@ -312,7 +312,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ slug:
             {/* Tab Content */}
             <div>
               {activeTab === "story" && (
-                <div className="prose prose-lg max-w-none">
+                <div className="prose prose-lg max-w-none dark:prose-invert">
                   {campaignData.videoUrl && (
                     <div className="mb-8 rounded-lg overflow-hidden shadow-lg">
                       <iframe
@@ -327,7 +327,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ slug:
                       />
                     </div>
                   )}
-                  <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+                  <div className="whitespace-pre-wrap text-foreground/80 dark:text-foreground/90 leading-relaxed">
                     {campaignData.story || campaignData.description}
                   </div>
                 </div>

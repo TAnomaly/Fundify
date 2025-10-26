@@ -6,9 +6,11 @@ use axum::{
     Router,
 };
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use tower::ServiceBuilder;
 use tower_http::{
     cors::{AllowOrigin, CorsLayer},
+    services::ServeDir,
     trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -26,7 +28,7 @@ use routes::{
     analytics::analytics_routes, articles::articles_routes, auth::auth_routes,
     campaigns::campaign_routes, creators::creator_routes, events::event_routes, feed::feed_routes,
     podcasts::podcast_routes, posts::post_routes, products::product_routes,
-    referrals::referral_routes, users::user_routes,
+    referrals::referral_routes, uploads::upload_routes, users::user_routes,
 };
 
 #[tokio::main]
@@ -48,6 +50,12 @@ async fn main() -> anyhow::Result<()> {
 
     // Run migrations
     db.run_migrations().await?;
+
+    // Prepare upload directories
+    let upload_dir = std::env::var("UPLOAD_DIR").unwrap_or_else(|_| "uploads".to_string());
+    let upload_path = PathBuf::from(&upload_dir);
+    tokio::fs::create_dir_all(upload_path.join("images")).await?;
+    tokio::fs::create_dir_all(upload_path.join("videos")).await?;
 
     // Build our application with routes
     let cors = CorsLayer::new()
@@ -82,14 +90,16 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api/articles", articles_routes())
         .nest("/api/referrals", referral_routes())
         .nest("/api/podcasts", podcast_routes())
+        .nest("/api/upload", upload_routes())
         .route("/api/notifications", get(get_notifications))
         .route("/api/subscriptions/my-subscribers", get(get_my_subscribers))
+        .nest_service("/uploads", ServeDir::new(upload_path.clone()))
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
                 .layer(cors)
                 .layer(axum::middleware::from_fn(middleware::auth_middleware))
-                .layer(DefaultBodyLimit::max(10 * 1024 * 1024)), // 10MB limit
+                .layer(DefaultBodyLimit::max(600 * 1024 * 1024)), // 600MB limit
         )
         .with_state(db);
 

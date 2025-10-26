@@ -9,4 +9,5 @@ pub mod podcasts;
 pub mod posts;
 pub mod products;
 pub mod referrals;
+pub mod uploads;
 pub mod users;
