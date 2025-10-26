@@ -168,7 +168,7 @@ async fn get_article_by_slug(
             a.updated_at,
             COALESCE(l.like_count, 0) AS like_count,
             COALESCE(c.comment_count, 0) AS comment_count,
-            u.display_name AS author_name,
+            COALESCE(u.display_name, u.name, u.username) AS author_name,
             u.username AS author_username,
             u.avatar_url AS author_avatar
         FROM articles a

@@ -48,7 +48,7 @@ struct EventCounts {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct EventResponse {
-    pub id: Uuid,
+    pub id: String,
     pub title: String,
     pub description: Option<String>,
     #[serde(rename = "type")]
@@ -78,7 +78,10 @@ struct EventResponse {
 
 impl EventResponse {
     fn from_row(row: &PgRow) -> Self {
-        let id: Uuid = row.get("id");
+        let id: String = row
+            .try_get::<Uuid, _>("id")
+            .map(|uuid| uuid.to_string())
+            .unwrap_or_else(|_| row.get::<String, _>("id"));
         let title: String = row.get("title");
         let description: Option<String> = row.try_get("description").unwrap_or(None);
         let status: String = row.get("status");
@@ -115,7 +118,10 @@ impl EventResponse {
             .unwrap_or_default();
         let created_at: chrono::DateTime<chrono::Utc> = row.get("created_at");
         let updated_at: chrono::DateTime<chrono::Utc> = row.get("updated_at");
-        let host_id: String = row.get("host_id");
+        let host_id: String = row
+            .try_get::<Uuid, _>("host_id")
+            .map(|uuid| uuid.to_string())
+            .unwrap_or_else(|_| row.get::<String, _>("host_id"));
         let host_name: Option<String> = row.try_get("host_name").unwrap_or(None);
         let host_username: Option<String> = row.try_get("host_username").unwrap_or(None);
         let host_avatar: Option<String> = row.try_get("host_avatar").unwrap_or(None);
