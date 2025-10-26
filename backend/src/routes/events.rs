@@ -391,10 +391,24 @@ async fn handle_rsvp(
         (None, None)
     } else {
         (
-            Some(normalized_status),
+            Some(normalized_status.clone()),
             Some(payload.is_paid.unwrap_or(false)),
         )
     };
+
+    // Ensure we hold the normalized status text back in the row for future queries
+    if normalized_status != "NOT_GOING" {
+        sqlx::query("UPDATE event_rsvps SET status = $1 WHERE event_id = $2 AND user_id = $3")
+            .bind(&normalized_status)
+            .bind(&event_id)
+            .bind(&claims.sub)
+            .execute(&db.pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to persist normalized RSVP status: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+    }
 
     Ok(Json(json!({
         "success": true,
