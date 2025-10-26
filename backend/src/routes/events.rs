@@ -226,12 +226,37 @@ struct RsvpRequest {
     is_paid: Option<bool>,
 }
 
+async fn ensure_event_rsvps_table(db: &Database) -> Result<(), StatusCode> {
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS event_rsvps (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            status VARCHAR(20) NOT NULL,
+            is_paid BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            UNIQUE(event_id, user_id)
+        )
+        "#,
+    )
+    .execute(&db.pool)
+    .await
+    .map(|_| ())
+    .map_err(|e| {
+        tracing::error!("Failed to ensure event_rsvps table exists: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
 async fn handle_rsvp(
     State(db): State<Database>,
     Path(id): Path<String>,
     claims: Claims,
     Json(payload): Json<RsvpRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    ensure_event_rsvps_table(&db).await?;
     let event_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let normalized_status = payload.status.to_uppercase();
 
@@ -341,6 +366,8 @@ async fn get_events(
             host_username_param = None;
         }
     }
+
+    ensure_event_rsvps_table(&db).await?;
 
     let mut count_builder = QueryBuilder::<Postgres>::new("SELECT COUNT(*)::BIGINT FROM events e");
     let mut has_count_filter = false;
@@ -514,6 +541,8 @@ async fn get_event_by_id(
     MaybeClaims(maybe_claims): MaybeClaims,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let event_uuid = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    ensure_event_rsvps_table(&db).await?;
 
     let query = r#"
         SELECT

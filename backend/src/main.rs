@@ -1,6 +1,6 @@
 use axum::{
     extract::DefaultBodyLimit,
-    http::{HeaderName, Method, StatusCode},
+    http::{HeaderName, HeaderValue, Method, StatusCode},
     response::Json,
     routing::get,
     Router,
@@ -11,6 +11,7 @@ use tower::ServiceBuilder;
 use tower_http::{
     cors::{AllowOrigin, CorsLayer},
     services::ServeDir,
+    set_header::SetResponseHeaderLayer,
     trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -84,6 +85,10 @@ async fn main() -> anyhow::Result<()> {
 
     let uploads_service = ServiceBuilder::new()
         .layer(cors.clone())
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("cross-origin-resource-policy"),
+            HeaderValue::from_static("cross-origin"),
+        ))
         .service(ServeDir::new(upload_path.clone()));
 
     let app = Router::new()
