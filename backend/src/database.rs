@@ -1,5 +1,6 @@
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::time::Duration;
+use tracing::warn;
 
 pub struct Database {
     pub pool: PgPool,
@@ -19,9 +20,12 @@ impl Database {
     pub async fn run_migrations(&self) -> anyhow::Result<()> {
         println!("🔄 Running database migrations...");
 
-        sqlx::query(r#"CREATE EXTENSION IF NOT EXISTS "pgcrypto""#)
+        if let Err(error) = sqlx::query(r#"CREATE EXTENSION IF NOT EXISTS "pgcrypto""#)
             .execute(&self.pool)
-            .await?;
+            .await
+        {
+            warn!("Skipping pgcrypto extension setup: {}", error);
+        }
 
         // Create tables if they don't exist
         sqlx::query(
