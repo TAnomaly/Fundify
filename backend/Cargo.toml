@@ -47,8 +47,8 @@ redis = { version = "0.23", features = ["tokio-comp"] }
 
 # Stripe (will use reqwest directly for API calls)
 
-# CloudAMQP - Using 2.3.x for Rust 2021 compatibility
-lapin = "2.3.4"
+# CloudAMQP - Using 2.1.x for Rust 2021 compatibility (stable)
+lapin = "2.1.1"
 async-trait = "0.1"
 
 # Error handling
