@@ -38,6 +38,7 @@ impl Database {
                 display_name VARCHAR(255),
                 avatar_url TEXT,
                 bio TEXT,
+                password_hash TEXT,
                 is_creator BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -46,6 +47,10 @@ impl Database {
         )
         .execute(&self.pool)
         .await?;
+
+        sqlx::query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT")
+            .execute(&self.pool)
+            .await?;
 
         sqlx::query(
             r#"

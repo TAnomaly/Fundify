@@ -280,7 +280,7 @@ async fn ensure_event_rsvps_table(db: &Database) -> Result<(), StatusCode> {
         tracing::warn!("Unable to align user_id column type: {}", error);
     }
 
-    if let Err(error) = sqlx::query("UPDATE event_rsvps SET status = UPPER(status)")
+    if let Err(error) = sqlx::query("UPDATE event_rsvps SET status = UPPER(TRIM(status))")
         .execute(&db.pool)
         .await
     {
@@ -321,7 +321,7 @@ async fn handle_rsvp(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     ensure_event_rsvps_table(&db).await?;
     let event_id = id.clone();
-    let normalized_status = payload.status.to_uppercase();
+    let normalized_status = payload.status.trim().to_uppercase();
 
     if !["GOING", "MAYBE", "NOT_GOING"].contains(&normalized_status.as_str()) {
         return Err(StatusCode::BAD_REQUEST);
@@ -377,7 +377,7 @@ async fn handle_rsvp(
     }
 
     let rsvp_count = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*)::BIGINT FROM event_rsvps WHERE event_id = $1 AND UPPER(status) = 'GOING'",
+        "SELECT COUNT(*)::BIGINT FROM event_rsvps WHERE event_id = $1 AND UPPER(TRIM(status)) = 'GOING'",
     )
     .bind(&event_id)
     .fetch_one(&db.pool)
@@ -533,7 +533,7 @@ async fn get_events(
         LEFT JOIN (
             SELECT event_id, COUNT(*)::BIGINT AS count
             FROM event_rsvps
-            WHERE UPPER(status) = 'GOING'
+            WHERE UPPER(TRIM(status)) = 'GOING'
             GROUP BY event_id
         ) rsvp_counts ON rsvp_counts.event_id = e.id::TEXT
         "#,

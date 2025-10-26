@@ -10,8 +10,7 @@ use oauth2::{
     basic::BasicClient, reqwest::async_http_client, AuthUrl, AuthorizationCode, ClientId,
     ClientSecret, CsrfToken, RedirectUrl, Scope, TokenResponse, TokenUrl,
 };
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use serde::Deserialize;
 
 use crate::{
     config::Config,
@@ -182,13 +181,18 @@ async fn login(
 
     let user = user.ok_or_else(|| AppError::AuthError("Invalid credentials".to_string()))?;
 
-    // Verify password - temporarily disabled
-    // if let Some(password_hash) = &user.password_hash {
-    //     verify(&payload.password, password_hash)
-    //         .map_err(|_| AppError::AuthError("Invalid credentials".to_string()))?;
-    // } else {
-    //     return Err(AppError::AuthError("Invalid credentials".to_string()));
-    // }
+    if let Some(password_hash) = &user.password_hash {
+        let is_valid = verify(&payload.password, password_hash)
+            .map_err(|_| AppError::AuthError("Invalid credentials".to_string()))?;
+
+        if !is_valid {
+            return Err(AppError::AuthError("Invalid credentials".to_string()));
+        }
+    } else {
+        return Err(AppError::AuthError(
+            "This account does not have a password set".to_string(),
+        ));
+    }
 
     // Generate JWT token
     let token = generate_jwt(&user, &config.jwt_secret)?;
@@ -201,6 +205,12 @@ async fn register(
     Json(payload): Json<RegisterRequest>,
 ) -> Result<Json<AuthResponse>, AppError> {
     let config = Config::from_env().unwrap();
+
+    if payload.password.trim().len() < 8 {
+        return Err(AppError::ValidationError(
+            "Password must be at least 8 characters long".to_string(),
+        ));
+    }
 
     // Check if user already exists
     let existing_user =
@@ -215,15 +225,14 @@ async fn register(
         return Err(AppError::ValidationError("User already exists".to_string()));
     }
 
-    // Hash password - temporarily disabled
-    // let password_hash = hash(&payload.password, DEFAULT_COST)
-    //     .map_err(|_| AppError::AuthError("Failed to hash password".to_string()))?;
+    let password_hash = hash(payload.password.trim(), DEFAULT_COST)
+        .map_err(|_| AppError::AuthError("Failed to hash password".to_string()))?;
 
     // Create new user
     let user = sqlx::query_as::<_, User>(
         r#"
-        INSERT INTO users (id, email, name, username, is_creator)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO users (id, email, name, username, password_hash, is_creator)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
         "#,
     )
@@ -231,6 +240,7 @@ async fn register(
     .bind(&payload.email)
     .bind(&payload.name)
     .bind(&payload.username)
+    .bind(&password_hash)
     .bind(false)
     .fetch_one(&db.pool)
     .await
