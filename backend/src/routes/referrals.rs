@@ -7,7 +7,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::Row;
+use sqlx::{postgres::PgRow, FromRow, Row};
 use uuid::Uuid;
 
 use crate::{auth::Claims, database::Database};
@@ -31,6 +31,23 @@ struct ReferralCodeResponse {
     created_at: chrono::DateTime<chrono::Utc>,
     #[serde(rename = "updatedAt")]
     updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl<'r> FromRow<'r, PgRow> for ReferralCodeResponse {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            code: row.try_get("code")?,
+            description: row.try_get("description")?,
+            reward_type: row.try_get("reward_type")?,
+            usage_limit: row.try_get("usage_limit")?,
+            usage_count: row.try_get("usage_count")?,
+            expires_at: row.try_get("expires_at")?,
+            is_active: row.try_get("is_active")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]
