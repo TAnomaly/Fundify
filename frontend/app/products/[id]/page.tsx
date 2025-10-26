@@ -140,16 +140,6 @@ export default function ProductDetailPage() {
         }
     };
 
-                toast.success("Purchase completed!");
-                setPurchased(true);
-            }
-        } catch (e: any) {
-            toast.error(e.response?.data?.message || "Purchase failed");
-        } finally {
-            setBuying(false);
-        }
-    };
-
     const handleDownload = async () => {
         try {
             const { success, data } = await digitalProductsApi.getDownloadInfo(id);
