@@ -188,6 +188,58 @@ impl Database {
 
         sqlx::query(
             r#"
+            CREATE TABLE IF NOT EXISTS podcasts (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                creator_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                category VARCHAR(100) DEFAULT 'Technology',
+                language VARCHAR(100) DEFAULT 'English',
+                status VARCHAR(50) DEFAULT 'PUBLISHED',
+                cover_image TEXT,
+                spotify_show_url TEXT,
+                external_feed_url TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS podcast_episodes (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                podcast_id UUID NOT NULL REFERENCES podcasts(id) ON DELETE CASCADE,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                episode_number INTEGER,
+                duration INTEGER,
+                audio_url TEXT NOT NULL,
+                status VARCHAR(50) DEFAULT 'PUBLISHED',
+                spotify_episode_url TEXT,
+                published_at TIMESTAMP WITH TIME ZONE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_podcast_creator ON podcasts(creator_id)")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_podcast_episode_podcast ON podcast_episodes(podcast_id)",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            r#"
             CREATE TABLE IF NOT EXISTS events (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 host_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -402,23 +454,4 @@ impl Clone for Database {
     }
 }
 
-impl Database {
-    pub async fn get_events(
-        &self,
-        limit: i64,
-        offset: i64,
-        upcoming: bool,
-    ) -> Result<Vec<crate::routes::events::Event>, sqlx::Error> {
-        let query = if upcoming {
-            "SELECT id, title, description, status, \"startTime\" as start_time, \"endTime\" as end_time, location, \"createdAt\" as created_at, \"updatedAt\" as updated_at, \"hostId\" as host_id FROM \"Event\" WHERE \"startTime\" > NOW() ORDER BY \"startTime\" ASC LIMIT $1 OFFSET $2"
-        } else {
-            "SELECT id, title, description, status, \"startTime\" as start_time, \"endTime\" as end_time, location, \"createdAt\" as created_at, \"updatedAt\" as updated_at, \"hostId\" as host_id FROM \"Event\" ORDER BY \"startTime\" DESC LIMIT $1 OFFSET $2"
-        };
-
-        sqlx::query_as::<_, crate::routes::events::Event>(query)
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(&self.pool)
-            .await
-    }
-}
+impl Database {}

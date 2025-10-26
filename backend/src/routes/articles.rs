@@ -166,8 +166,12 @@ async fn get_article_by_slug(
             a.created_at,
             a.updated_at,
             COALESCE(l.like_count, 0) AS like_count,
-            COALESCE(c.comment_count, 0) AS comment_count
+            COALESCE(c.comment_count, 0) AS comment_count,
+            u.display_name AS author_name,
+            u.username AS author_username,
+            u.avatar_url AS author_avatar
         FROM articles a
+        LEFT JOIN users u ON u.id = a.author_id
         LEFT JOIN (
             SELECT article_id, COUNT(*) AS like_count
             FROM article_likes
@@ -192,6 +196,15 @@ async fn get_article_by_slug(
         "content": row.get::<Option<String>, _>("content"),
         "slug": row.get::<String, _>("slug"),
         "author_id": row.get::<String, _>("author_id"),
+        "authorName": row.get::<Option<String>, _>("author_name"),
+        "authorUsername": row.get::<Option<String>, _>("author_username"),
+        "authorAvatar": row.get::<Option<String>, _>("author_avatar"),
+        "author": json!({
+            "id": row.get::<String, _>("author_id"),
+            "name": row.get::<Option<String>, _>("author_name"),
+            "username": row.get::<Option<String>, _>("author_username"),
+            "avatar": row.get::<Option<String>, _>("author_avatar"),
+        }),
         "published_at": row.get::<Option<chrono::DateTime<chrono::Utc>>, _>("published_at"),
         "created_at": row.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
         "updated_at": row.get::<chrono::DateTime<chrono::Utc>, _>("updated_at"),
