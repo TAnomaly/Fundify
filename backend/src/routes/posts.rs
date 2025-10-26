@@ -406,7 +406,8 @@ async fn create_post(
                 return Some("audio".to_string());
             }
             None
-        });
+        })
+        .map(normalize_media_type);
 
     let is_public = payload.is_public.unwrap_or(true);
     let is_premium = payload.is_premium.unwrap_or(!is_public);
@@ -501,7 +502,8 @@ async fn update_post(
                 return Some("audio".to_string());
             }
             None
-        });
+        })
+        .map(normalize_media_type);
 
     let is_public = payload.is_public.unwrap_or(true);
     let is_premium = payload.is_premium.unwrap_or(!is_public);
@@ -572,27 +574,49 @@ fn calculate_total_pages(total: usize, limit: u32) -> u32 {
     }
 }
 
+fn normalize_media_type(media_type: String) -> String {
+    let lowered = media_type.trim().to_ascii_lowercase();
+    if lowered == "image" || lowered.starts_with("image/") {
+        "image".to_string()
+    } else if lowered == "video" || lowered.starts_with("video/") {
+        "video".to_string()
+    } else if lowered == "audio" || lowered.starts_with("audio/") {
+        "audio".to_string()
+    } else {
+        lowered
+    }
+}
+
+fn matches_media_type(media_type: Option<&str>, target: &str) -> bool {
+    media_type
+        .map(|mt| {
+            let lowered = mt.trim().to_ascii_lowercase();
+            lowered == target || lowered.starts_with(&format!("{}/", target))
+        })
+        .unwrap_or(false)
+}
+
 fn map_post(record: PostRecord) -> CreatorPostResponse {
     let content = record.content.unwrap_or_default();
     let excerpt = generate_excerpt(&content);
 
-    let images = if record.media_type.as_deref() == Some("image") {
+    let images = if matches_media_type(record.media_type.as_deref(), "image") {
         record
             .media_url
-            .clone()
-            .into_iter()
-            .collect::<Vec<String>>()
+            .as_ref()
+            .map(|url| vec![url.clone()])
+            .unwrap_or_default()
     } else {
         Vec::new()
     };
 
-    let video_url = if record.media_type.as_deref() == Some("video") {
+    let video_url = if matches_media_type(record.media_type.as_deref(), "video") {
         record.media_url.clone()
     } else {
         None
     };
 
-    let audio_url = if record.media_type.as_deref() == Some("audio") {
+    let audio_url = if matches_media_type(record.media_type.as_deref(), "audio") {
         record.media_url.clone()
     } else {
         None
