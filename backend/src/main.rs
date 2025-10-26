@@ -23,9 +23,10 @@ mod routes;
 use config::Config;
 use database::Database;
 use routes::{
-    articles::articles_routes, auth::auth_routes, campaigns::campaign_routes,
-    creators::creator_routes, events::event_routes, feed::feed_routes, podcasts::podcast_routes,
-    posts::post_routes, products::product_routes, users::user_routes,
+    analytics::analytics_routes, articles::articles_routes, auth::auth_routes,
+    campaigns::campaign_routes, creators::creator_routes, events::event_routes,
+    feed::feed_routes, podcasts::podcast_routes, posts::post_routes, products::product_routes,
+    referrals::referral_routes, users::user_routes,
 };
 
 #[tokio::main]
@@ -74,10 +75,12 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api/creators", creator_routes())
         .nest("/api/posts", post_routes())
         .nest("/api/products", product_routes())
+        .nest("/api/analytics", analytics_routes())
         .nest("/api/campaigns", campaign_routes())
         .nest("/api/events", event_routes())
         .nest("/api/feed", feed_routes())
         .nest("/api/articles", articles_routes())
+        .nest("/api/referrals", referral_routes())
         .nest("/api/podcasts", podcast_routes())
         .route("/api/notifications", get(get_notifications))
         .route("/api/subscriptions/my-subscribers", get(get_my_subscribers))

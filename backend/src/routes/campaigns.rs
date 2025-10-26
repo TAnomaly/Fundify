@@ -12,17 +12,103 @@ use uuid::Uuid;
 
 use crate::database::Database;
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
-pub struct Campaign {
+#[derive(Debug, sqlx::FromRow)]
+struct CampaignRecord {
     pub id: Uuid,
     pub title: String,
     pub description: String,
+    pub story: Option<String>,
     pub goal_amount: f64,
     pub current_amount: Option<f64>,
     pub status: String,
     pub slug: String,
+    pub cover_image: Option<String>,
+    pub video_url: Option<String>,
+    pub category: Option<String>,
+    pub creator_id: String,
+    pub end_date: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CampaignCreator {
+    pub id: String,
+    pub name: Option<String>,
+    pub username: Option<String>,
+    pub avatar: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CampaignResponse {
+    pub id: Uuid,
+    pub title: String,
+    pub slug: String,
+    pub description: String,
+    pub story: Option<String>,
+    pub goal: f64,
+    pub current_amount: f64,
+    pub status: String,
+    pub category: Option<String>,
+    pub image_url: Option<String>,
+    pub video_url: Option<String>,
+    pub creator_id: String,
+    pub end_date: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub creator: Option<CampaignCreator>,
+}
+
+impl CampaignResponse {
+    fn from_row(row: &sqlx::postgres::PgRow) -> Self {
+        let record = CampaignRecord {
+            id: row.get("id"),
+            title: row.get("title"),
+            description: row.get("description"),
+            story: row.get("story"),
+            goal_amount: row.get("goal_amount"),
+            current_amount: row.get("current_amount"),
+            status: row.get("status"),
+            slug: row.get("slug"),
+            cover_image: row.get("cover_image"),
+            video_url: row.get("video_url"),
+            category: row.get("category"),
+            creator_id: row.get("creator_id"),
+            end_date: row.get("end_date"),
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+        };
+
+        let creator = row
+            .get::<Option<String>, _>("creator_name")
+            .map(|_| CampaignCreator {
+                id: record.creator_id.clone(),
+                name: row.get("creator_name"),
+                username: row.get("creator_username"),
+                avatar: row.get("creator_avatar"),
+            });
+
+        CampaignResponse {
+            id: record.id,
+            title: record.title,
+            slug: record.slug,
+            description: record.description,
+            story: record.story,
+            goal: record.goal_amount,
+            current_amount: record.current_amount.unwrap_or(0.0),
+            status: record.status,
+            category: record.category,
+            image_url: record.cover_image,
+            video_url: record.video_url,
+            creator_id: record.creator_id,
+            end_date: record.end_date,
+            created_at: record.created_at,
+            updated_at: record.updated_at,
+            creator,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

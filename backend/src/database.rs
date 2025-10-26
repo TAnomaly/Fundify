@@ -59,6 +59,23 @@ impl Database {
 
         sqlx::query(
             r#"
+            CREATE TABLE IF NOT EXISTS articles (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                title VARCHAR(255) NOT NULL,
+                content TEXT,
+                slug VARCHAR(255) UNIQUE NOT NULL,
+                author_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                published_at TIMESTAMP WITH TIME ZONE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            r#"
             CREATE TABLE IF NOT EXISTS products (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -69,6 +86,35 @@ impl Database {
                 image_url TEXT,
                 is_digital BOOLEAN DEFAULT FALSE,
                 download_url TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS article_likes (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                article_id UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+                user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                UNIQUE(article_id, user_id)
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS article_comments (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                article_id UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+                user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                content TEXT NOT NULL,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
@@ -274,6 +320,60 @@ impl Database {
         .await?;
 
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_campaigns_creator_id ON campaigns(creator_id)")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_article_likes_article ON article_likes(article_id)")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_article_comments_article ON article_comments(article_id)")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS follows (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                follower_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                following_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                UNIQUE(follower_id, following_id)
+            )
+            "#
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id)")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id)")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS referral_codes (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                creator_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                code VARCHAR(100) UNIQUE NOT NULL,
+                description TEXT,
+                reward_type VARCHAR(50) DEFAULT 'SUBSCRIPTION_CREDIT',
+                usage_limit INTEGER,
+                usage_count INTEGER DEFAULT 0,
+                expires_at TIMESTAMP WITH TIME ZONE,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            "#
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_referrals_creator ON referral_codes(creator_id)")
             .execute(&self.pool)
             .await?;
 

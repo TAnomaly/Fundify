@@ -25,6 +25,7 @@ pub struct ProductQuery {
 pub fn product_routes() -> Router<Database> {
     Router::new()
         .route("/", get(get_products).post(create_product))
+        .route("/me", get(get_my_products))
         .route("/meta", get(get_products_meta))
         .route("/collections", get(get_products_collections))
         .route("/:id", get(get_product_by_id))
@@ -122,6 +123,24 @@ async fn create_product(
     Ok(Json(serde_json::json!({
         "success": true,
         "data": product
+    })))
+}
+
+async fn get_my_products(
+    State(db): State<Database>,
+    claims: Claims,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let products = sqlx::query_as::<_, Product>(
+        "SELECT * FROM products WHERE user_id = $1 ORDER BY created_at DESC",
+    )
+    .bind(&claims.sub)
+    .fetch_all(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "data": products
     })))
 }
 

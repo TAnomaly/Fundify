@@ -1,8 +1,8 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::Json,
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
     Router,
 };
 use serde::{Deserialize, Serialize};
@@ -11,6 +11,12 @@ use sqlx::Row;
 
 use crate::{auth::Claims, database::Database, models::User};
 
+#[derive(Debug, Deserialize)]
+struct PaginationParams {
+    page: Option<u32>,
+    limit: Option<u32>,
+}
+
 pub fn user_routes() -> Router<Database> {
     Router::new()
         .route("/me", get(get_current_user))
@@ -18,6 +24,9 @@ pub fn user_routes() -> Router<Database> {
         .route("/become-creator", post(become_creator))
         .route("/:id", get(get_user_by_id))
         .route("/:id", put(update_user))
+        .route("/:id/follow", post(follow_user).delete(unfollow_user))
+        .route("/:id/followers", get(get_followers))
+        .route("/:id/following", get(get_following))
 }
 
 async fn get_current_user(
@@ -126,6 +135,193 @@ async fn get_user_campaigns(
     let response = serde_json::json!({
         "success": true,
         "data": campaign_list
+    });
+
+    Ok(Json(response))
+}
+
+async fn follow_user(
+    State(db): State<Database>,
+    Path(id): Path<String>,
+    claims: Claims,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    if claims.sub == id {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    // Ensure target exists
+    sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM users WHERE id = $1")
+        .bind(&id)
+        .fetch_one(&db.pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        .and_then(|count| if count == 0 { Err(StatusCode::NOT_FOUND) } else { Ok(count) })?;
+
+    let result = sqlx::query(
+        r#"
+        INSERT INTO follows (follower_id, following_id)
+        VALUES ($1, $2)
+        ON CONFLICT (follower_id, following_id) DO NOTHING
+        "#,
+    )
+    .bind(&claims.sub)
+    .bind(&id)
+    .execute(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let follower_count = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM follows WHERE following_id = $1",
+    )
+    .bind(&id)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let response = json!({
+        "success": true,
+        "data": {
+            "followerCount": follower_count,
+            "updated": result.rows_affected() > 0
+        }
+    });
+
+    Ok(Json(response))
+}
+
+async fn unfollow_user(
+    State(db): State<Database>,
+    Path(id): Path<String>,
+    claims: Claims,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let result = sqlx::query(
+        "DELETE FROM follows WHERE follower_id = $1 AND following_id = $2",
+    )
+    .bind(&claims.sub)
+    .bind(&id)
+    .execute(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let follower_count = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM follows WHERE following_id = $1",
+    )
+    .bind(&id)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let response = json!({
+        "success": true,
+        "data": {
+            "followerCount": follower_count,
+            "updated": result.rows_affected() > 0
+        }
+    });
+
+    Ok(Json(response))
+}
+
+#[derive(Serialize)]
+struct FollowPagination {
+    page: u32,
+    limit: u32,
+    total: usize,
+}
+
+async fn get_followers(
+    State(db): State<Database>,
+    Path(id): Path<String>,
+    Query(params): Query<PaginationParams>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let page = params.page.unwrap_or(1).max(1);
+    let limit = params.limit.unwrap_or(20).max(1);
+    let offset = (page - 1) * limit;
+
+    let followers = sqlx::query_as::<_, User>(
+        r#"
+        SELECT u.*
+        FROM follows f
+        JOIN users u ON f.follower_id = u.id
+        WHERE f.following_id = $1
+        ORDER BY f.created_at DESC
+        LIMIT $2 OFFSET $3
+        "#,
+    )
+    .bind(&id)
+    .bind(limit as i64)
+    .bind(offset as i64)
+    .fetch_all(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let total = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM follows WHERE following_id = $1",
+    )
+    .bind(&id)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as usize;
+
+    let response = json!({
+        "success": true,
+        "data": {
+            "followers": followers,
+            "pagination": FollowPagination {
+                page,
+                limit,
+                total,
+            }
+        }
+    });
+
+    Ok(Json(response))
+}
+
+async fn get_following(
+    State(db): State<Database>,
+    Path(id): Path<String>,
+    Query(params): Query<PaginationParams>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let page = params.page.unwrap_or(1).max(1);
+    let limit = params.limit.unwrap_or(20).max(1);
+    let offset = (page - 1) * limit;
+
+    let following = sqlx::query_as::<_, User>(
+        r#"
+        SELECT u.*
+        FROM follows f
+        JOIN users u ON f.following_id = u.id
+        WHERE f.follower_id = $1
+        ORDER BY f.created_at DESC
+        LIMIT $2 OFFSET $3
+        "#,
+    )
+    .bind(&id)
+    .bind(limit as i64)
+    .bind(offset as i64)
+    .fetch_all(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let total = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM follows WHERE follower_id = $1",
+    )
+    .bind(&id)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as usize;
+
+    let response = json!({
+        "success": true,
+        "data": {
+            "following": following,
+            "pagination": FollowPagination {
+                page,
+                limit,
+                total,
+            }
+        }
     });
 
     Ok(Json(response))

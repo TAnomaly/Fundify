@@ -86,7 +86,7 @@ pub struct CreatePostRequest {
     pub excerpt: Option<String>,
     pub media_url: Option<String>,
     pub media_type: Option<String>,
-    #[serde(rename = "type")]
+    #[serde(alias = "type")]
     pub content_type: Option<String>,
     pub images: Option<Vec<String>>,
     pub video_url: Option<String>,
