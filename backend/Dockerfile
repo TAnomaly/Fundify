@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy Cargo.toml first for better caching
-COPY Cargo.toml ./
+# Copy Cargo files first for better caching
+COPY Cargo.toml Cargo.lock ./
 
 # Copy the actual source code
 COPY src ./src
