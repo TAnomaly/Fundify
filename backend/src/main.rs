@@ -76,6 +76,10 @@ async fn main() -> anyhow::Result<()> {
         ])
         .allow_credentials(true);
 
+    let uploads_service = ServiceBuilder::new()
+        .layer(cors.clone())
+        .service(ServeDir::new(upload_path.clone()));
+
     let app = Router::new()
         .route("/health", get(health_check))
         .nest("/api/auth", auth_routes())
@@ -93,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api/upload", upload_routes())
         .route("/api/notifications", get(get_notifications))
         .route("/api/subscriptions/my-subscribers", get(get_my_subscribers))
-        .nest_service("/uploads", ServeDir::new(upload_path.clone()))
+        .nest_service("/uploads", uploads_service)
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())

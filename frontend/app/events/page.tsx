@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isAuthenticated } from "@/lib/auth";
+import { getFullMediaUrl } from "@/lib/utils/mediaUrl";
 import axios from "axios";
 import toast from "react-hot-toast";
 import {
@@ -241,7 +242,7 @@ export default function EventsPage() {
                 <div className="relative h-40 bg-gradient-to-br from-indigo-400 to-purple-400">
                   {event.coverImage && (
                     <img
-                      src={event.coverImage}
+                      src={getFullMediaUrl(event.coverImage) ?? event.coverImage}
                       alt={event.title}
                       className="w-full h-full object-cover"
                     />
@@ -286,7 +287,7 @@ export default function EventsPage() {
                     <div className="flex items-center gap-2">
                       {event.host.avatar ? (
                         <img
-                          src={event.host.avatar}
+                          src={getFullMediaUrl(event.host.avatar) ?? event.host.avatar}
                           alt={event.host.name}
                           className="w-8 h-8 rounded-full"
                         />

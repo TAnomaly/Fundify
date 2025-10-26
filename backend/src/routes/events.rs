@@ -10,7 +10,7 @@ use serde_json::json;
 use sqlx::{postgres::PgRow, Postgres, QueryBuilder, Row};
 use uuid::Uuid;
 
-use crate::{auth::Claims, database::Database};
+use crate::{auth::Claims, database::Database, middleware::optional_auth::MaybeClaims};
 
 const DEFAULT_EVENT_COVER: &str =
     "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&q=80";
@@ -70,10 +70,15 @@ struct EventResponse {
     pub updated_at: chrono::DateTime<chrono::Utc>,
     pub host_id: String,
     pub host_name: Option<String>,
+    pub host_username: Option<String>,
     pub host_avatar: Option<String>,
     pub host: Option<EventHost>,
     pub rsvp_count: i64,
     pub _count: EventCounts,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_rsvp_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_rsvp_is_paid: Option<bool>,
 }
 
 impl EventResponse {
@@ -122,8 +127,9 @@ impl EventResponse {
             .try_get::<Uuid, _>("host_id")
             .map(|uuid| uuid.to_string())
             .unwrap_or_else(|_| row.get::<String, _>("host_id"));
-        let host_name: Option<String> = row.try_get("host_name").unwrap_or(None);
+        let raw_host_name: Option<String> = row.try_get("host_name").unwrap_or(None);
         let host_username: Option<String> = row.try_get("host_username").unwrap_or(None);
+        let host_display_name = raw_host_name.clone().or_else(|| host_username.clone());
         let host_avatar: Option<String> = row.try_get("host_avatar").unwrap_or(None);
         let rsvp_count: i64 = row
             .try_get::<Option<i64>, _>("rsvp_count")
@@ -133,17 +139,21 @@ impl EventResponse {
             .try_get::<Option<String>, _>("event_type")
             .unwrap_or(None)
             .unwrap_or_else(|| "VIRTUAL".to_string());
+        let user_rsvp_status: Option<String> = row.try_get("user_rsvp_status").unwrap_or(None);
+        let user_rsvp_is_paid: Option<bool> = row.try_get("user_rsvp_is_paid").unwrap_or(None);
 
-        let host = if host_name.is_some() || host_username.is_some() || host_avatar.is_some() {
-            Some(EventHost {
-                id: host_id.clone(),
-                name: host_name.clone(),
-                username: host_username,
-                avatar: host_avatar.clone(),
-            })
-        } else {
-            None
-        };
+        let host_username_clone = host_username.clone();
+        let host =
+            if host_display_name.is_some() || host_username.is_some() || host_avatar.is_some() {
+                Some(EventHost {
+                    id: host_id.clone(),
+                    name: host_display_name.clone(),
+                    username: host_username_clone,
+                    avatar: host_avatar.clone(),
+                })
+            } else {
+                None
+            };
 
         EventResponse {
             id,
@@ -166,11 +176,14 @@ impl EventResponse {
             created_at,
             updated_at,
             host_id,
-            host_name,
+            host_name: host_display_name,
+            host_username,
             host_avatar,
             host,
             rsvp_count,
             _count: EventCounts { rsvps: rsvp_count },
+            user_rsvp_status,
+            user_rsvp_is_paid,
         }
     }
 }
@@ -205,10 +218,110 @@ impl CreateEventRequest {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RsvpRequest {
+    status: String,
+    #[serde(default)]
+    is_paid: Option<bool>,
+}
+
+async fn handle_rsvp(
+    State(db): State<Database>,
+    Path(id): Path<String>,
+    claims: Claims,
+    Json(payload): Json<RsvpRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let event_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let normalized_status = payload.status.to_uppercase();
+
+    if !["GOING", "MAYBE", "NOT_GOING"].contains(&normalized_status.as_str()) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let event_exists =
+        sqlx::query_scalar::<_, Option<Uuid>>("SELECT id FROM events WHERE id = $1 LIMIT 1")
+            .bind(event_id)
+            .fetch_optional(&db.pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to verify event {}: {}", id, e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+    if event_exists.is_none() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    if normalized_status == "NOT_GOING" {
+        sqlx::query("DELETE FROM event_rsvps WHERE event_id = $1 AND user_id = $2")
+            .bind(event_id)
+            .bind(&claims.sub)
+            .execute(&db.pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to delete RSVP for event {}: {}", id, e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+    } else {
+        sqlx::query(
+            r#"
+            INSERT INTO event_rsvps (event_id, user_id, status, is_paid, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, NOW(), NOW())
+            ON CONFLICT (event_id, user_id)
+            DO UPDATE SET
+                status = EXCLUDED.status,
+                is_paid = EXCLUDED.is_paid,
+                updated_at = NOW()
+            "#,
+        )
+        .bind(event_id)
+        .bind(&claims.sub)
+        .bind(&normalized_status)
+        .bind(payload.is_paid.unwrap_or(false))
+        .execute(&db.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to upsert RSVP for event {}: {}", id, e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    }
+
+    let rsvp_count = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*)::BIGINT FROM event_rsvps WHERE event_id = $1 AND status = 'GOING'",
+    )
+    .bind(event_id)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to count RSVPs for event {}: {}", id, e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let (user_status, user_is_paid) = if normalized_status == "NOT_GOING" {
+        (None, None)
+    } else {
+        (
+            Some(normalized_status),
+            Some(payload.is_paid.unwrap_or(false)),
+        )
+    };
+
+    Ok(Json(json!({
+        "success": true,
+        "data": {
+            "status": user_status,
+            "isPaid": user_is_paid,
+            "rsvpCount": rsvp_count
+        }
+    })))
+}
+
 pub fn event_routes() -> Router<Database> {
     Router::new()
         .route("/", get(get_events).post(create_event))
         .route("/:id", get(get_event_by_id))
+        .route("/:id/rsvp", post(handle_rsvp))
 }
 
 async fn get_events(
@@ -306,9 +419,17 @@ async fn get_events(
             u.display_name AS host_name,
             u.username AS host_username,
             u.avatar_url AS host_avatar,
-            NULL::BIGINT AS rsvp_count
+            COALESCE(rsvp_counts.count, 0) AS rsvp_count,
+            NULL::TEXT AS user_rsvp_status,
+            NULL::BOOLEAN AS user_rsvp_is_paid
         FROM events e
         LEFT JOIN users u ON e.host_id = u.id
+        LEFT JOIN (
+            SELECT event_id, COUNT(*)::BIGINT AS count
+            FROM event_rsvps
+            WHERE status = 'GOING'
+            GROUP BY event_id
+        ) rsvp_counts ON rsvp_counts.event_id = e.id
         "#,
     );
 
@@ -390,7 +511,10 @@ async fn get_events(
 async fn get_event_by_id(
     State(db): State<Database>,
     Path(id): Path<String>,
+    MaybeClaims(maybe_claims): MaybeClaims,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let event_uuid = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+
     let query = r#"
         SELECT
             e.id,
@@ -416,18 +540,54 @@ async fn get_event_by_id(
             u.display_name AS host_name,
             u.username AS host_username,
             u.avatar_url AS host_avatar,
-            NULL::BIGINT AS rsvp_count
+            COALESCE(rsvp_counts.count, 0) AS rsvp_count,
+            NULL::TEXT AS user_rsvp_status,
+            NULL::BOOLEAN AS user_rsvp_is_paid
         FROM events e
         LEFT JOIN users u ON e.host_id = u.id
+        LEFT JOIN (
+            SELECT event_id, COUNT(*)::BIGINT AS count
+            FROM event_rsvps
+            WHERE status = 'GOING'
+            GROUP BY event_id
+        ) rsvp_counts ON rsvp_counts.event_id = e.id
         WHERE e.id = $1
         LIMIT 1
     "#;
 
-    match sqlx::query(query).bind(&id).fetch_optional(&db.pool).await {
-        Ok(Some(row)) => Ok(Json(json!({
-            "success": true,
-            "data": EventResponse::from_row(&row)
-        }))),
+    match sqlx::query(query)
+        .bind(event_uuid)
+        .fetch_optional(&db.pool)
+        .await
+    {
+        Ok(Some(row)) => {
+            let mut event = EventResponse::from_row(&row);
+
+            if let Some(claims) = maybe_claims {
+                if let Ok(Some(rsvp_row)) = sqlx::query(
+                    r#"
+                    SELECT status, is_paid
+                    FROM event_rsvps
+                    WHERE event_id = $1 AND user_id = $2
+                    "#,
+                )
+                .bind(event_uuid)
+                .bind(&claims.sub)
+                .fetch_optional(&db.pool)
+                .await
+                {
+                    let status: String = rsvp_row.get("status");
+                    let is_paid: Option<bool> = rsvp_row.try_get("is_paid").unwrap_or(None);
+                    event.user_rsvp_status = Some(status);
+                    event.user_rsvp_is_paid = is_paid;
+                }
+            }
+
+            Ok(Json(json!({
+                "success": true,
+                "data": event
+            })))
+        }
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             tracing::error!("Failed to fetch event {}: {}", id, e);
@@ -531,7 +691,9 @@ async fn create_event(
             u.display_name AS host_name,
             u.username AS host_username,
             u.avatar_url AS host_avatar,
-            NULL::BIGINT AS rsvp_count
+            0::BIGINT AS rsvp_count,
+            NULL::TEXT AS user_rsvp_status,
+            NULL::BOOLEAN AS user_rsvp_is_paid
         FROM inserted
         LEFT JOIN users u ON inserted.host_id = u.id
     "#;

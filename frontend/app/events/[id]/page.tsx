@@ -42,8 +42,8 @@ interface Event {
     tags: string[];
     host: EventHost;
     rsvpCount: number;
-    userRSVPStatus?: "GOING" | "MAYBE" | "NOT_GOING";
-    userRSVPIsPaid?: boolean;
+    userRsvpStatus?: "GOING" | "MAYBE" | "NOT_GOING";
+    userRsvpIsPaid?: boolean;
 }
 interface RSVP { status: "GOING" | "MAYBE" | "NOT_GOING"; isPaid?: boolean; }
 
@@ -98,11 +98,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                         avatar: host.avatar ?? raw.host_avatar ?? null,
                     },
                     rsvpCount: raw._count?.rsvps ?? raw.rsvp_count ?? 0,
-                    userRSVPStatus: raw.userRSVPStatus,
-                    userRSVPIsPaid: raw.userRSVPIsPaid,
+                    userRsvpStatus: raw.userRsvpStatus,
+                    userRsvpIsPaid: raw.userRsvpIsPaid,
                 };
                 setEvent(normalized);
-                setUserRSVP(normalized.userRSVPStatus ? { status: normalized.userRSVPStatus, isPaid: normalized.userRSVPIsPaid || false } : null);
+                setUserRSVP(normalized.userRsvpStatus ? { status: normalized.userRsvpStatus, isPaid: normalized.userRsvpIsPaid || false } : null);
             } else {
                 throw new Error("Event not found");
             }
@@ -132,6 +132,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
     const handlePaymentSuccess = () => {
         toast.success("Payment successful! You're going!");
+        setShowPaymentModal(false);
         loadEvent();
     };
 
@@ -142,12 +143,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (!event) return null;
 
     const isPastEvent = new Date(event.endTime) < new Date();
+    const coverImageUrl = event.coverImage ? getFullMediaUrl(event.coverImage) ?? event.coverImage : null;
+    const hostAvatarUrl = event.host.avatar ? getFullMediaUrl(event.host.avatar) ?? event.host.avatar : null;
 
     return (
         <div className="bg-background min-h-screen">
-            {event.coverImage && (
+            {coverImageUrl && (
                 <motion.div className="h-[50vh] min-h-[350px] w-full overflow-hidden relative" style={{ y: heroImageY }}>
-                    <Image src={getFullMediaUrl(event.coverImage)!} alt={event.title} fill className="object-cover" style={{ scale: heroImageScale }} />
+                    <Image src={coverImageUrl} alt={event.title} fill className="object-cover" style={{ scale: heroImageScale }} />
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
                 </motion.div>
             )}
@@ -158,14 +161,20 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     <div className="lg:col-span-2 space-y-8">
                         <BlurFade delay={0.25} inView>
                             <h1 className="text-5xl font-bold tracking-tight text-foreground">{event.title}</h1>
-                            <div className="mt-4 prose prose-lg dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: event.description }} />
+                            <div
+                                className="mt-4 prose prose-lg dark:prose-invert max-w-none text-muted-foreground"
+                                dangerouslySetInnerHTML={{ __html: event.description || "" }}
+                            />
                         </BlurFade>
 
                         {event.agenda && (
                             <BlurFade delay={0.5} inView>
                                 <div className="p-6 bg-muted/50 rounded-2xl border border-border/30">
                                     <h2 className="text-2xl font-bold mb-4">Agenda</h2>
-                                    <div className="prose dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: event.agenda }} />
+                                    <div
+                                        className="prose dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap"
+                                        dangerouslySetInnerHTML={{ __html: event.agenda || "" }}
+                                    />
                                 </div>
                             </BlurFade>
                         )}
@@ -210,8 +219,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                         <BlurFade delay={0.65} inView>
                             <div className="p-6 bg-card/80 backdrop-blur-sm rounded-2xl border border-border/30 space-y-4">
                                 <Link href={`/creators/${event.host.id}`} className="flex items-center gap-3 group">
-                                    {event.host.avatar ? (
-                                        <Image src={getFullMediaUrl(event.host.avatar)!} alt={event.host.name} width={40} height={40} className="rounded-full bg-muted" />
+                                    {hostAvatarUrl ? (
+                                        <Image src={hostAvatarUrl} alt={event.host.name} width={40} height={40} className="rounded-full bg-muted object-cover" />
                                     ) : (
                                         <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-bold">
                                             {(event.host.name || "H").charAt(0).toUpperCase()}
