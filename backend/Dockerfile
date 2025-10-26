@@ -1,5 +1,5 @@
-# Use the official Rust image with a specific version
-FROM rust:1.82-slim
+# Use an older stable Rust version for better compatibility
+FROM rust:1.75-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
