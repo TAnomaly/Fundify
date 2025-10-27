@@ -70,6 +70,7 @@ struct CreatorPostResponse {
     minimum_tier_id: Option<String>,
     like_count: i64,
     comment_count: i64,
+    is_liked: bool,
     published: bool,
     published_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
@@ -747,6 +748,7 @@ fn map_post(record: PostRecord) -> CreatorPostResponse {
         minimum_tier_id: None,
         like_count: like_count.unwrap_or(0),
         comment_count: comment_count.unwrap_or(0),
+        is_liked: false, // Will be updated based on user context
         published: true,
         published_at: Some(created_at),
         created_at,

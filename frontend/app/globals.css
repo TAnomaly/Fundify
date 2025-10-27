@@ -4,68 +4,55 @@
 
 @layer base {
   :root {
-    /* Minimalist Light Theme */
-    --background: 0 0% 100%; /* Pure white */
-    --foreground: 0 0% 9%; /* Almost black */
+    /* Renaissance Minimalist - Light */
+    --background: 0 0% 99%; /* Off-white, softer than pure white */
+    --foreground: 25 20% 15%; /* Warm dark gray, not harsh black */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 25 20% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 25 20% 15%;
 
-    /* Subtle accent color */
-    --primary: 0 0% 9%; /* Black */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96%; /* Very light gray */
-    --secondary-foreground: 0 0% 9%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84% 60%; /* Subtle red */
-    --destructive-foreground: 0 0% 98%;
+    /* Elegant accent - Muted gold/bronze */
+    --primary: 25 60% 45%; /* Warm bronze */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 25 15% 94%; /* Warm light gray */
+    --secondary-foreground: 25 20% 15%;
+    --accent: 25 30% 88%; /* Soft cream */
+    --accent-foreground: 25 20% 15%;
+    --destructive: 0 65% 55%; /* Muted red */
+    --destructive-foreground: 0 0% 100%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 9%;
+    --muted: 25 15% 94%;
+    --muted-foreground: 25 10% 45%;
+    --border: 25 15% 88%;
+    --input: 25 15% 88%;
+    --ring: 25 60% 45%;
     --radius: 0.5rem;
-
-    /* Simple chart colors */
-    --chart-1: 0 0% 9%;
-    --chart-2: 0 0% 50%;
-    --chart-3: 0 0% 70%;
-    --chart-4: 0 0% 85%;
-    --chart-5: 0 0% 95%;
   }
 
   .dark {
-    /* Minimalist Dark Theme */
-    --background: 0 0% 9%; /* Almost black */
-    --foreground: 0 0% 98%; /* Almost white */
-    --card: 0 0% 11%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 11%;
-    --popover-foreground: 0 0% 98%;
+    /* Renaissance Minimalist - Dark */
+    --background: 25 15% 12%; /* Warm dark, not cold black */
+    --foreground: 25 8% 95%; /* Soft white */
+    --card: 25 12% 15%;
+    --card-foreground: 25 8% 95%;
+    --popover: 25 12% 15%;
+    --popover-foreground: 25 8% 95%;
 
-    --primary: 0 0% 98%; /* White */
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 98%;
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 98%;
+    --primary: 35 70% 60%; /* Warm gold */
+    --primary-foreground: 25 15% 12%;
+    --secondary: 25 10% 18%;
+    --secondary-foreground: 25 8% 95%;
+    --accent: 25 12% 20%;
+    --accent-foreground: 25 8% 95%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 25 8% 95%;
 
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 65%;
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
-    --ring: 0 0% 83%;
-
-    --chart-1: 0 0% 98%;
-    --chart-2: 0 0% 70%;
-    --chart-3: 0 0% 50%;
-    --chart-4: 0 0% 30%;
-    --chart-5: 0 0% 15%;
+    --muted: 25 10% 18%;
+    --muted-foreground: 25 8% 60%;
+    --border: 25 10% 18%;
+    --input: 25 10% 18%;
+    --ring: 35 70% 60%;
   }
 }
 
@@ -76,30 +63,93 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   }
 }
 
 @layer utilities {
-  /* Minimal utilities */
+  /* Typography */
   .text-balance {
     text-wrap: balance;
+  }
+
+  .text-elegant {
+    @apply text-foreground/90 leading-relaxed;
   }
 
   .text-subtle {
     @apply text-muted-foreground text-sm;
   }
 
-  /* Simple hover transitions */
-  .transition-base {
-    @apply transition-all duration-200 ease-in-out;
+  /* Layout */
+  .section-elegant {
+    @apply max-w-2xl mx-auto px-4 py-12;
   }
 
-  /* Minimal shadow */
-  .shadow-minimal {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  .container-elegant {
+    @apply max-w-6xl mx-auto px-4;
   }
 
-  .shadow-minimal-lg {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  /* Effects */
+  .transition-elegant {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .hover-lift {
+    @apply transition-elegant hover:-translate-y-0.5 hover:shadow-elegant;
+  }
+
+  /* Shadows - Subtle and refined */
+  .shadow-elegant {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  }
+
+  .shadow-elegant-md {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  }
+
+  .shadow-elegant-lg {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  }
+
+  /* Borders */
+  .border-elegant {
+    @apply border border-border/50;
+  }
+
+  .divide-elegant {
+    @apply divide-y divide-border/30;
+  }
+
+  /* Cards */
+  .card-elegant {
+    @apply bg-card border-elegant rounded-lg shadow-elegant;
+  }
+
+  .card-elegant-hover {
+    @apply card-elegant hover-lift cursor-pointer;
+  }
+
+  /* Buttons */
+  .btn-elegant {
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium;
+    @apply transition-elegant focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn-elegant bg-primary text-primary-foreground hover:opacity-90;
+  }
+
+  .btn-ghost {
+    @apply btn-elegant hover:bg-accent hover:text-accent-foreground;
+  }
+
+  /* Spacing - Golden ratio inspired */
+  .space-elegant {
+    @apply space-y-8;
+  }
+
+  .gap-elegant {
+    @apply gap-6;
   }
 }
