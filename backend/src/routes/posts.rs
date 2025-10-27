@@ -362,7 +362,7 @@ async fn get_my_posts(
 
     let posts = sqlx::query_as::<_, PostRecord>(
         r#"
-        SELECT 
+        SELECT
             p.id,
             p.user_id,
             p.title,
@@ -378,9 +378,15 @@ async fn get_my_posts(
             u.name as author_name,
             u.username as author_username,
             u.avatar as author_avatar,
-            u.is_creator as author_is_creator
+            u.is_creator as author_is_creator,
+            COALESCE(l.like_count, 0) as like_count,
+            COALESCE(c.comment_count, 0) as comment_count,
+            CASE WHEN ul.user_id IS NOT NULL THEN true ELSE false END as user_liked
         FROM posts p
         LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM post_likes GROUP BY post_id) l ON l.post_id = p.id
+        LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM post_comments GROUP BY post_id) c ON c.post_id = p.id
+        LEFT JOIN post_likes ul ON ul.post_id = p.id AND ul.user_id = $1
         WHERE p.user_id = $1
         ORDER BY p.created_at DESC
         LIMIT $2 OFFSET $3
