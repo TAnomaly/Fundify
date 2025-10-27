@@ -117,7 +117,7 @@ impl Database {
             r#"
             CREATE TABLE IF NOT EXISTS posts (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 title VARCHAR(255) NOT NULL,
                 content TEXT,
                 media_url TEXT,
@@ -145,6 +145,24 @@ impl Database {
         sqlx::query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS audio_url TEXT")
             .execute(&self.pool)
             .await?;
+
+        // Fix user_id type mismatch (users.id is TEXT, posts.user_id should be TEXT too)
+        // Drop and recreate constraint if needed
+        sqlx::query("ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_user_id_fkey")
+            .execute(&self.pool)
+            .await?;
+
+        // Change column type if it's UUID
+        sqlx::query("ALTER TABLE posts ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT")
+            .execute(&self.pool)
+            .await
+            .ok(); // Ignore error if already TEXT
+
+        // Re-add foreign key constraint
+        sqlx::query("ALTER TABLE posts ADD CONSTRAINT posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE")
+            .execute(&self.pool)
+            .await
+            .ok(); // Ignore error if constraint already exists
 
         sqlx::query(
             r#"
