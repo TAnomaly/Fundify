@@ -9,6 +9,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        display: ["var(--font-cormorant)", "Georgia", "serif"],
+        ui: ["var(--font-space-grotesk)", "var(--font-inter)", "sans-serif"],
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -54,19 +59,21 @@ const config: Config = {
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
-        "gradient-primary": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        "gradient-secondary": "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-        "gradient-success": "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-        "gradient-hero": "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
-        "gradient-card": "linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
+        "gradient-primary": "linear-gradient(135deg, #c9ab81 0%, #b18c55 100%)",
+        "gradient-secondary": "linear-gradient(135deg, #d8e2d1 0%, #b9c6b4 100%)",
+        "gradient-success": "linear-gradient(135deg, #93c5a4 0%, #6d9d84 100%)",
+        "gradient-hero": "linear-gradient(135deg, rgba(201,171,129,0.95) 0%, rgba(173,150,110,0.85) 50%, rgba(122,99,70,0.8) 100%)",
+        "gradient-card": "linear-gradient(160deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.3) 100%)",
       },
       boxShadow: {
-        "glow-sm": "0 0 10px rgba(102, 126, 234, 0.4)",
-        "glow-md": "0 0 20px rgba(102, 126, 234, 0.5)",
-        "glow-lg": "0 0 30px rgba(102, 126, 234, 0.6)",
-        "card": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-        "card-hover": "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-        "inner-glow": "inset 0 0 20px rgba(102, 126, 234, 0.2)",
+        "glow-sm": "0 0 12px rgba(193, 158, 108, 0.35)",
+        "glow-md": "0 0 22px rgba(177, 140, 85, 0.45)",
+        "glow-lg": "0 0 32px rgba(153, 119, 65, 0.45)",
+        "card": "0 18px 30px -24px rgba(36, 24, 12, 0.6), 0 12px 32px -28px rgba(36, 24, 12, 0.4)",
+        "card-hover": "0 24px 40px -20px rgba(36, 24, 12, 0.35)",
+        "inner-glow": "inset 0 0 24px rgba(193, 158, 108, 0.18)",
+        soft: "0 18px 40px -28px rgba(36, 24, 12, 0.45), 0 12px 30px -28px rgba(36, 24, 12, 0.35)",
+        "soft-hover": "0 24px 48px -24px rgba(36, 24, 12, 0.5), 0 16px 36px -28px rgba(36, 24, 12, 0.4)",
       },
       borderRadius: {
         lg: "var(--radius)",

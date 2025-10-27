@@ -5,33 +5,33 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-95",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium tracking-wide ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-95",
   {
     variants: {
       variant: {
         default:
-          "bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-md hover:shadow-glow-md",
+          "bg-primary text-primary-foreground shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/85 shadow-soft",
         outline:
-          "border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground shadow-sm",
+          "border border-border/60 bg-background text-foreground shadow-soft hover:bg-secondary/40",
         secondary:
-          "bg-gradient-secondary text-white hover:opacity-90 shadow-md hover:shadow-neon-pink",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-secondary text-secondary-foreground shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5",
+        ghost: "border border-transparent bg-transparent text-foreground hover:border-border/40 hover:bg-muted/40",
+        link: "text-primary underline-offset-4 hover:text-foreground hover:underline",
         gradient:
-          "bg-gradient-hero text-white hover:opacity-90 shadow-lg hover:shadow-glow-lg animate-gradient-x",
+          "bg-gradient-primary text-primary-foreground shadow-glow-md hover:shadow-glow-lg hover:-translate-y-0.5",
         glass:
-          "bg-white/10 backdrop-blur-lg border border-white/20 text-white hover:bg-white/20 shadow-md",
+          "bg-white/40 dark:bg-background/60 backdrop-blur-lg border border-border/40 text-foreground hover:bg-white/55 dark:hover:bg-background/65 shadow-soft",
         success:
-          "bg-gradient-success text-white hover:opacity-90 shadow-md",
+          "bg-gradient-success text-white shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        xl: "h-14 rounded-lg px-10 text-base",
-        icon: "h-10 w-10",
+        default: "h-11 px-6",
+        sm: "h-9 rounded-full px-4 text-sm",
+        lg: "h-12 rounded-full px-8 text-base",
+        xl: "h-14 rounded-full px-10 text-base",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {

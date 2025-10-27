@@ -17,7 +17,7 @@ interface AuroraBackgroundProps extends React.HTMLAttributes<HTMLDivElement> {
 export function AuroraBackground({
   children,
   className,
-  gradientOpacity = 0.8,
+  gradientOpacity = 0.55,
   ...props
 }: AuroraBackgroundProps) {
   const mouseX = useMotionValue(0);
@@ -56,13 +56,13 @@ export function AuroraBackground({
         style={{
           opacity: gradientOpacity,
           background:
-            "radial-gradient(38% 32% at 20% 20%, rgba(249,38,114,0.45), transparent 60%), radial-gradient(30% 26% at 70% 10%, rgba(102,217,239,0.4), transparent 65%), radial-gradient(55% 38% at 50% 75%, rgba(166,226,46,0.35), transparent 70%)",
+            "radial-gradient(40% 35% at 15% 20%, rgba(193,158,108,0.4), transparent 70%), radial-gradient(36% 32% at 80% 12%, rgba(134,158,168,0.35), transparent 75%), radial-gradient(65% 45% at 50% 85%, rgba(160,173,150,0.32), transparent 70%)",
         }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       />
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.25),rgba(255,255,255,0))]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.3),rgba(255,255,255,0))]"
         style={{
           maskImage,
           WebkitMaskImage: maskImage as any,

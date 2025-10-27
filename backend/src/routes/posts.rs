@@ -40,6 +40,7 @@ struct PostRecord {
     author_is_creator: Option<bool>,
     like_count: Option<i64>,
     comment_count: Option<i64>,
+    user_liked: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

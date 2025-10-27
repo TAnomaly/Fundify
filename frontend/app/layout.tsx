@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Inter, Space_Grotesk } from "next/font/google";
+import { Inter, Space_Grotesk, Cormorant_Garamond } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,13 @@ const inter = Inter({
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
+  display: "swap",
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  variable: "--font-cormorant",
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -43,65 +50,79 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
+    <html lang="en" suppressHydrationWarning className="light">
       <head />
       <body
         className={cn(
           inter.variable,
           spaceGrotesk.variable,
-          "font-sans antialiased"
+          cormorant.variable,
+          "font-sans antialiased bg-background text-foreground"
         )}
       >
         <Toaster position="top-right" />
         <AuroraBackground className="min-h-screen">
-          <div className="fixed inset-0 -z-10 bg-[radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:60px_60px] opacity-20 pointer-events-none" />
+          <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(193,158,108,0.08)_1px,transparent_1px)] [background-size:80px_80px] opacity-30 pointer-events-none" />
           <Navbar />
           <main className="flex-1">{children}</main>
-          <footer className="border-t border-border/40 bg-background/60 backdrop-blur-xl mt-20">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                      <span className="text-white font-bold text-xl">F</span>
+          <footer className="mt-24 border-t border-border/50 bg-background/80 backdrop-blur-2xl">
+            <div className="container-elegant py-16">
+              <div className="grid grid-cols-1 gap-12 md:grid-cols-[1.2fr,1fr,1fr,1fr]">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-primary shadow-glow-sm ring-1 ring-border/40">
+                      <span className="font-display text-lg text-primary-foreground">F</span>
                     </div>
-                    <span className="text-xl font-bold text-gradient">Fundify</span>
+                    <span className="font-display text-2xl text-gradient">Fundify</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    The operating system for creators to launch, monetise, and nurture community across campaigns, memberships, events, and digital releases.
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    A considered home for creators to build enduring patronage — thoughtful campaigns, recurring support, and meaningful community moments all in one trusted platform.
                   </p>
+                  <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    <span className="rounded-full border border-border/50 px-3 py-1">Safe Payouts</span>
+                    <span className="rounded-full border border-border/50 px-3 py-1">Creator-Led</span>
+                    <span className="rounded-full border border-border/50 px-3 py-1">Global Reach</span>
+                  </div>
                 </div>
 
-                <div>
-                  <h3 className="font-semibold mb-4">Platform</h3>
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm uppercase tracking-[0.18em] text-muted-foreground">Platform</h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li><Link href="/campaigns" className="hover:text-foreground transition-colors">Explore Campaigns</Link></li>
-                    <li><Link href="/campaigns/create" className="hover:text-foreground transition-colors">Start a Campaign</Link></li>
-                    <li><Link href="/how-it-works" className="hover:text-foreground transition-colors">How It Works</Link></li>
+                    <li><Link href="/campaigns" className="transition hover:text-foreground">Explore Campaigns</Link></li>
+                    <li><Link href="/campaigns/create" className="transition hover:text-foreground">Start a Campaign</Link></li>
+                    <li><Link href="/creators" className="transition hover:text-foreground">Discover Creators</Link></li>
+                    <li><Link href="/events" className="transition hover:text-foreground">Events Calendar</Link></li>
                   </ul>
                 </div>
 
-                <div>
-                  <h3 className="font-semibold mb-4">Company</h3>
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm uppercase tracking-[0.18em] text-muted-foreground">Company</h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li><Link href="/about" className="hover:text-foreground transition-colors">About Us</Link></li>
-                    <li><Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
-                    <li><Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
+                    <li><Link href="/about" className="transition hover:text-foreground">About Us</Link></li>
+                    <li><Link href="/blog" className="transition hover:text-foreground">Journal</Link></li>
+                    <li><Link href="/contact" className="transition hover:text-foreground">Contact</Link></li>
+                    <li><a href="mailto:press@fundify.com" className="transition hover:text-foreground">Press & Partnerships</a></li>
                   </ul>
                 </div>
 
-                <div>
-                  <h3 className="font-semibold mb-4">Legal</h3>
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm uppercase tracking-[0.18em] text-muted-foreground">Trust</h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
-                    <li><Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link></li>
-                    <li><a href="/guidelines" className="hover:text-foreground transition-colors">Community Guidelines</a></li>
+                    <li><Link href="/privacy" className="transition hover:text-foreground">Privacy Policy</Link></li>
+                    <li><Link href="/terms" className="transition hover:text-foreground">Terms of Service</Link></li>
+                    <li><Link href="/guidelines" className="transition hover:text-foreground">Community Standards</Link></li>
+                    <li><a href="mailto:support@fundify.com" className="transition hover:text-foreground">Support</a></li>
                   </ul>
                 </div>
               </div>
 
-              <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
+              <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border/40 pt-8 text-sm text-muted-foreground md:flex-row">
                 <p>&copy; {new Date().getFullYear()} Fundify. All rights reserved.</p>
+                <div className="flex items-center gap-4">
+                  <a href="mailto:legal@fundify.com" className="transition hover:text-foreground">Legal</a>
+                  <a href="mailto:support@fundify.com" className="transition hover:text-foreground">Support</a>
+                  <a href="mailto:trust@fundify.com" className="transition hover:text-foreground">Trust & Safety</a>
+                </div>
               </div>
             </div>
           </footer>
