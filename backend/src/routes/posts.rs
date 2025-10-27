@@ -39,7 +39,7 @@ struct PostRecord {
     author_is_creator: Option<bool>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct CreatorPostAuthor {
     id: String,
@@ -50,7 +50,7 @@ struct CreatorPostAuthor {
     is_creator: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct CreatorPostResponse {
     id: Uuid,
@@ -85,13 +85,13 @@ pub fn post_routes() -> Router<Database> {
         .route("/:id", delete(delete_post))
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct PostsResponse {
     success: bool,
     data: PostsData,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct PostsData {
     posts: Vec<CreatorPostResponse>,
     pagination: PaginationInfo,
@@ -99,7 +99,7 @@ struct PostsData {
     has_subscription: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct PaginationInfo {
     page: u32,
     limit: u32,
@@ -114,6 +114,19 @@ async fn get_posts(
     let page = params.page.unwrap_or(1);
     let limit = params.limit.unwrap_or(20);
     let offset = (page - 1) * limit;
+
+    // Try cache first
+    let cache_key = format!("posts:list:{}:{}:{}", page, limit, params.user_id.as_deref().unwrap_or("all"));
+    if let Some(redis) = &db.redis {
+        let mut redis_clone = redis.clone();
+        if let Ok(Some(cached)) = redis_clone.get(&cache_key).await {
+            tracing::debug!("Cache HIT for posts list: {}", cache_key);
+            if let Ok(cached_value) = serde_json::from_str::<PostsResponse>(&cached) {
+                return Ok(Json(cached_value));
+            }
+        }
+        tracing::debug!("Cache MISS for posts list: {}", cache_key);
+    }
 
     let limit_i64 = limit as i64;
     let offset_i64 = offset as i64;
@@ -224,6 +237,15 @@ async fn get_posts(
             has_subscription: false,
         },
     };
+
+    // Cache the response
+    if let Some(redis) = &db.redis {
+        let mut redis_clone = redis.clone();
+        if let Ok(response_str) = serde_json::to_string(&response) {
+            let _ = redis_clone.set_ex(&cache_key, &response_str, 90).await;
+        }
+    }
+
     Ok(Json(response))
 }
 

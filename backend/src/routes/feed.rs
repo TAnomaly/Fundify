@@ -56,6 +56,19 @@ async fn get_feed(
     let per_type_limit = (limit.max(6) / 3).max(3);
     let cutoff = Utc::now() - Duration::hours(period_value.max(1));
 
+    // Try cache first
+    let cache_key = format!("feed:{}:{}:{}:{}:{}", claims.sub, filter, sort, period_str, limit);
+    if let Some(redis) = &db.redis {
+        let mut redis_clone = redis.clone();
+        if let Ok(Some(cached)) = redis_clone.get(&cache_key).await {
+            tracing::debug!("Cache HIT for feed: {}", cache_key);
+            if let Ok(cached_value) = serde_json::from_str::<serde_json::Value>(&cached) {
+                return Ok(Json(cached_value));
+            }
+        }
+        tracing::debug!("Cache MISS for feed: {}", cache_key);
+    }
+
     struct FeedEntry {
         published_at: chrono::DateTime<chrono::Utc>,
         item_type: String,
@@ -440,6 +453,14 @@ async fn get_feed(
             "hasMore": false
         }
     });
+
+    // Cache the response
+    if let Some(redis) = &db.redis {
+        let mut redis_clone = redis.clone();
+        if let Ok(response_str) = serde_json::to_string(&response) {
+            let _ = redis_clone.set_ex(&cache_key, &response_str, 60).await;
+        }
+    }
 
     Ok(Json(response))
 }

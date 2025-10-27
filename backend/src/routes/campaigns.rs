@@ -182,6 +182,19 @@ async fn get_campaigns(
     let limit = params.limit.unwrap_or(12).max(1);
     let offset = (page - 1) * limit;
 
+    // Try cache first
+    let cache_key = format!("campaigns:list:{}:{}", page, limit);
+    if let Some(redis) = &db.redis {
+        let mut redis_clone = redis.clone();
+        if let Ok(Some(cached)) = redis_clone.get(&cache_key).await {
+            tracing::debug!("Cache HIT for campaigns list: {}", cache_key);
+            if let Ok(cached_value) = serde_json::from_str::<serde_json::Value>(&cached) {
+                return Ok(Json(cached_value));
+            }
+        }
+        tracing::debug!("Cache MISS for campaigns list: {}", cache_key);
+    }
+
     let count_query = "SELECT COUNT(*)::BIGINT FROM campaigns";
     let total_items = sqlx::query_scalar::<_, i64>(count_query)
         .fetch_one(&db.pool)
@@ -243,6 +256,15 @@ async fn get_campaigns(
                     "totalPages": total_pages
                 }
             });
+
+            // Cache the response
+            if let Some(redis) = &db.redis {
+                let mut redis_clone = redis.clone();
+                if let Ok(response_str) = serde_json::to_string(&response) {
+                    let _ = redis_clone.set_ex(&cache_key, &response_str, 120).await;
+                }
+            }
+
             Ok(Json(response))
         }
         Err(e) => {

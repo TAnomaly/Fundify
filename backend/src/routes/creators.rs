@@ -29,11 +29,24 @@ async fn get_creators(
     let limit = params.limit.unwrap_or(20).min(100); // Max 100 creators
     let offset = params.offset.unwrap_or(0);
 
+    // Try cache first
+    let cache_key = format!("creators:list:{}:{}", limit, offset);
+    if let Some(redis) = &db.redis {
+        let mut redis_clone = redis.clone();
+        if let Ok(Some(cached)) = redis_clone.get(&cache_key).await {
+            tracing::debug!("Cache HIT for creators list: {}", cache_key);
+            if let Ok(cached_value) = serde_json::from_str::<Vec<User>>(&cached) {
+                return Ok(Json(cached_value));
+            }
+        }
+        tracing::debug!("Cache MISS for creators list: {}", cache_key);
+    }
+
     let query = r#"
-        SELECT id, email, name, username, avatar, bio, password_hash, is_creator, created_at, updated_at 
-        FROM users 
-        WHERE is_creator = true 
-        ORDER BY created_at DESC 
+        SELECT id, email, name, username, avatar, bio, password_hash, is_creator, created_at, updated_at
+        FROM users
+        WHERE is_creator = true
+        ORDER BY created_at DESC
         LIMIT $1 OFFSET $2
     "#;
 
@@ -43,7 +56,16 @@ async fn get_creators(
         .fetch_all(&db.pool)
         .await
     {
-        Ok(creators) => Ok(Json(creators)),
+        Ok(creators) => {
+            // Cache the response
+            if let Some(redis) = &db.redis {
+                let mut redis_clone = redis.clone();
+                if let Ok(response_str) = serde_json::to_string(&creators) {
+                    let _ = redis_clone.set_ex(&cache_key, &response_str, 180).await;
+                }
+            }
+            Ok(Json(creators))
+        },
         Err(e) => {
             tracing::error!("Failed to fetch creators: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
