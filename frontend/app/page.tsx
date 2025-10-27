@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -10,104 +9,102 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { campaignApi } from "@/lib/api";
 import type { Campaign } from "@/lib/types";
 import {
-  Shield,
-  Users,
-  Award,
-  Feather,
-  Globe,
-  Coins,
-  Heart,
+  Layers,
+  Radio,
+  Gauge,
+  Handshake,
   ArrowRight,
-  Sparkles,
-  TrendingUp,
+  ShieldCheck,
+  Users,
+  Zap,
+  LineChart,
+  Clock,
+  Globe2,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
-const trustSignals: { icon: LucideIcon; label: string }[] = [
-  { icon: Shield, label: "Escrow-backed payouts" },
-  { icon: Award, label: "Creator verification" },
-  { icon: Users, label: "Communities in 180+ cities" },
+const signalBoard = [
+  { label: "Active patrons", value: "3.8M", meta: "+12% QoQ" },
+  { label: "Creator LTV uplift", value: "3.2×", meta: "vs stitched stacks" },
+  { label: "Payout release", value: "72h", meta: "Avg escrow window" },
+  { label: "Retention cadence", value: "87%", meta: "Quarterly renewals" },
 ];
 
-const features: { icon: LucideIcon; title: string; description: string; tone: string }[] = [
+const lifecycle = [
   {
-    icon: Feather,
-    title: "Memberships with narrative arcs",
+    stage: "Compose",
+    title: "Design a single command centre",
     description:
-      "Design tiered patronage, release long-form drops, and send private notes — all with elegant templates that respect your voice.",
-    tone: "bg-card/80 text-primary",
+      "Memberships, campaigns, exclusives, and live seasons share one editorial calendar—no more juggling five platforms to keep patrons aligned.",
+    icon: Layers,
   },
   {
-    icon: Coins,
-    title: "Campaigns that convert with calm",
+    stage: "Broadcast",
+    title: "Launch with quiet confidence",
     description:
-      "Flexible funding models, limited editions, and transparent milestone tracking nurture trust with every supporter update.",
-    tone: "bg-secondary/60 text-primary",
+      "Automated landing templates, escrow-backed pledges, and transparent milestone tracking convert the audience you’ve already earned.",
+    icon: Radio,
   },
   {
-    icon: Globe,
-    title: "Events and experiences in concert",
+    stage: "Analyse",
+    title: "Read the business at a glance",
     description:
-      "Schedule livestreams, salons, and tours with RSVP workflows, ticketing, and follow-up sequences that feel bespoke.",
-    tone: "bg-muted/60 text-primary",
+      "Segment revenue, churn, and content sentiment down to the cohort. Export-ready insights make sponsors and accountants equally happy.",
+    icon: Gauge,
   },
   {
-    icon: Heart,
-    title: "Supporter care, beautifully handled",
+    stage: "Nurture",
+    title: "Reward your earliest believers",
     description:
-      "Segmented messaging, gratitude automations, and quiet analytics help you respond thoughtfully at scale.",
-    tone: "bg-card/70 text-primary",
+      "Tier-specific rituals, personalised gratitude flows, and instant make-goods turn casual supporters into lifetime patrons.",
+    icon: Handshake,
   },
 ];
 
-const stats: { label: string; value: string; icon: ReactNode; delay: number }[] = [
+const trustPillars = [
   {
-    label: "Creators in residence",
-    value: "12k+",
-    icon: <Users className="h-5 w-5 text-primary" />,
-    delay: 0,
+    icon: ShieldCheck,
+    title: "Escrow-first payouts",
+    description:
+      "Contributions clear into regulated custodial accounts. Release triggers are programmable, so every backer sees where their support sits.",
   },
   {
-    label: "Supporters worldwide",
-    value: "3.8M",
-    icon: <Globe className="h-5 w-5 text-primary" />,
-    delay: 0.05,
+    icon: Users,
+    title: "Identity and moderation layers",
+    description:
+      "Opt-in verification, invite codes, and collaborative moderation dashboards keep communities intimate while scaling reach.",
   },
   {
-    label: "Monthly revenue uplift",
-    value: "3.2×",
-    icon: <TrendingUp className="h-5 w-5 text-primary" />,
-    delay: 0.1,
+    icon: Zap,
+    title: "Performance-ready delivery",
+    description:
+      "Edge-rendered storefronts, optimisation for long-form content, and adaptive streaming ensure every drop lands fast worldwide.",
   },
-  {
-    label: "Funding released on time",
-    value: "99.2%",
-    icon: <Shield className="h-5 w-5 text-primary" />,
-    delay: 0.15,
-  },
+];
+
+const performanceData = [
+  { label: "Average launch payback", value: "27 days", icon: Clock },
+  { label: "Global supporter footprint", value: "180+ cities", icon: Globe2 },
+  { label: "Creator net revenue", value: "$12.7M / mo", icon: LineChart },
 ];
 
 const testimonials = [
   {
-    name: "Sarah Ellison",
-    role: "Tech educator & filmmaker",
-    image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
     quote:
-      "Our patrons feel looked after. Fundify’s cadence tools make our updates feel handcrafted, and the ledger keeps the business composed.",
+      "Fundify feels like a studio operations stack that actually respects the craft. Our patrons experience a single, elegant journey—from discovery to deep membership.",
+    name: "Nadia Rivers",
+    role: "Documentary Filmmaker & Podcaster",
   },
   {
-    name: "Marcus Chen",
-    role: "Narrative game designer",
-    image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
     quote:
-      "We retired five tools. Campaigns, live premieres, merch drops, and newsletters now share one timeline — supporters finally see the full story.",
+      "Escrow-backed pledges changed how confidently we launch. Supporters see the runway, our finance team sees the ledger, and I see fans sticking around.",
+    name: "Dev Malik",
+    role: "Narrative Game Designer",
   },
   {
-    name: "Emily Rodriguez",
-    role: "Illustrator & podcaster",
-    image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
     quote:
-      "The financial calm is real. Escrowed payouts and transparent metrics mean I can plan seasons with confidence.",
+      "I replaced a maze of tools with a calm dashboard. The analytics are designed for humans, not just spreadsheets, and my patrons appreciate the polish.",
+    name: "Elena Martins",
+    role: "Independent Journalist",
   },
 ];
 
@@ -115,8 +112,7 @@ const getDaysRemaining = (date?: string) => {
   if (!date) return 0;
   const end = new Date(date).getTime();
   if (Number.isNaN(end)) return 0;
-  const now = Date.now();
-  const diff = end - now;
+  const diff = end - Date.now();
   if (diff <= 0) return 0;
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
@@ -130,7 +126,9 @@ export default function Home() {
       try {
         const response = await campaignApi.getAll({});
         if (response.success && response.data) {
-          const campaignData = Array.isArray(response.data) ? response.data : response.data.campaigns || [];
+          const campaignData = Array.isArray(response.data)
+            ? response.data
+            : response.data.campaigns || [];
           setCampaigns(campaignData.slice(0, 6));
         }
       } catch (error) {
@@ -143,120 +141,183 @@ export default function Home() {
     loadTrendingCampaigns();
   }, []);
 
-  const fallbackCampaigns = isLoading ? Array.from({ length: 3 }) : [];
+  const { spotlight, secondary } = useMemo(() => {
+    if (campaigns.length === 0) {
+      return { spotlight: null, secondary: [] as Campaign[] };
+    }
+
+    return {
+      spotlight: campaigns[0],
+      secondary: campaigns.slice(1),
+    };
+  }, [campaigns]);
 
   return (
     <div className="relative flex flex-col overflow-hidden">
       <section className="container-elegant pt-24 pb-20">
-        <motion.div
-          initial={{ opacity: 0, y: 26 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative overflow-hidden rounded-[32px] border border-border/40 bg-secondary/70 px-8 py-16 shadow-soft"
-        >
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-secondary/75 via-secondary/50 to-background/70" />
-          <div className="pointer-events-none absolute inset-0 -z-10 [background:radial-gradient(90%_60%_at_10%_0%,rgba(245,241,230,0.18),transparent_70%)]" />
-          <div className="pointer-events-none absolute inset-0 -z-10 [background:radial-gradient(80%_70%_at_85%_15%,rgba(91,106,147,0.22),transparent_72%)]" />
-          <div className="relative flex flex-col gap-8">
-            <span className="pill-elegant w-fit bg-card/80 text-foreground/80">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Patronage with poise
+        <div className="grid items-start gap-10 lg:grid-cols-[0.95fr,1fr] xl:gap-16">
+          <motion.div
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="space-y-8"
+          >
+            <span className="pill-elegant w-fit">
+              <span className="h-2 w-2 rounded-full bg-primary" />
+              Creator revenue command centre
             </span>
-            <h1 className="font-display text-4xl leading-tight text-foreground sm:text-5xl lg:text-6xl">
-              <span className="text-gradient-monokai">
-                A renaissance studio for sustainable creator income.
-              </span>
+            <h1 className="font-display text-4xl leading-tight text-gradient-monokai sm:text-5xl lg:text-[3.75rem] lg:leading-tight">
+              Build patronage empires with the calm of a single, doom-inspired workspace.
             </h1>
-            <p className="max-w-2xl text-lg text-foreground/75">
-              Fundify assembles memberships, campaigns, live experiences, and premium content into a single ledger — so you
-              can nurture patronage with calm, confident tooling.
+            <p className="max-w-xl text-base leading-relaxed text-foreground/72">
+              Fundify fuses crowdfunding, memberships, live experiences, and premium content into a single ledger.
+              Launch, nurture, and reconcile without ever leaving your studio view.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button size="lg" variant="gradient" className="rounded-full px-8">
-                Launch your studio
+              <Button size="lg" variant="gradient" className="rounded-full px-9">
+                Start your patronage OS
               </Button>
-              <Button asChild size="lg" variant="outline" className="rounded-full">
-                <Link href="/explore" className="inline-flex items-center gap-2">
-                  Browse live creators
+              <Button asChild size="lg" variant="glass" className="rounded-full border border-border/40 px-8">
+                <Link href="/campaigns" className="inline-flex items-center gap-2">
+                  Explore active creators
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             </div>
-            <div className="mt-6 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-              {trustSignals.map((signal) => (
-                <div key={signal.label} className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-border/40 bg-card/70 text-primary">
-                    <signal.icon className="h-4 w-4" />
-                  </span>
-                  <span className="max-w-[150px] leading-relaxed">{signal.label}</span>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 32 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+            className="relative rounded-[32px] border border-border/30 bg-gradient-card p-8 shadow-soft"
+          >
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Signal console</span>
+                <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em]">
+                  Live metrics
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+                </span>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {signalBoard.map((signal) => (
+                  <motion.div
+                    key={signal.label}
+                    whileHover={{ y: -4 }}
+                    className="rounded-2xl border border-border/30 bg-secondary/60 p-5 transition-shadow hover:shadow-soft-hover"
+                  >
+                    <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground/70">{signal.label}</p>
+                    <p className="mt-3 font-display text-3xl text-gradient">{signal.value}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">{signal.meta}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+            <div className="pointer-events-none absolute inset-x-6 -bottom-8 h-16 rounded-3xl bg-gradient-to-t from-primary/20 to-transparent blur-3xl" />
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="container-elegant pb-16">
+        <div className="grid gap-6 lg:grid-cols-[1fr,1.2fr]">
+          <div className="rounded-3xl border border-border/30 bg-secondary/65 p-8 shadow-soft">
+            <span className="pill-elegant w-fit">Creator lifecycle</span>
+            <h2 className="mt-6 font-display text-3xl text-foreground">
+              Everything you need to orchestrate a patron-first business.
+            </h2>
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-foreground/70">
+              Each phase of the journey is powered by modular workflows. Go from interest to investment with the same calm, doom-emacs inspired interface.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {lifecycle.map((item, idx) => (
+              <motion.div
+                key={item.stage}
+                initial={{ opacity: 0, x: 24 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.45, delay: idx * 0.08 }}
+                className="group relative overflow-hidden rounded-3xl border border-border/30 bg-secondary/60 p-6 transition hover:-translate-y-1 hover:shadow-soft-hover"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/40 bg-secondary/70 text-primary/90">
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.32em] text-muted-foreground/70">{String(idx + 1).padStart(2, "0")} • {item.stage}</p>
+                    <h3 className="mt-2 font-display text-xl text-foreground">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-foreground/70">
+                      {item.description}
+                    </p>
+                  </div>
                 </div>
+                <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-border/45 to-transparent" />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="container-elegant pb-16">
+        <div className="grid gap-8 lg:grid-cols-[1.15fr,1fr]">
+          <div className="space-y-6">
+            <span className="pill-elegant w-fit">Safety and scale</span>
+            <h2 className="font-display text-3xl text-foreground">
+              Built for the trust your patrons deserve, and the performance your brand demands.
+            </h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              {performanceData.map((item, idx) => (
+                <motion.div
+                  key={item.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
+                  className="rounded-2xl border border-border/30 bg-secondary/60 p-5 shadow-soft"
+                >
+                  <item.icon className="h-5 w-5 text-primary" />
+                  <p className="mt-4 font-display text-2xl text-gradient">{item.value}</p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.22em] text-muted-foreground">{item.label}</p>
+                </motion.div>
               ))}
             </div>
           </div>
-        </motion.div>
-      </section>
-
-      <section className="container-elegant pb-16">
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: stat.delay }}
-              className="rounded-3xl border border-border/40 bg-secondary/70 p-6 shadow-soft backdrop-blur-xl"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <span className="font-display text-3xl text-gradient">{stat.value}</span>
-                <span className="flex h-11 w-11 items-center justify-center rounded-full border border-border/40 bg-card/80">
-                  {stat.icon}
-                </span>
-              </div>
-              <p className="mt-4 text-sm text-muted-foreground">{stat.label}</p>
-            </motion.div>
-          ))}
+          <div className="grid gap-4">
+            {trustPillars.map((pillar, idx) => (
+              <motion.div
+                key={pillar.title}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.45, delay: idx * 0.07 }}
+                className="rounded-3xl border border-border/30 bg-secondary/60 p-6 shadow-soft hover:-translate-y-1 hover:shadow-soft-hover transition-transform"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/40 bg-secondary/70 text-primary/90">
+                    <pillar.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-lg text-foreground">{pillar.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-foreground/70">
+                      {pillar.description}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="container-elegant pb-16">
-        <div className="mb-10 flex flex-col gap-3">
-          <span className="pill-elegant w-fit">Why creators stay</span>
-          <h2 className="font-display text-3xl text-foreground sm:text-4xl">
-            An atelier of calm, conversion, and care
-          </h2>
-          <p className="max-w-3xl text-foreground/70">
-            Your audience experiences a refined journey from first pledge to lifelong patron. Fundify quietly handles the
-            revenue mechanics, compliance, and supporter rituals so you can focus on the work.
-          </p>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2">
-          {features.map((feature) => (
-            <div
-              key={feature.title}
-              className="relative overflow-hidden rounded-3xl border border-border/40 bg-secondary/70 p-8 shadow-soft transition hover:-translate-y-1 hover:shadow-soft-hover"
-            >
-              <div className="flex items-center gap-4">
-                <span className={`flex h-12 w-12 items-center justify-center rounded-full border border-border/40 ${feature.tone}`}>
-                  <feature.icon className="h-5 w-5" />
-                </span>
-                <h3 className="font-display text-xl text-foreground">{feature.title}</h3>
-              </div>
-              <p className="mt-4 text-sm leading-relaxed text-foreground/70">{feature.description}</p>
-              <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="container-elegant pb-16">
-        <div className="mb-10 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="pill-elegant w-fit">Trending studios</span>
-            <h2 className="font-display text-3xl text-foreground sm:text-4xl">Curated campaigns this week</h2>
-            <p className="mt-2 max-w-2xl text-foreground/70">
-              A glimpse at creators weaving memberships, live launches, and supporter perks into one steady rhythm.
-            </p>
+            <span className="pill-elegant w-fit">Live campaigns</span>
+            <h2 className="mt-4 font-display text-3xl text-foreground">
+              Funding stories unfolding inside the Fundify studio.
+            </h2>
           </div>
           <Button asChild variant="ghost" size="sm" className="hidden rounded-full border border-border/40 px-5 sm:inline-flex">
             <Link href="/campaigns" className="inline-flex items-center gap-2">
@@ -266,40 +327,65 @@ export default function Home() {
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {isLoading
-            ? fallbackCampaigns.map((_, index) => (
-                <div key={`campaign-skeleton-${index}`} className="rounded-3xl border border-border/40 bg-secondary/70 p-6 shadow-soft">
-                  <Skeleton className="h-48 w-full rounded-2xl" />
-                  <div className="mt-4 space-y-3">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-5/6" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </div>
-                </div>
-              ))
-            : campaigns.length > 0
-            ? campaigns.map((campaign) => (
-                <CampaignCard
-                  key={campaign.id}
-                  title={campaign.title}
-                  description={campaign.description}
-                  imageUrl={campaign.imageUrl}
-                  goal={campaign.goal || 0}
-                  currentAmount={campaign.currentAmount || 0}
-                  category={campaign.category || "CREATIVE"}
-                  daysRemaining={getDaysRemaining(campaign.endDate)}
-                  backers={campaign.backers || 0}
-                  slug={campaign.slug || campaign.id}
-                  className="rounded-3xl border border-border/40 bg-card/90 text-foreground shadow-soft transition hover:-translate-y-1 hover:shadow-soft-hover"
-                />
-              ))
-            : (
-              <div className="col-span-full rounded-3xl border border-border/40 bg-secondary/70 p-12 text-center text-muted-foreground">
-                No campaigns to showcase just yet. Launch yours to be featured.
+        <div className="mt-10 grid gap-6 lg:grid-cols-[1.2fr,1fr]">
+          <div className="rounded-[32px] border border-border/30 bg-secondary/60 p-6 shadow-soft">
+            {isLoading ? (
+              <div className="space-y-6">
+                <Skeleton className="h-64 w-full rounded-2xl" />
+                <Skeleton className="h-6 w-2/3" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-4/6" />
+              </div>
+            ) : spotlight ? (
+              <CampaignCard
+                title={spotlight.title}
+                description={spotlight.description}
+                imageUrl={spotlight.imageUrl}
+                goal={spotlight.goal || 0}
+                currentAmount={spotlight.currentAmount || 0}
+                category={spotlight.category || "CREATIVE"}
+                daysRemaining={getDaysRemaining(spotlight.endDate)}
+                backers={spotlight.backers || 0}
+                slug={spotlight.slug || spotlight.id}
+                className="rounded-3xl border border-border/30 bg-card/90 text-foreground shadow-soft hover:-translate-y-1 hover:shadow-soft-hover transition"
+              />
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center gap-3 rounded-3xl border border-border/30 bg-secondary/70 p-12 text-center text-muted-foreground">
+                <p>No campaigns to feature yet. Launch yours to claim the spotlight.</p>
+                <Button asChild variant="gradient" size="sm" className="rounded-full">
+                  <Link href="/campaigns/create">Launch a campaign</Link>
+                </Button>
               </div>
             )}
+          </div>
+
+          <div className="space-y-4">
+            {isLoading
+              ? Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={`secondary-skeleton-${idx}`} className="rounded-3xl border border-border/30 bg-secondary/60 p-5">
+                    <Skeleton className="h-40 w-full rounded-2xl" />
+                    <div className="mt-4 space-y-2">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-5/6" />
+                    </div>
+                  </div>
+                ))
+              : secondary.map((campaign) => (
+                  <CampaignCard
+                    key={campaign.id}
+                    title={campaign.title}
+                    description={campaign.description}
+                    imageUrl={campaign.imageUrl}
+                    goal={campaign.goal || 0}
+                    currentAmount={campaign.currentAmount || 0}
+                    category={campaign.category || "CREATIVE"}
+                    daysRemaining={getDaysRemaining(campaign.endDate)}
+                    backers={campaign.backers || 0}
+                    slug={campaign.slug || campaign.id}
+                    className="rounded-3xl border border-border/30 bg-secondary/60 text-foreground shadow-soft transition hover:-translate-y-1 hover:shadow-soft-hover"
+                  />
+                ))}
+          </div>
         </div>
 
         <div className="mt-8 flex justify-center sm:hidden">
@@ -313,27 +399,33 @@ export default function Home() {
       </section>
 
       <section className="container-elegant pb-24">
-        <div className="mb-10 flex flex-col gap-3">
-          <span className="pill-elegant w-fit">Refined results</span>
-          <h2 className="font-display text-3xl text-foreground sm:text-4xl">Creators who feel at home</h2>
+        <div className="mb-10 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <span className="pill-elegant w-fit">Creator voices</span>
+            <h2 className="mt-4 font-display text-3xl text-foreground">
+              Evidence from studios already thriving on Fundify.
+            </h2>
+          </div>
+          <Button asChild variant="gradient" size="sm" className="rounded-full">
+            <Link href="/creators">Discover creators</Link>
+          </Button>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
-          {testimonials.map((testimonial) => (
-            <div key={testimonial.name} className="bg-glass-card flex h-full flex-col gap-4 rounded-3xl p-8 shadow-soft">
-              <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={testimonial.image}
-                  alt={testimonial.name}
-                  className="h-12 w-12 rounded-full border border-border/40 object-cover"
-                />
-                <div>
-                  <p className="font-semibold text-foreground">{testimonial.name}</p>
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{testimonial.role}</p>
-                </div>
+          {testimonials.map((testimonial, idx) => (
+            <motion.div
+              key={testimonial.name}
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: idx * 0.08 }}
+              className="flex h-full flex-col justify-between rounded-3xl border border-border/30 bg-secondary/60 p-7 shadow-soft"
+            >
+              <p className="text-sm leading-relaxed text-foreground/80">“{testimonial.quote}”</p>
+              <div className="mt-6">
+                <p className="font-semibold text-foreground">{testimonial.name}</p>
+                <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">{testimonial.role}</p>
               </div>
-              <p className="text-sm leading-relaxed text-foreground/75">“{testimonial.quote}”</p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>

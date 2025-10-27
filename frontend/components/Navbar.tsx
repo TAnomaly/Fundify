@@ -204,42 +204,56 @@ export function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border/50 bg-secondary/80 backdrop-blur-2xl shadow-soft">
-      <div className="pointer-events-none absolute inset-x-0 top-full h-px bg-gradient-to-r from-transparent via-primary/45 to-transparent" />
+    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-secondary/70 backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-x-0 top-full h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
       <div className="container-elegant">
-        <div className="flex h-16 items-center justify-between gap-6">
+        <div className="flex h-[4.25rem] items-center justify-between gap-6">
           {/* Brand + Desktop Nav */}
-          <div className="flex items-center gap-3">
-            <Link href="/" className="relative group flex items-center gap-3 rounded-full px-2 py-1 transition hover:opacity-90">
-              <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-gradient-primary shadow-glow-sm ring-1 ring-border/40">
-                <span className="font-display text-lg text-primary-foreground">F</span>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/"
+              className="group flex items-center gap-3 rounded-full border border-border/30 bg-secondary/50 px-3 py-2 transition-colors hover:border-primary/40"
+            >
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary shadow-glow-sm ring-1 ring-border/40">
+                <span className="font-display text-[18px] leading-none text-primary-foreground">F</span>
               </div>
-              <span className="font-display text-2xl leading-none text-gradient">Fundify</span>
+              <div className="flex flex-col leading-none">
+                <span className="font-display text-[18px] uppercase tracking-[0.35em] text-gradient">
+                  Fundify
+                </span>
+                <span className="text-[10px] tracking-[0.45em] text-muted-foreground group-hover:text-primary/80 transition-colors">
+                  Patronage lab
+                </span>
+              </div>
             </Link>
 
-            <div className="hidden md:flex items-center gap-1 ml-6">
+            <div className="hidden md:flex items-center gap-1">
               {primaryLinks.map((item) => (
-                <Link key={item.href} href={item.href} className="group/link relative px-3 py-2 text-sm font-medium text-foreground/65 hover:text-foreground transition">
-                  <span className="inline-flex items-center gap-1">
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="group/link relative rounded-full px-3.5 py-2 text-[13px] font-medium tracking-wide text-foreground/70 transition hover:bg-secondary/60 hover:text-foreground"
+                >
+                  <span className="inline-flex items-center gap-1.5">
                     {item.icon}
                     {item.label}
                   </span>
-                  <span className="absolute left-3 right-3 -bottom-1 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-primary/70 via-primary/45 to-transparent transition-transform duration-300 group-hover/link:scale-x-100" />
+                  <span className="absolute inset-x-2 -bottom-[6px] h-px origin-left scale-x-0 bg-gradient-to-r from-primary/70 via-primary/45 to-transparent transition-transform duration-300 group-hover/link:scale-x-100" />
                 </Link>
               ))}
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {isLoggedIn && (
               <div className="relative" ref={notificationsRef}>
                 <button
                   onClick={toggleNotifications}
-                  className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border/50 bg-secondary/60 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-soft"
+                  className="relative flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-border/40 bg-secondary/55 backdrop-blur-lg transition-all hover:-translate-y-0.5 hover:shadow-soft"
                   aria-label="Notifications"
                 >
-                  <Bell className="w-5 h-5 text-foreground/75" />
+                  <Bell className="h-5 w-5 text-foreground/75" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 min-w-[18px] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold shadow-soft">
                       {unreadCount > 99 ? "99+" : unreadCount}
@@ -248,13 +262,13 @@ export function Navbar() {
                 </button>
 
                 {isNotificationsOpen && (
-                  <div className="absolute right-0 mt-3 w-80 rounded-2xl border border-border/40 bg-secondary/95 shadow-soft backdrop-blur-2xl z-50">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
-                      <p className="font-semibold">Notifications</p>
+                  <div className="absolute right-0 mt-3 w-80 rounded-3xl border border-border/30 bg-secondary/95 shadow-soft backdrop-blur-2xl z-50">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
+                      <p className="text-sm font-semibold tracking-wide text-foreground/90">Notifications</p>
                       {unreadCount > 0 && (
                         <button
                           onClick={handleMarkAllRead}
-                          className="text-xs font-medium text-primary hover:underline"
+                          className="text-[11px] font-medium uppercase tracking-[0.2em] text-primary hover:text-primary/80"
                         >
                           Mark all as read
                         </button>
@@ -262,7 +276,7 @@ export function Navbar() {
                     </div>
                     <div className="max-h-96 overflow-y-auto">
                       {isLoadingNotifications ? (
-                        <div className="p-4 text-sm text-muted-foreground">Loading...</div>
+                        <div className="p-5 text-sm text-muted-foreground">Loading...</div>
                       ) : notifications.length === 0 ? (
                         <div className="p-6 text-sm text-muted-foreground text-center">No notifications yet.</div>
                       ) : (
@@ -271,11 +285,11 @@ export function Navbar() {
                             key={notification.id}
                             onClick={() => handleNotificationClick(notification)}
                             className={`w-full text-left px-4 py-3 border-b border-border/30 transition ${
-                              notification.isRead ? "bg-secondary/70 hover:bg-muted/40" : "bg-muted/70 hover:bg-muted"
+                              notification.isRead ? "bg-secondary/70 hover:bg-secondary/60" : "bg-secondary/80 hover:bg-secondary/70"
                             }`}
                           >
                             <div className="flex items-start gap-3">
-                              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow-sm">
+                              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow-sm">
                                 {notification.actor?.avatar ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
@@ -325,22 +339,22 @@ export function Navbar() {
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-border/50 bg-secondary/60 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-soft"
+              className="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-border/40 bg-secondary/55 backdrop-blur-lg transition-all hover:-translate-y-0.5 hover:shadow-soft"
               aria-label="Toggle theme"
             >
               {theme === 'light' ? (
-                <Moon className="w-5 h-5 text-foreground/75" />
+                <Moon className="h-5 w-5 text-foreground/80" />
               ) : (
-                <Sun className="w-5 h-5 text-primary" />
+                <Sun className="h-5 w-5 text-primary" />
               )}
             </button>
 
             {/* Desktop CTA / Account */}
             <div className="hidden sm:flex items-center gap-2">
-              <Button asChild variant="outline" size="sm" className="rounded-full border-border/50 bg-secondary/50 text-foreground shadow-soft hover:bg-secondary/70">
+              <Button asChild variant="glass" size="sm" className="rounded-full border-border/30 bg-secondary/50 text-foreground hover:bg-secondary/60">
                 <Link href="/campaigns/create" className="inline-flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  Start Project
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Launch Project
                 </Link>
               </Button>
 
@@ -356,33 +370,33 @@ export function Navbar() {
                     </svg>
                   </button>
                   {showDropdown && (
-                    <div className="absolute right-0 mt-3 w-56 bg-secondary/95 border border-border/40 rounded-2xl shadow-soft py-2 backdrop-blur-2xl">
-                      <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition" onClick={() => setShowDropdown(false)}>
+                    <div className="absolute right-0 mt-3 w-56 rounded-3xl border border-border/30 bg-secondary/95 py-2 shadow-soft backdrop-blur-2xl">
+                      <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-secondary/70 transition" onClick={() => setShowDropdown(false)}>
                         <LayoutDashboard className="w-4 h-4" /> Dashboard
                       </Link>
-                      <Link href="/dashboard#my-campaigns" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition" onClick={() => setShowDropdown(false)}>
+                      <Link href="/dashboard#my-campaigns" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-secondary/70 transition" onClick={() => setShowDropdown(false)}>
                         <FolderKanban className="w-4 h-4" /> My Projects
                       </Link>
-                      <Link href="/creator-dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition" onClick={() => setShowDropdown(false)}>
+                      <Link href="/creator-dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-secondary/70 transition" onClick={() => setShowDropdown(false)}>
                         <Users className="w-4 h-4" /> Creator Hub
                       </Link>
-                      <Link href="/creator-dashboard/referrals" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition" onClick={() => setShowDropdown(false)}>
+                      <Link href="/creator-dashboard/referrals" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-secondary/70 transition" onClick={() => setShowDropdown(false)}>
                         <Sparkles className="w-4 h-4" /> Referral Program
                       </Link>
-                      <Link href="/subscriptions" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition" onClick={() => setShowDropdown(false)}>
+                      <Link href="/subscriptions" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-secondary/70 transition" onClick={() => setShowDropdown(false)}>
                         <CreditCard className="w-4 h-4" /> Subscriptions
                       </Link>
-                      <Link href="/purchases" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition" onClick={() => setShowDropdown(false)}>
+                      <Link href="/purchases" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-secondary/70 transition" onClick={() => setShowDropdown(false)}>
                         <ShoppingBag className="w-4 h-4" /> My Purchases
                       </Link>
                       <div className="my-1 border-t border-border/40" />
                       <Link href="/creators/me" className="flex items-center gap-3 px-4 py-3 text-sm font-medium bg-card/80 text-foreground hover:bg-card transition" onClick={() => setShowDropdown(false)}>
                         <User className="w-4 h-4" /> View Profile
                       </Link>
-                      <Link href="/creator-dashboard/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition" onClick={() => setShowDropdown(false)}>
+                      <Link href="/creator-dashboard/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-secondary/70 transition" onClick={() => setShowDropdown(false)}>
                         <Settings className="w-4 h-4" /> Settings
                       </Link>
-                      <Link href="/dashboard#my-donations" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition" onClick={() => setShowDropdown(false)}>
+                      <Link href="/dashboard#my-donations" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-secondary/70 transition" onClick={() => setShowDropdown(false)}>
                         <Heart className="w-4 h-4" /> Contributions
                       </Link>
                       <hr className="my-2 border-border/40" />
@@ -403,21 +417,24 @@ export function Navbar() {
             <div className="sm:hidden">
               <Dialog open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <DialogTrigger asChild>
-                  <button aria-label="Open menu" className="flex h-11 w-11 items-center justify-center rounded-full border border-border/50 bg-secondary/60 backdrop-blur-xl shadow-soft hover:-translate-y-0.5 transition">
-                    <Menu className="w-5 h-5" />
+                  <button aria-label="Open menu" className="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-border/40 bg-secondary/55 backdrop-blur-lg shadow-soft hover:-translate-y-0.5 transition">
+                    <Menu className="h-5 w-5" />
                   </button>
                 </DialogTrigger>
-                <DialogContent className="p-0 w-[90vw] max-w-sm overflow-hidden border border-border/40 bg-secondary/95 backdrop-blur-2xl [&>button[data-radix-dialog-close]]:hidden">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-primary shadow-glow-sm ring-1 ring-border/30">
+                <DialogContent className="w-[90vw] max-w-sm overflow-hidden border border-border/30 bg-secondary/95 p-0 backdrop-blur-2xl [&>button[data-radix-dialog-close]]:hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary shadow-glow-sm ring-1 ring-border/30">
                         <span className="font-display text-base text-primary-foreground">F</span>
                       </div>
-                      <span className="font-display text-xl text-gradient">Fundify</span>
+                      <div className="flex flex-col leading-none">
+                        <span className="font-display text-[15px] uppercase tracking-[0.32em] text-gradient">Fundify</span>
+                        <span className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground">Creator futures</span>
+                      </div>
                     </div>
                     <DialogClose asChild>
-                      <button className="flex h-9 w-9 items-center justify-center rounded-full border border-border/50 hover:bg-muted/60 transition" aria-label="Close menu">
-                        <X className="w-4 h-4" />
+                      <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/40 hover:bg-secondary/60 transition" aria-label="Close menu">
+                        <X className="h-4 w-4" />
                       </button>
                     </DialogClose>
                   </div>
@@ -426,7 +443,7 @@ export function Navbar() {
                       <DialogClose asChild key={item.href}>
                         <Link
                           href={item.href}
-                          className="block rounded-xl px-3 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition"
+                          className="block rounded-xl px-3 py-3 text-sm font-medium text-foreground/80 transition hover:bg-secondary/70 hover:text-foreground"
                         >
                           {item.label}
                         </Link>
@@ -439,7 +456,7 @@ export function Navbar() {
                           href="/campaigns/create"
                           className="block rounded-full px-3 py-3 text-sm font-semibold bg-gradient-primary text-primary-foreground text-center shadow-soft"
                         >
-                          Start Project
+                          Launch Project
                         </Link>
                       </DialogClose>
                     </div>
@@ -452,7 +469,7 @@ export function Navbar() {
                         <DialogClose asChild>
                           <Link
                             href="/dashboard"
-                            className="block rounded-xl px-3 py-3 hover:bg-muted/40"
+                            className="block rounded-xl px-3 py-3 hover:bg-secondary/70"
                           >
                             Dashboard
                           </Link>
@@ -460,7 +477,7 @@ export function Navbar() {
                         <DialogClose asChild>
                           <Link
                             href="/creator-dashboard"
-                            className="block rounded-xl px-3 py-3 hover:bg-muted/40"
+                            className="block rounded-xl px-3 py-3 hover:bg-secondary/70"
                           >
                             Creator Hub
                           </Link>

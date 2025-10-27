@@ -39,15 +39,17 @@ export function AuroraBackground({
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-background text-foreground",
+        "relative isolate overflow-hidden bg-background text-foreground",
         className
       )}
       onMouseMove={handleMouseMove}
       {...props}
     >
+      <div className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(circle_at_top_left,rgba(224,192,132,0.08),transparent_60%),radial-gradient(circle_at_bottom_right,rgba(60,70,104,0.12),transparent_65%)]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.12] [background-image:linear-gradient(to_right,rgba(224,192,132,0.25)_1px,transparent_1px),linear-gradient(to_bottom,rgba(224,192,132,0.18)_1px,transparent_1px)] [background-size:80px_80px]" />
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 blur-3xl"
+        className="pointer-events-none absolute inset-0 -z-10 blur-3xl"
         style={{
           opacity: gradientOpacity,
           background:
@@ -57,12 +59,13 @@ export function AuroraBackground({
       />
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.22),rgba(255,255,255,0))]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.22),rgba(255,255,255,0))]"
         style={{
           maskImage,
           WebkitMaskImage: maskImage as any,
         }}
       />
+      <div className="pointer-events-none absolute inset-x-6 bottom-12 -z-10 h-24 rounded-3xl border border-border/40 bg-gradient-to-t from-secondary/60 to-transparent blur-2xl" />
       <div className="relative z-10">{children}</div>
     </div>
   );

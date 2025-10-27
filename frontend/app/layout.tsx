@@ -62,7 +62,8 @@ export default function RootLayout({
       >
         <Toaster position="top-right" />
         <AuroraBackground className="min-h-screen">
-          <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(68,79,104,0.22)_1px,transparent_1px)] [background-size:72px_72px] opacity-30 pointer-events-none dark:opacity-40" />
+          <div className="fixed inset-0 -z-10 opacity-40 pointer-events-none [background-image:linear-gradient(to_right,rgba(224,192,132,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(224,192,132,0.08)_1px,transparent_1px)] [background-size:88px_88px]" />
+          <div className="fixed inset-x-6 top-10 -z-10 h-24 rounded-3xl bg-gradient-to-r from-transparent via-primary/15 to-transparent blur-3xl" />
           <Navbar />
           <main className="flex-1">{children}</main>
           <footer className="mt-24 border-t border-border/50 bg-background/80 backdrop-blur-2xl">
