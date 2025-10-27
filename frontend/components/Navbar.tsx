@@ -27,7 +27,6 @@ import { Dialog, DialogContent, DialogTrigger, DialogClose } from "@/components/
 import { notificationApi } from "@/lib/api";
 import { NotificationItem } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
@@ -205,8 +204,8 @@ export function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-2xl shadow-[0_22px_68px_-48px_rgba(36,24,12,0.6)]">
-      <div className="pointer-events-none absolute inset-x-0 top-full h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
+    <nav className="sticky top-0 z-50 w-full border-b border-border/50 bg-secondary/80 backdrop-blur-2xl shadow-soft">
+      <div className="pointer-events-none absolute inset-x-0 top-full h-px bg-gradient-to-r from-transparent via-primary/45 to-transparent" />
       <div className="container-elegant">
         <div className="flex h-16 items-center justify-between gap-6">
           {/* Brand + Desktop Nav */}
@@ -220,12 +219,12 @@ export function Navbar() {
 
             <div className="hidden md:flex items-center gap-1 ml-6">
               {primaryLinks.map((item) => (
-                <Link key={item.href} href={item.href} className="group/link relative px-3 py-2 text-sm font-medium text-foreground/70 hover:text-foreground transition">
+                <Link key={item.href} href={item.href} className="group/link relative px-3 py-2 text-sm font-medium text-foreground/65 hover:text-foreground transition">
                   <span className="inline-flex items-center gap-1">
                     {item.icon}
                     {item.label}
                   </span>
-                  <span className="absolute left-3 right-3 -bottom-1 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-primary/60 via-primary/40 to-transparent transition-transform duration-300 group-hover/link:scale-x-100" />
+                  <span className="absolute left-3 right-3 -bottom-1 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-primary/70 via-primary/45 to-transparent transition-transform duration-300 group-hover/link:scale-x-100" />
                 </Link>
               ))}
             </div>
@@ -237,10 +236,10 @@ export function Navbar() {
               <div className="relative" ref={notificationsRef}>
                 <button
                   onClick={toggleNotifications}
-                  className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-white/75 dark:bg-background/60 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-soft"
+                  className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border/50 bg-secondary/60 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-soft"
                   aria-label="Notifications"
                 >
-                  <Bell className="w-5 h-5 text-foreground/70" />
+                  <Bell className="w-5 h-5 text-foreground/75" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 min-w-[18px] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold shadow-soft">
                       {unreadCount > 99 ? "99+" : unreadCount}
@@ -249,7 +248,7 @@ export function Navbar() {
                 </button>
 
                 {isNotificationsOpen && (
-                  <div className="absolute right-0 mt-3 w-80 rounded-2xl border border-border/50 bg-background/95 shadow-soft backdrop-blur-xl z-50">
+                  <div className="absolute right-0 mt-3 w-80 rounded-2xl border border-border/40 bg-secondary/95 shadow-soft backdrop-blur-2xl z-50">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
                       <p className="font-semibold">Notifications</p>
                       {unreadCount > 0 && (
@@ -272,7 +271,7 @@ export function Navbar() {
                             key={notification.id}
                             onClick={() => handleNotificationClick(notification)}
                             className={`w-full text-left px-4 py-3 border-b border-border/30 transition ${
-                              notification.isRead ? "bg-background hover:bg-muted/40" : "bg-muted/70 hover:bg-muted"
+                              notification.isRead ? "bg-secondary/70 hover:bg-muted/40" : "bg-muted/70 hover:bg-muted"
                             }`}
                           >
                             <div className="flex items-start gap-3">
@@ -326,11 +325,11 @@ export function Navbar() {
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-white/75 dark:bg-background/60 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-soft"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border/50 bg-secondary/60 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-soft"
               aria-label="Toggle theme"
             >
               {theme === 'light' ? (
-                <Moon className="w-5 h-5 text-foreground/70" />
+                <Moon className="w-5 h-5 text-foreground/75" />
               ) : (
                 <Sun className="w-5 h-5 text-primary" />
               )}
@@ -338,7 +337,7 @@ export function Navbar() {
 
             {/* Desktop CTA / Account */}
             <div className="hidden sm:flex items-center gap-2">
-              <Button asChild variant="outline" size="sm" className="rounded-full border-border/60 bg-white/70 dark:bg-background/60 text-foreground shadow-soft hover:bg-secondary/40">
+              <Button asChild variant="outline" size="sm" className="rounded-full border-border/50 bg-secondary/50 text-foreground shadow-soft hover:bg-secondary/70">
                 <Link href="/campaigns/create" className="inline-flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-primary" />
                   Start Project
@@ -357,7 +356,7 @@ export function Navbar() {
                     </svg>
                   </button>
                   {showDropdown && (
-                    <div className="absolute right-0 mt-3 w-56 bg-background/95 border border-border/50 rounded-2xl shadow-soft py-2 backdrop-blur-2xl">
+                    <div className="absolute right-0 mt-3 w-56 bg-secondary/95 border border-border/40 rounded-2xl shadow-soft py-2 backdrop-blur-2xl">
                       <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition" onClick={() => setShowDropdown(false)}>
                         <LayoutDashboard className="w-4 h-4" /> Dashboard
                       </Link>
@@ -377,7 +376,7 @@ export function Navbar() {
                         <ShoppingBag className="w-4 h-4" /> My Purchases
                       </Link>
                       <div className="my-1 border-t border-border/40" />
-                      <Link href="/creators/me" className="flex items-center gap-3 px-4 py-3 text-sm font-medium bg-secondary/40 text-foreground hover:bg-secondary/60 transition" onClick={() => setShowDropdown(false)}>
+                      <Link href="/creators/me" className="flex items-center gap-3 px-4 py-3 text-sm font-medium bg-card/80 text-foreground hover:bg-card transition" onClick={() => setShowDropdown(false)}>
                         <User className="w-4 h-4" /> View Profile
                       </Link>
                       <Link href="/creator-dashboard/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground transition" onClick={() => setShowDropdown(false)}>
@@ -404,11 +403,11 @@ export function Navbar() {
             <div className="sm:hidden">
               <Dialog open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <DialogTrigger asChild>
-                  <button aria-label="Open menu" className="flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-white/75 dark:bg-background/60 backdrop-blur-xl shadow-soft hover:-translate-y-0.5 transition">
+                  <button aria-label="Open menu" className="flex h-11 w-11 items-center justify-center rounded-full border border-border/50 bg-secondary/60 backdrop-blur-xl shadow-soft hover:-translate-y-0.5 transition">
                     <Menu className="w-5 h-5" />
                   </button>
                 </DialogTrigger>
-                <DialogContent className="p-0 w-[90vw] max-w-sm overflow-hidden border border-border/50 bg-background/95 backdrop-blur-2xl [&>button[data-radix-dialog-close]]:hidden">
+                <DialogContent className="p-0 w-[90vw] max-w-sm overflow-hidden border border-border/40 bg-secondary/95 backdrop-blur-2xl [&>button[data-radix-dialog-close]]:hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
                     <div className="flex items-center gap-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-primary shadow-glow-sm ring-1 ring-border/30">

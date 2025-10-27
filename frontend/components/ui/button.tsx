@@ -10,19 +10,19 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5",
+          "bg-gradient-primary text-primary-foreground shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/85 shadow-soft",
         outline:
-          "border border-border/60 bg-background text-foreground shadow-soft hover:bg-secondary/40",
+          "border border-border/50 bg-secondary/40 text-foreground shadow-soft hover:bg-secondary/60",
         secondary:
           "bg-secondary text-secondary-foreground shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5",
-        ghost: "border border-transparent bg-transparent text-foreground hover:border-border/40 hover:bg-muted/40",
+        ghost: "border border-transparent bg-transparent text-foreground/80 hover:border-border/40 hover:bg-secondary/40 hover:text-foreground",
         link: "text-primary underline-offset-4 hover:text-foreground hover:underline",
         gradient:
           "bg-gradient-primary text-primary-foreground shadow-glow-md hover:shadow-glow-lg hover:-translate-y-0.5",
         glass:
-          "bg-white/40 dark:bg-background/60 backdrop-blur-lg border border-border/40 text-foreground hover:bg-white/55 dark:hover:bg-background/65 shadow-soft",
+          "bg-card/30 backdrop-blur-lg border border-border/40 text-foreground hover:bg-card/40 shadow-soft",
         success:
           "bg-gradient-success text-white shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5",
       },

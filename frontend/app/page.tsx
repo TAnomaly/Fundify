@@ -35,28 +35,28 @@ const features: { icon: LucideIcon; title: string; description: string; tone: st
     title: "Memberships with narrative arcs",
     description:
       "Design tiered patronage, release long-form drops, and send private notes — all with elegant templates that respect your voice.",
-    tone: "bg-secondary/50 text-primary",
+    tone: "bg-card/80 text-primary",
   },
   {
     icon: Coins,
     title: "Campaigns that convert with calm",
     description:
       "Flexible funding models, limited editions, and transparent milestone tracking nurture trust with every supporter update.",
-    tone: "bg-accent/50 text-primary",
+    tone: "bg-secondary/60 text-primary",
   },
   {
     icon: Globe,
     title: "Events and experiences in concert",
     description:
       "Schedule livestreams, salons, and tours with RSVP workflows, ticketing, and follow-up sequences that feel bespoke.",
-    tone: "bg-muted/70 text-primary",
+    tone: "bg-muted/60 text-primary",
   },
   {
     icon: Heart,
     title: "Supporter care, beautifully handled",
     description:
       "Segmented messaging, gratitude automations, and quiet analytics help you respond thoughtfully at scale.",
-    tone: "bg-secondary/60 text-primary",
+    tone: "bg-card/70 text-primary",
   },
 ];
 
@@ -152,12 +152,13 @@ export default function Home() {
           initial={{ opacity: 0, y: 26 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative overflow-hidden rounded-[32px] border border-border/50 bg-white/75 px-8 py-16 shadow-soft dark:bg-background/65"
+          className="relative overflow-hidden rounded-[32px] border border-border/40 bg-secondary/70 px-8 py-16 shadow-soft"
         >
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-white/70 via-secondary/30 to-transparent dark:from-background/80 dark:via-secondary/40" />
-          <div className="pointer-events-none absolute inset-0 -z-10 [background:radial-gradient(circle_at_top_left,rgba(193,158,108,0.24),transparent_65%)]" />
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-secondary/75 via-secondary/50 to-background/70" />
+          <div className="pointer-events-none absolute inset-0 -z-10 [background:radial-gradient(90%_60%_at_10%_0%,rgba(245,241,230,0.18),transparent_70%)]" />
+          <div className="pointer-events-none absolute inset-0 -z-10 [background:radial-gradient(80%_70%_at_85%_15%,rgba(91,106,147,0.22),transparent_72%)]" />
           <div className="relative flex flex-col gap-8">
-            <span className="pill-elegant w-fit bg-white/80 text-foreground/70 dark:bg-background/70">
+            <span className="pill-elegant w-fit bg-card/80 text-foreground/80">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               Patronage with poise
             </span>
@@ -184,7 +185,7 @@ export default function Home() {
             <div className="mt-6 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
               {trustSignals.map((signal) => (
                 <div key={signal.label} className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-border/40 bg-secondary/40 text-primary">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-border/40 bg-card/70 text-primary">
                     <signal.icon className="h-4 w-4" />
                   </span>
                   <span className="max-w-[150px] leading-relaxed">{signal.label}</span>
@@ -204,11 +205,11 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: stat.delay }}
-              className="rounded-3xl border border-border/40 bg-card/70 p-6 shadow-soft backdrop-blur-xl"
+              className="rounded-3xl border border-border/40 bg-secondary/70 p-6 shadow-soft backdrop-blur-xl"
             >
               <div className="flex items-center justify-between gap-4">
                 <span className="font-display text-3xl text-gradient">{stat.value}</span>
-                <span className="flex h-11 w-11 items-center justify-center rounded-full border border-border/40 bg-secondary/40">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full border border-border/40 bg-card/80">
                   {stat.icon}
                 </span>
               </div>
@@ -233,7 +234,7 @@ export default function Home() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="relative overflow-hidden rounded-3xl border border-border/50 bg-card/70 p-8 shadow-soft transition hover:-translate-y-1 hover:shadow-soft-hover"
+              className="relative overflow-hidden rounded-3xl border border-border/40 bg-secondary/70 p-8 shadow-soft transition hover:-translate-y-1 hover:shadow-soft-hover"
             >
               <div className="flex items-center gap-4">
                 <span className={`flex h-12 w-12 items-center justify-center rounded-full border border-border/40 ${feature.tone}`}>
@@ -268,7 +269,7 @@ export default function Home() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {isLoading
             ? fallbackCampaigns.map((_, index) => (
-                <div key={`campaign-skeleton-${index}`} className="rounded-3xl border border-border/50 bg-card/70 p-6 shadow-soft">
+                <div key={`campaign-skeleton-${index}`} className="rounded-3xl border border-border/40 bg-secondary/70 p-6 shadow-soft">
                   <Skeleton className="h-48 w-full rounded-2xl" />
                   <div className="mt-4 space-y-3">
                     <Skeleton className="h-5 w-3/4" />
@@ -291,11 +292,11 @@ export default function Home() {
                   daysRemaining={getDaysRemaining(campaign.endDate)}
                   backers={campaign.backers || 0}
                   slug={campaign.slug || campaign.id}
-                  className="rounded-3xl border border-border/40 bg-white/80 text-foreground shadow-soft transition hover:-translate-y-1 hover:shadow-soft-hover dark:bg-background/70"
+                  className="rounded-3xl border border-border/40 bg-card/90 text-foreground shadow-soft transition hover:-translate-y-1 hover:shadow-soft-hover"
                 />
               ))
             : (
-              <div className="col-span-full rounded-3xl border border-border/50 bg-card/70 p-12 text-center text-muted-foreground">
+              <div className="col-span-full rounded-3xl border border-border/40 bg-secondary/70 p-12 text-center text-muted-foreground">
                 No campaigns to showcase just yet. Launch yours to be featured.
               </div>
             )}

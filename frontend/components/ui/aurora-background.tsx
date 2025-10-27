@@ -9,15 +9,10 @@ interface AuroraBackgroundProps extends React.HTMLAttributes<HTMLDivElement> {
   gradientOpacity?: number;
 }
 
-/**
- * AuroraBackground renders a soft animated gradient backdrop inspired by the Monokai Pro palette.
- * It leverages a single absolutely positioned motion.div to keep runtime cost minimal while
- * still providing a premium feel. The component is safe to use across the app layout.
- */
 export function AuroraBackground({
   children,
   className,
-  gradientOpacity = 0.55,
+  gradientOpacity = 0.45,
   ...props
 }: AuroraBackgroundProps) {
   const mouseX = useMotionValue(0);
@@ -56,13 +51,13 @@ export function AuroraBackground({
         style={{
           opacity: gradientOpacity,
           background:
-            "radial-gradient(40% 35% at 15% 20%, rgba(193,158,108,0.4), transparent 70%), radial-gradient(36% 32% at 80% 12%, rgba(134,158,168,0.35), transparent 75%), radial-gradient(65% 45% at 50% 85%, rgba(160,173,150,0.32), transparent 70%)",
+            "radial-gradient(38% 30% at 18% 18%, rgba(245,241,230,0.22), transparent 72%), radial-gradient(42% 36% at 82% 15%, rgba(86,101,140,0.34), transparent 78%), radial-gradient(60% 46% at 48% 88%, rgba(37,40,60,0.55), transparent 75%)",
         }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       />
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.3),rgba(255,255,255,0))]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.22),rgba(255,255,255,0))]"
         style={{
           maskImage,
           WebkitMaskImage: maskImage as any,

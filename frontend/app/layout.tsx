@@ -50,7 +50,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="light">
+    <html lang="en" suppressHydrationWarning className="dark">
       <head />
       <body
         className={cn(
@@ -62,7 +62,7 @@ export default function RootLayout({
       >
         <Toaster position="top-right" />
         <AuroraBackground className="min-h-screen">
-          <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(193,158,108,0.08)_1px,transparent_1px)] [background-size:80px_80px] opacity-30 pointer-events-none" />
+          <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(68,79,104,0.22)_1px,transparent_1px)] [background-size:72px_72px] opacity-30 pointer-events-none dark:opacity-40" />
           <Navbar />
           <main className="flex-1">{children}</main>
           <footer className="mt-24 border-t border-border/50 bg-background/80 backdrop-blur-2xl">
