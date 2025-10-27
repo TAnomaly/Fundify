@@ -92,7 +92,12 @@ export default function CreatorProfilePage() {
           const token = localStorage.getItem("authToken");
           response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/posts/creator/${profile.user.id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
           if (response.data.success) {
-            setPosts(response.data.data.posts || []);
+            // Map isLiked to hasLiked for consistency
+            const posts = (response.data.data.posts || []).map((post: any) => ({
+              ...post,
+              hasLiked: post.isLiked ?? post.hasLiked ?? false
+            }));
+            setPosts(posts);
           }
           break;
         }
