@@ -302,11 +302,13 @@ async fn get_posts_by_creator(
             u.avatar as author_avatar,
             u.is_creator as author_is_creator,
             COALESCE(l.like_count, 0) as like_count,
-            COALESCE(c.comment_count, 0) as comment_count
+            COALESCE(c.comment_count, 0) as comment_count,
+            CASE WHEN ul.user_id IS NOT NULL THEN true ELSE false END as user_liked
         FROM posts p
         LEFT JOIN users u ON p.user_id = u.id
         LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM post_likes GROUP BY post_id) l ON l.post_id = p.id
         LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM post_comments GROUP BY post_id) c ON c.post_id = p.id
+        LEFT JOIN post_likes ul ON ul.post_id = p.id AND ul.user_id = $4
         WHERE p.user_id = $1
         ORDER BY p.created_at DESC
         LIMIT $2 OFFSET $3
@@ -315,6 +317,7 @@ async fn get_posts_by_creator(
     .bind(&user_id)
     .bind(limit as i64)
     .bind(offset as i64)
+    .bind(params.current_user_id.as_ref().unwrap_or(&"".to_string()))
     .fetch_all(&db.pool)
     .await
     .map_err(|e| {
