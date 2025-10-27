@@ -4,27 +4,27 @@
 
 @layer base {
   :root {
-    /* Egg shell white & sage green renaissance palette */
-    --background: 40 45% 98%;           /* Warm egg shell white */
+    /* Doom Emacs inspired with sage green & egg shell white */
+    --background: 0 0% 98%;             /* Doom light background #fafafa */
     --foreground: 145 22% 18%;          /* Deep forest green for text */
-    --card: 42 55% 99%;                 /* Pure egg shell cards */
+    --card: 0 0% 99%;                   /* Almost white cards */
     --card-foreground: 145 22% 18%;
-    --popover: 42 58% 99%;
+    --popover: 0 0% 99%;
     --popover-foreground: 145 22% 18%;
     --primary: 145 38% 42%;             /* Sage green primary */
-    --primary-foreground: 40 60% 99%;
-    --secondary: 145 15% 92%;           /* Soft sage mist */
+    --primary-foreground: 0 0% 99%;
+    --secondary: 145 12% 94%;           /* Soft sage mist */
     --secondary-foreground: 145 24% 22%;
     --accent: 38 45% 65%;               /* Warm terracotta accent */
     --accent-foreground: 145 22% 18%;
     --destructive: 6 55% 48%;
-    --destructive-foreground: 40 60% 99%;
-    --muted: 145 12% 88%;               /* Pale sage */
+    --destructive-foreground: 0 0% 99%;
+    --muted: 145 10% 90%;               /* Pale sage */
     --muted-foreground: 145 16% 38%;
-    --border: 145 18% 82%;              /* Sage border */
-    --input: 145 20% 85%;
+    --border: 145 15% 85%;              /* Sage border */
+    --input: 145 15% 88%;
     --ring: 145 38% 42%;
-    --radius: 0.5rem;                   /* Softer corners for renaissance feel */
+    --radius: 0.5rem;
     --chart-1: 145 38% 42%;
     --chart-2: 38 45% 65%;
     --chart-3: 165 32% 48%;
@@ -33,30 +33,31 @@
   }
 
   .dark {
-    --background: 145 20% 12%;
-    --foreground: 40 48% 94%;
-    --card: 145 22% 16%;
-    --card-foreground: 40 48% 94%;
-    --popover: 145 22% 16%;
-    --popover-foreground: 40 48% 94%;
-    --primary: 145 35% 48%;
-    --primary-foreground: 40 60% 99%;
-    --secondary: 145 18% 22%;
-    --secondary-foreground: 40 48% 94%;
-    --accent: 38 42% 58%;
-    --accent-foreground: 40 60% 99%;
-    --destructive: 6 55% 48%;
-    --destructive-foreground: 40 60% 99%;
-    --muted: 145 16% 24%;
-    --muted-foreground: 40 35% 68%;
-    --border: 145 18% 28%;
-    --input: 145 18% 28%;
-    --ring: 145 35% 48%;
-    --chart-1: 145 35% 48%;
-    --chart-2: 38 42% 58%;
-    --chart-3: 165 28% 45%;
-    --chart-4: 35 45% 52%;
-    --chart-5: 155 25% 48%;
+    /* Doom Emacs dark (#282c34) with sage green accents */
+    --background: 215 14% 20%;          /* Doom dark #282c34 */
+    --foreground: 0 0% 95%;
+    --card: 215 14% 23%;                /* Slightly lighter than bg */
+    --card-foreground: 0 0% 95%;
+    --popover: 215 14% 23%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 145 40% 55%;             /* Brighter sage for dark mode */
+    --primary-foreground: 215 14% 20%;
+    --secondary: 215 12% 30%;
+    --secondary-foreground: 0 0% 95%;
+    --accent: 38 50% 60%;               /* Warmer terracotta for dark */
+    --accent-foreground: 0 0% 95%;
+    --destructive: 6 60% 55%;
+    --destructive-foreground: 0 0% 95%;
+    --muted: 215 12% 35%;
+    --muted-foreground: 0 0% 70%;
+    --border: 215 12% 35%;
+    --input: 215 12% 35%;
+    --ring: 145 40% 55%;
+    --chart-1: 145 40% 55%;
+    --chart-2: 38 50% 60%;
+    --chart-3: 165 35% 50%;
+    --chart-4: 35 50% 55%;
+    --chart-5: 155 30% 50%;
   }
 }
 
@@ -70,16 +71,10 @@
     font-feature-settings: "liga" 1, "calt" 1, "ss01" 1;
     font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background-color: hsl(var(--background));
-    /* Renaissance-inspired subtle texture */
+    /* Doom Emacs inspired subtle texture */
     background-image:
-      radial-gradient(ellipse 140% 100% at 15% -5%, rgba(145, 160, 145, 0.08), transparent 50%),
-      radial-gradient(ellipse 120% 140% at 90% 10%, rgba(235, 225, 210, 0.12), transparent 60%),
-      linear-gradient(180deg,
-        hsl(40 45% 98%) 0%,
-        hsl(145 15% 96%) 35%,
-        hsl(40 35% 97%) 70%,
-        hsl(145 12% 95%) 100%
-      );
+      radial-gradient(ellipse 140% 100% at 15% -5%, rgba(145, 160, 145, 0.05), transparent 50%),
+      radial-gradient(ellipse 120% 140% at 90% 10%, rgba(120, 140, 120, 0.04), transparent 60%);
     background-attachment: fixed;
     color: hsl(var(--foreground));
     line-height: 1.65;
