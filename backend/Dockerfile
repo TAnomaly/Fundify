@@ -11,14 +11,18 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy Cargo.toml only (let Cargo.lock be generated)
-COPY Cargo.toml ./
+# Copy Cargo files
+COPY Cargo.toml Cargo.lock ./
 
 # Copy the actual source code
 COPY src ./src
 
 # Build the application (Cargo will resolve dependencies)
 RUN cargo build --release
+
+# Verify binary was built and make executable
+RUN ls -lh target/release/funify-backend && \
+    chmod +x target/release/funify-backend
 
 # Expose port
 EXPOSE 4000
