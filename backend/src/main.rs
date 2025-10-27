@@ -1,5 +1,5 @@
 use axum::{
-    extract::DefaultBodyLimit,
+    extract::{DefaultBodyLimit, State},
     http::{HeaderName, HeaderValue, Method, StatusCode},
     response::Json,
     routing::get,
@@ -97,6 +97,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/health", get(health_check))
+        .route("/redis/stats", get(redis_stats))
         .nest("/api/auth", auth_routes())
         .nest("/api/users", user_routes())
         .nest("/api/creators", creator_routes())
@@ -136,6 +137,33 @@ async fn main() -> anyhow::Result<()> {
 
 async fn health_check() -> &'static str {
     "OK"
+}
+
+async fn redis_stats(State(db): State<Database>) -> Result<Json<serde_json::Value>, StatusCode> {
+    if let Some(redis) = &db.redis {
+        let mut redis_clone = redis.clone();
+        match redis_clone.get_stats().await {
+            Ok(stats) => Ok(Json(serde_json::json!({
+                "success": true,
+                "redis_connected": true,
+                "stats": stats
+            }))),
+            Err(e) => {
+                tracing::error!("Redis stats error: {}", e);
+                Ok(Json(serde_json::json!({
+                    "success": false,
+                    "redis_connected": true,
+                    "error": "Failed to get stats"
+                })))
+            }
+        }
+    } else {
+        Ok(Json(serde_json::json!({
+            "success": false,
+            "redis_connected": false,
+            "message": "Redis not configured"
+        })))
+    }
 }
 
 async fn get_notifications() -> Result<Json<serde_json::Value>, StatusCode> {
