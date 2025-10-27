@@ -8,6 +8,7 @@ use axum::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sqlx::Row;
 use uuid::Uuid;
 
 use crate::{auth::Claims, database::Database, models::CreatePostRequest};
@@ -83,6 +84,10 @@ pub fn post_routes() -> Router<Database> {
         .route("/:id", get(get_post_by_id))
         .route("/:id", put(update_post))
         .route("/:id", delete(delete_post))
+        .route("/:id/like", post(like_post))
+        .route("/:id/unlike", post(unlike_post))
+        .route("/:id/comments", get(get_post_comments).post(add_post_comment))
+        .route("/:id/comments/:comment_id", delete(delete_post_comment))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -790,4 +795,171 @@ async fn fetch_post_with_author(db: &Database, post_id: Uuid) -> Result<PostReco
             StatusCode::INTERNAL_SERVER_ERROR
         }
     })
+}
+
+// Like a post
+async fn like_post(
+    State(db): State<Database>,
+    Path(id): Path<Uuid>,
+    claims: Claims,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    sqlx::query(
+        r#"
+        INSERT INTO post_likes (post_id, user_id, created_at)
+        VALUES ($1, $2, NOW())
+        ON CONFLICT (post_id, user_id) DO NOTHING
+        "#
+    )
+    .bind(id)
+    .bind(&claims.sub)
+    .execute(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let likes_count = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*)::BIGINT FROM post_likes WHERE post_id = $1"
+    )
+    .bind(id)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({
+        "success": true,
+        "data": {
+            "liked": true,
+            "likesCount": likes_count
+        }
+    })))
+}
+
+// Unlike a post
+async fn unlike_post(
+    State(db): State<Database>,
+    Path(id): Path<Uuid>,
+    claims: Claims,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    sqlx::query(
+        "DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2"
+    )
+    .bind(id)
+    .bind(&claims.sub)
+    .execute(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let likes_count = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*)::BIGINT FROM post_likes WHERE post_id = $1"
+    )
+    .bind(id)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({
+        "success": true,
+        "data": {
+            "liked": false,
+            "likesCount": likes_count
+        }
+    })))
+}
+
+// Get post comments
+async fn get_post_comments(
+    State(db): State<Database>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let comments = sqlx::query(
+        r#"
+        SELECT 
+            pc.id,
+            pc.user_id,
+            pc.content,
+            pc.created_at,
+            u.username,
+            u.avatar_url
+        FROM post_comments pc
+        LEFT JOIN users u ON pc.user_id = u.id
+        WHERE pc.post_id = $1
+        ORDER BY pc.created_at DESC
+        "#
+    )
+    .bind(id)
+    .fetch_all(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let comment_list: Vec<serde_json::Value> = comments
+        .iter()
+        .map(|row| {
+            json!({
+                "id": row.try_get::<Uuid, _>("id").unwrap(),
+                "userId": row.try_get::<String, _>("user_id").unwrap(),
+                "content": row.try_get::<String, _>("content").unwrap(),
+                "createdAt": row.try_get::<chrono::DateTime<chrono::Utc>, _>("created_at").unwrap(),
+                "username": row.try_get::<Option<String>, _>("username").ok().flatten(),
+                "avatarUrl": row.try_get::<Option<String>, _>("avatar_url").ok().flatten()
+            })
+        })
+        .collect();
+
+    Ok(Json(json!({
+        "success": true,
+        "data": comment_list
+    })))
+}
+
+// Add comment to post
+async fn add_post_comment(
+    State(db): State<Database>,
+    Path(id): Path<Uuid>,
+    claims: Claims,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let content = payload["content"]
+        .as_str()
+        .ok_or(StatusCode::BAD_REQUEST)?;
+
+    let comment_id = sqlx::query_scalar::<_, Uuid>(
+        r#"
+        INSERT INTO post_comments (post_id, user_id, content, created_at)
+        VALUES ($1, $2, $3, NOW())
+        RETURNING id
+        "#
+    )
+    .bind(id)
+    .bind(&claims.sub)
+    .bind(content)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({
+        "success": true,
+        "data": {
+            "id": comment_id,
+            "content": content
+        }
+    })))
+}
+
+// Delete comment
+async fn delete_post_comment(
+    State(db): State<Database>,
+    Path((_post_id, comment_id)): Path<(Uuid, Uuid)>,
+    claims: Claims,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    sqlx::query(
+        "DELETE FROM post_comments WHERE id = $1 AND user_id = $2"
+    )
+    .bind(comment_id)
+    .bind(&claims.sub)
+    .execute(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({
+        "success": true
+    })))
 }

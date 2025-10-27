@@ -633,6 +633,44 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        // Post likes table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS post_likes (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                UNIQUE(post_id, user_id)
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_post_likes_post ON post_likes(post_id)")
+            .execute(&self.pool)
+            .await?;
+
+        // Post comments table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS post_comments (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id)")
+            .execute(&self.pool)
+            .await?;
+
         println!("✅ Database migrations completed successfully!");
         Ok(())
     }

@@ -114,4 +114,20 @@ impl RedisClient {
             }
         }
     }
+
+    /// Get Redis statistics
+    pub async fn get_stats(&mut self) -> anyhow::Result<serde_json::Value> {
+        let info: String = redis::cmd("INFO")
+            .query_async(&mut self.connection)
+            .await?;
+
+        let mut stats = serde_json::Map::new();
+        for line in info.lines() {
+            if let Some((key, value)) = line.split_once(':') {
+                stats.insert(key.to_string(), serde_json::Value::String(value.to_string()));
+            }
+        }
+
+        Ok(serde_json::Value::Object(stats))
+    }
 }
