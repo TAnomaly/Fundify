@@ -18,6 +18,7 @@ pub struct PostQuery {
     pub page: Option<u32>,
     pub limit: Option<u32>,
     pub user_id: Option<String>,
+    pub current_user_id: Option<String>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -161,11 +162,13 @@ async fn get_posts(
                 u.avatar as author_avatar,
                 u.is_creator as author_is_creator,
                 COALESCE(l.like_count, 0) as like_count,
-                COALESCE(c.comment_count, 0) as comment_count
+                COALESCE(c.comment_count, 0) as comment_count,
+                CASE WHEN ul.user_id IS NOT NULL THEN true ELSE false END as user_liked
             FROM posts p
             LEFT JOIN users u ON p.user_id = u.id
             LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM post_likes GROUP BY post_id) l ON l.post_id = p.id
             LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM post_comments GROUP BY post_id) c ON c.post_id = p.id
+            LEFT JOIN post_likes ul ON ul.post_id = p.id AND ul.user_id = $4
             WHERE p.user_id = $1
             ORDER BY p.created_at DESC
             LIMIT $2 OFFSET $3
@@ -174,6 +177,7 @@ async fn get_posts(
         .bind(&user_id)
         .bind(limit_i64)
         .bind(offset_i64)
+        .bind(params.current_user_id.as_ref().unwrap_or(&"".to_string()))
         .fetch_all(&db.pool)
         .await
         .map_err(|e| {
@@ -212,17 +216,20 @@ async fn get_posts(
                 u.avatar as author_avatar,
                 u.is_creator as author_is_creator,
                 COALESCE(l.like_count, 0) as like_count,
-                COALESCE(c.comment_count, 0) as comment_count
+                COALESCE(c.comment_count, 0) as comment_count,
+                CASE WHEN ul.user_id IS NOT NULL THEN true ELSE false END as user_liked
             FROM posts p
             LEFT JOIN users u ON p.user_id = u.id
             LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM post_likes GROUP BY post_id) l ON l.post_id = p.id
             LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM post_comments GROUP BY post_id) c ON c.post_id = p.id
+            LEFT JOIN post_likes ul ON ul.post_id = p.id AND ul.user_id = $3
             ORDER BY p.created_at DESC
             LIMIT $1 OFFSET $2
             "#,
         )
         .bind(limit_i64)
         .bind(offset_i64)
+        .bind(params.current_user_id.as_ref().unwrap_or(&"".to_string()))
         .fetch_all(&db.pool)
         .await
         .map_err(|e| {
@@ -710,6 +717,7 @@ fn map_post(record: PostRecord) -> CreatorPostResponse {
         author_is_creator,
         like_count,
         comment_count,
+        user_liked,
     } = record;
 
     let content = content.unwrap_or_default();
@@ -749,7 +757,7 @@ fn map_post(record: PostRecord) -> CreatorPostResponse {
         minimum_tier_id: None,
         like_count: like_count.unwrap_or(0),
         comment_count: comment_count.unwrap_or(0),
-        is_liked: false, // Will be updated based on user context
+        is_liked: user_liked.unwrap_or(false),
         published: true,
         published_at: Some(created_at),
         created_at,
