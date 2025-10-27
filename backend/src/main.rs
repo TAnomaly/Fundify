@@ -32,8 +32,8 @@ use routes::{
     analytics::analytics_routes, articles::articles_routes, auth::auth_routes,
     campaigns::campaign_routes, creators::creator_routes, events::event_routes, feed::feed_routes,
     podcasts::podcast_routes, posts::post_routes, products::product_routes,
-    purchases::purchase_routes, referrals::referral_routes, uploads::upload_routes,
-    users::user_routes,
+    purchases::purchase_routes, referrals::referral_routes, search::search_routes,
+    uploads::upload_routes, users::user_routes,
 };
 
 #[tokio::main]
@@ -111,6 +111,7 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api/articles", articles_routes())
         .nest("/api/referrals", referral_routes())
         .nest("/api/podcasts", podcast_routes())
+        .nest("/api/search", search_routes())
         .nest("/api/upload", upload_routes())
         .route("/api/notifications", get(get_notifications))
         .route("/api/subscriptions/my-subscribers", get(get_my_subscribers))

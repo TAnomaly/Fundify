@@ -10,5 +10,6 @@ pub mod posts;
 pub mod products;
 pub mod purchases;
 pub mod referrals;
+pub mod search;
 pub mod uploads;
 pub mod users;
