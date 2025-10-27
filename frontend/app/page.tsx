@@ -205,7 +205,7 @@ export default function Home() {
                   <motion.div
                     key={signal.label}
                     whileHover={{ y: -4 }}
-                    className="rounded-2xl border border-border/30 bg-secondary/60 p-5 transition-shadow hover:shadow-soft-hover"
+                    className="rounded-2xl border border-border/20 bg-secondary/40 p-5 shadow-elegant hover:shadow-elegant-md transition-all"
                   >
                     <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground/70">{signal.label}</p>
                     <p className="mt-3 font-display text-3xl text-gradient">{signal.value}</p>

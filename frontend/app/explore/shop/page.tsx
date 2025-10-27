@@ -243,7 +243,7 @@ export default function ShopPage() {
                         : heroStats.map((stat) => (
                               <div
                                   key={stat.label}
-                                  className="rounded-2xl border border-border/40 bg-background/70 p-4 backdrop-blur-sm"
+                                  className="rounded-2xl border border-border/20 bg-background/40 p-4 backdrop-blur-sm shadow-elegant"
                               >
                                   <p className="text-xs uppercase tracking-wide text-muted-foreground">
                                       {stat.label}

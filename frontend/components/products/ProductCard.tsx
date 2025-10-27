@@ -41,7 +41,7 @@ export default function ProductCard({ product, onBuy, className, showCreator = t
             containerClassName={cn("w-full h-full !py-0", className)}
             className="w-full"
         >
-            <CardBody className="bg-card/60 group/card dark:bg-card/80 backdrop-blur-sm relative w-full !h-full !w-full rounded-xl p-5 border border-border/30 shadow-sm transition-all duration-300">
+            <CardBody className="bg-card/40 group/card dark:bg-card/50 backdrop-blur-sm relative w-full !h-full !w-full rounded-xl p-5 border border-border/20 shadow-elegant transition-all duration-300 hover:shadow-elegant-md">
                 <div className="absolute top-5 left-5 flex gap-2">
                     <Badge variant={product.isFeatured ? "default" : "secondary"} className="text-xs">
                         {productType}
