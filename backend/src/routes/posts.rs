@@ -898,8 +898,10 @@ async fn get_post_comments(
                 "userId": row.try_get::<String, _>("user_id").unwrap(),
                 "content": row.try_get::<String, _>("content").unwrap(),
                 "createdAt": row.try_get::<chrono::DateTime<chrono::Utc>, _>("created_at").unwrap(),
-                "username": row.try_get::<Option<String>, _>("username").ok().flatten(),
-                "avatarUrl": row.try_get::<Option<String>, _>("avatar_url").ok().flatten()
+                "user": {
+                    "username": row.try_get::<Option<String>, _>("username").ok().flatten(),
+                    "avatar": row.try_get::<Option<String>, _>("avatar_url").ok().flatten()
+                }
             })
         })
         .collect();
@@ -921,11 +923,12 @@ async fn add_post_comment(
         .as_str()
         .ok_or(StatusCode::BAD_REQUEST)?;
 
-    let comment_id = sqlx::query_scalar::<_, Uuid>(
+    // Insert comment and get the full comment data with user info
+    let comment = sqlx::query(
         r#"
         INSERT INTO post_comments (post_id, user_id, content, created_at)
         VALUES ($1, $2, $3, NOW())
-        RETURNING id
+        RETURNING id, user_id, content, created_at
         "#
     )
     .bind(id)
@@ -935,11 +938,31 @@ async fn add_post_comment(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    // Get user info
+    let user = sqlx::query(
+        r#"
+        SELECT username, avatar_url, name
+        FROM users
+        WHERE id = $1
+        "#
+    )
+    .bind(&claims.sub)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
     Ok(Json(json!({
         "success": true,
         "data": {
-            "id": comment_id,
-            "content": content
+            "id": comment.try_get::<Uuid, _>("id").unwrap(),
+            "userId": comment.try_get::<String, _>("user_id").unwrap(),
+            "content": comment.try_get::<String, _>("content").unwrap(),
+            "createdAt": comment.try_get::<chrono::DateTime<chrono::Utc>, _>("created_at").unwrap(),
+            "user": {
+                "username": user.try_get::<Option<String>, _>("username").ok().flatten(),
+                "avatar": user.try_get::<Option<String>, _>("avatar_url").ok().flatten(),
+                "name": user.try_get::<Option<String>, _>("name").ok().flatten()
+            }
         }
     })))
 }

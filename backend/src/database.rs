@@ -297,7 +297,7 @@ impl Database {
             r#"
             CREATE TABLE IF NOT EXISTS podcasts (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                creator_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 title VARCHAR(255) NOT NULL,
                 description TEXT,
                 category VARCHAR(100) DEFAULT 'Technology',
@@ -338,6 +338,21 @@ impl Database {
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_podcast_creator ON podcasts(creator_id)")
             .execute(&self.pool)
             .await?;
+
+        // Fix podcasts.creator_id type to match users.id
+        sqlx::query("ALTER TABLE podcasts DROP CONSTRAINT IF EXISTS podcasts_creator_id_fkey")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("ALTER TABLE podcasts ALTER COLUMN creator_id TYPE TEXT")
+            .execute(&self.pool)
+            .await
+            .ok(); // Ignore error if already TEXT
+
+        sqlx::query("ALTER TABLE podcasts ADD CONSTRAINT podcasts_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE")
+            .execute(&self.pool)
+            .await
+            .ok(); // Ignore error if constraint already exists
 
         sqlx::query(
             "CREATE INDEX IF NOT EXISTS idx_podcast_episode_podcast ON podcast_episodes(podcast_id)",
