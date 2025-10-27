@@ -184,13 +184,18 @@ async fn get_podcasts(
 
     let mut count_builder =
         QueryBuilder::<Postgres>::new("SELECT COUNT(*)::BIGINT FROM podcasts p");
-    {
-        let mut separated = count_builder.separated(" WHERE ");
-        if let Some(ref creator_id) = creator_id {
-            separated.push("p.creator_id = ").push_bind(creator_id);
-        }
-        if !include_drafts {
-            separated.push("p.status = 'PUBLISHED'");
+
+    let mut has_where = false;
+    if let Some(ref creator_id) = creator_id {
+        count_builder.push(" WHERE p.creator_id = ");
+        count_builder.push_bind(creator_id);
+        has_where = true;
+    }
+    if !include_drafts {
+        if has_where {
+            count_builder.push(" AND p.status = 'PUBLISHED'");
+        } else {
+            count_builder.push(" WHERE p.status = 'PUBLISHED'");
         }
     }
 
@@ -229,13 +234,17 @@ async fn get_podcasts(
         "#,
     );
 
-    {
-        let mut separated = list_builder.separated(" WHERE ");
-        if let Some(ref creator_id) = creator_id {
-            separated.push("p.creator_id = ").push_bind(creator_id);
-        }
-        if !include_drafts {
-            separated.push("p.status = 'PUBLISHED'");
+    let mut has_where = false;
+    if let Some(ref creator_id) = creator_id {
+        list_builder.push(" WHERE p.creator_id = ");
+        list_builder.push_bind(creator_id);
+        has_where = true;
+    }
+    if !include_drafts {
+        if has_where {
+            list_builder.push(" AND p.status = 'PUBLISHED'");
+        } else {
+            list_builder.push(" WHERE p.status = 'PUBLISHED'");
         }
     }
 

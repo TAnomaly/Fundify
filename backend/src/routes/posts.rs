@@ -38,6 +38,8 @@ struct PostRecord {
     author_username: Option<String>,
     author_avatar: Option<String>,
     author_is_creator: Option<bool>,
+    like_count: Option<i64>,
+    comment_count: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -139,7 +141,7 @@ async fn get_posts(
     let (posts, total) = if let Some(user_id) = params.user_id.clone() {
         let posts = sqlx::query_as::<_, PostRecord>(
             r#"
-            SELECT 
+            SELECT
                 p.id,
                 p.user_id,
                 p.title,
@@ -155,9 +157,13 @@ async fn get_posts(
                 u.name as author_name,
                 u.username as author_username,
                 u.avatar as author_avatar,
-                u.is_creator as author_is_creator
+                u.is_creator as author_is_creator,
+                COALESCE(l.like_count, 0) as like_count,
+                COALESCE(c.comment_count, 0) as comment_count
             FROM posts p
             LEFT JOIN users u ON p.user_id = u.id
+            LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM post_likes GROUP BY post_id) l ON l.post_id = p.id
+            LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM post_comments GROUP BY post_id) c ON c.post_id = p.id
             WHERE p.user_id = $1
             ORDER BY p.created_at DESC
             LIMIT $2 OFFSET $3
@@ -186,7 +192,7 @@ async fn get_posts(
     } else {
         let posts = sqlx::query_as::<_, PostRecord>(
             r#"
-            SELECT 
+            SELECT
                 p.id,
                 p.user_id,
                 p.title,
@@ -202,9 +208,13 @@ async fn get_posts(
                 u.name as author_name,
                 u.username as author_username,
                 u.avatar as author_avatar,
-                u.is_creator as author_is_creator
+                u.is_creator as author_is_creator,
+                COALESCE(l.like_count, 0) as like_count,
+                COALESCE(c.comment_count, 0) as comment_count
             FROM posts p
             LEFT JOIN users u ON p.user_id = u.id
+            LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM post_likes GROUP BY post_id) l ON l.post_id = p.id
+            LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM post_comments GROUP BY post_id) c ON c.post_id = p.id
             ORDER BY p.created_at DESC
             LIMIT $1 OFFSET $2
             "#,
@@ -265,7 +275,7 @@ async fn get_posts_by_creator(
 
     let posts = sqlx::query_as::<_, PostRecord>(
         r#"
-        SELECT 
+        SELECT
             p.id,
             p.user_id,
             p.title,
@@ -281,9 +291,13 @@ async fn get_posts_by_creator(
             u.name as author_name,
             u.username as author_username,
             u.avatar as author_avatar,
-            u.is_creator as author_is_creator
+            u.is_creator as author_is_creator,
+            COALESCE(l.like_count, 0) as like_count,
+            COALESCE(c.comment_count, 0) as comment_count
         FROM posts p
         LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM post_likes GROUP BY post_id) l ON l.post_id = p.id
+        LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM post_comments GROUP BY post_id) c ON c.post_id = p.id
         WHERE p.user_id = $1
         ORDER BY p.created_at DESC
         LIMIT $2 OFFSET $3
@@ -692,6 +706,8 @@ fn map_post(record: PostRecord) -> CreatorPostResponse {
         author_username,
         author_avatar,
         author_is_creator,
+        like_count,
+        comment_count,
     } = record;
 
     let content = content.unwrap_or_default();
@@ -729,8 +745,8 @@ fn map_post(record: PostRecord) -> CreatorPostResponse {
         attachments: None,
         is_public: !is_premium,
         minimum_tier_id: None,
-        like_count: 0,
-        comment_count: 0,
+        like_count: like_count.unwrap_or(0),
+        comment_count: comment_count.unwrap_or(0),
         published: true,
         published_at: Some(created_at),
         created_at,
@@ -762,7 +778,7 @@ fn generate_excerpt(content: &str) -> Option<String> {
 async fn fetch_post_with_author(db: &Database, post_id: Uuid) -> Result<PostRecord, StatusCode> {
     sqlx::query_as::<_, PostRecord>(
         r#"
-        SELECT 
+        SELECT
             p.id,
             p.user_id,
             p.title,
@@ -778,9 +794,13 @@ async fn fetch_post_with_author(db: &Database, post_id: Uuid) -> Result<PostReco
             u.name as author_name,
             u.username as author_username,
             u.avatar as author_avatar,
-            u.is_creator as author_is_creator
+            u.is_creator as author_is_creator,
+            COALESCE(l.like_count, 0) as like_count,
+            COALESCE(c.comment_count, 0) as comment_count
         FROM posts p
         LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM post_likes GROUP BY post_id) l ON l.post_id = p.id
+        LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM post_comments GROUP BY post_id) c ON c.post_id = p.id
         WHERE p.id = $1
         "#,
     )
