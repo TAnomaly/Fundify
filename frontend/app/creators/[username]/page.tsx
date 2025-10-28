@@ -571,7 +571,7 @@ const PostCard = ({ post, onEngagementUpdate }: PostCardProps) => {
     setLikeCount(previousCount + (previousLiked ? -1 : 1));
 
     try {
-      const response = await postEngagementApi.toggleLike(post.id);
+      const response = await postEngagementApi.toggleLike(post.id, previousLiked);
 
       if (!response.success) {
         throw new Error(response.message || "Failed to toggle like");

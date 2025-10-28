@@ -288,8 +288,9 @@ export const authApi = {
 };
 
 export const postEngagementApi = {
-  toggleLike: async (postId: string): Promise<{ success: boolean; liked: boolean; message?: string; data?: { likeCount: number } }> => {
-    const { data } = await api.post(`/posts/${postId}/like`);
+  toggleLike: async (postId: string, currentlyLiked: boolean = false): Promise<{ success: boolean; liked: boolean; message?: string; data?: { likeCount: number } }> => {
+    const endpoint = currentlyLiked ? 'unlike' : 'like';
+    const { data } = await api.post(`/posts/${postId}/${endpoint}`);
     return data;
   },
   getComments: async (postId: string): Promise<{ success: boolean; data: Comment[] }> => {

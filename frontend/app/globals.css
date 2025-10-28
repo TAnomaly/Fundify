@@ -4,32 +4,32 @@
 
 @layer base {
   :root {
-    /* Doom Emacs inspired with sage green & egg shell white */
-    --background: 0 0% 98%;             /* Doom light background #fafafa */
-    --foreground: 145 22% 18%;          /* Deep forest green for text */
-    --card: 0 0% 99%;                   /* Almost white cards */
-    --card-foreground: 145 22% 18%;
-    --popover: 0 0% 99%;
-    --popover-foreground: 145 22% 18%;
-    --primary: 145 38% 42%;             /* Sage green primary */
-    --primary-foreground: 0 0% 99%;
-    --secondary: 145 12% 94%;           /* Soft sage mist */
-    --secondary-foreground: 145 24% 22%;
-    --accent: 38 45% 65%;               /* Warm terracotta accent */
-    --accent-foreground: 145 22% 18%;
-    --destructive: 6 55% 48%;
-    --destructive-foreground: 0 0% 99%;
-    --muted: 145 10% 90%;               /* Pale sage */
-    --muted-foreground: 145 16% 38%;
-    --border: 145 15% 85%;              /* Sage border */
-    --input: 145 15% 88%;
-    --ring: 145 38% 42%;
+    /* Renaissance marble sculpture white with creative sage green */
+    --background: 40 30% 96%;           /* Warm marble white #f7f5f2 */
+    --foreground: 145 25% 15%;          /* Deep creative forest green */
+    --card: 40 35% 98%;                 /* Pure marble cards */
+    --card-foreground: 145 25% 15%;
+    --popover: 40 35% 98%;
+    --popover-foreground: 145 25% 15%;
+    --primary: 145 50% 45%;             /* Creative vibrant sage green */
+    --primary-foreground: 40 35% 98%;
+    --secondary: 145 15% 92%;           /* Soft sage mist */
+    --secondary-foreground: 145 28% 20%;
+    --accent: 38 48% 62%;               /* Warm creative terracotta */
+    --accent-foreground: 145 25% 15%;
+    --destructive: 6 58% 50%;
+    --destructive-foreground: 40 35% 98%;
+    --muted: 145 12% 88%;               /* Pale sage */
+    --muted-foreground: 145 18% 35%;
+    --border: 145 18% 82%;              /* Sage border */
+    --input: 145 18% 85%;
+    --ring: 145 50% 45%;
     --radius: 0.5rem;
-    --chart-1: 145 38% 42%;
-    --chart-2: 38 45% 65%;
-    --chart-3: 165 32% 48%;
-    --chart-4: 35 50% 58%;
-    --chart-5: 155 28% 52%;
+    --chart-1: 145 50% 45%;
+    --chart-2: 38 48% 62%;
+    --chart-3: 165 35% 48%;
+    --chart-4: 35 52% 58%;
+    --chart-5: 155 30% 52%;
   }
 
   .dark {
