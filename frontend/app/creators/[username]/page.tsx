@@ -111,7 +111,7 @@ export default function CreatorProfilePage() {
           break;
         case "podcast":
           response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/podcasts?creatorId=${profile.user.id}`);
-          if (response.data.success) setPodcasts(response.data.data || []);
+          if (response.data.success) setPodcasts(response.data.data.podcasts || []);
           break;
         case "events":
           response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events?hostId=${profile.user.id}`);

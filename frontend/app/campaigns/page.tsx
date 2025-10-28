@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { campaignApi } from "@/lib/api";
 import { Campaign } from "@/lib/types";
 import { CampaignCard } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { BlurFade } from "@/components/ui/blur-fade";
+import { Pagination } from "@/components/ui/pagination";
 import toast from "react-hot-toast";
 
 const categories = [
@@ -27,7 +27,7 @@ export default function CampaignsPage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
 
   const loadCampaigns = useCallback(async () => {
     setIsLoading(true);
@@ -48,13 +48,9 @@ export default function CampaignsPage() {
         const data = response.data as any;
         const campaignData = Array.isArray(response.data) ? response.data : (data.campaigns || []);
         console.log('Campaign Data:', campaignData);
-        if (page === 1) {
-          setCampaigns(campaignData);
-        } else {
-          setCampaigns((prev) => [...prev, ...campaignData]);
-        }
+        setCampaigns(campaignData);
         const pagination = data.pagination;
-        setHasMore(pagination ? pagination.page < pagination.pages : false);
+        setTotalPages(pagination?.pages || 1);
       } else {
         console.log('No success or data in response:', response);
       }
@@ -88,7 +84,7 @@ export default function CampaignsPage() {
         const data = response.data as any;
         const campaignData = Array.isArray(response.data) ? response.data : (data.campaigns || []);
         setCampaigns(campaignData);
-        setHasMore(false);
+        setTotalPages(1);
       }
     } catch (error) {
       console.error("Failed to search campaigns:", error);
@@ -104,8 +100,9 @@ export default function CampaignsPage() {
     setCampaigns([]);
   };
 
-  const loadMore = () => {
-    setPage((prev) => prev + 1);
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const filteredCampaigns = campaigns.filter((campaign) =>
@@ -216,17 +213,14 @@ export default function CampaignsPage() {
               ))}
             </div>
 
-            {/* Load More Button */}
-            {hasMore && !searchQuery && (
-              <div className="flex justify-center">
-                <Button
-                  onClick={loadMore}
-                  disabled={isLoading}
-                  variant="gradient"
-                  size="lg"
-                >
-                  {isLoading ? "Loading..." : "Load More Campaigns"}
-                </Button>
+            {/* Pagination */}
+            {totalPages > 1 && !searchQuery && (
+              <div className="flex justify-center mt-12">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
               </div>
             )}
           </>
