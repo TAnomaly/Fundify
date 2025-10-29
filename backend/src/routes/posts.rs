@@ -856,6 +856,16 @@ async fn like_post(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    // Check if user actually liked this post (to handle ON CONFLICT case)
+    let user_liked = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM post_likes WHERE post_id = $1 AND user_id = $2)"
+    )
+    .bind(id)
+    .bind(&claims.sub)
+    .fetch_one(&db.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
     let likes_count = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*)::BIGINT FROM post_likes WHERE post_id = $1"
     )
@@ -866,9 +876,9 @@ async fn like_post(
 
     Ok(Json(json!({
         "success": true,
+        "liked": user_liked,
         "data": {
-            "liked": true,
-            "likesCount": likes_count
+            "likeCount": likes_count
         }
     })))
 }
@@ -898,9 +908,9 @@ async fn unlike_post(
 
     Ok(Json(json!({
         "success": true,
+        "liked": false,
         "data": {
-            "liked": false,
-            "likesCount": likes_count
+            "likeCount": likes_count
         }
     })))
 }
