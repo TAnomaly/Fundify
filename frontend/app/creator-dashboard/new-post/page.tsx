@@ -62,9 +62,9 @@ export default function NewPostPage() {
       const postData = {
         ...formData,
         type: postType,
-        images: (postType === 'IMAGE' || postType === 'MIXED') ? images : [],
-        videoUrl: (postType === 'VIDEO' || postType === 'MIXED') ? (videoUrl || undefined) : undefined,
-        audioUrl: (postType === 'AUDIO') ? (audioUrl || undefined) : undefined,
+        images: images.length > 0 ? images : undefined,
+        videoUrl: videoUrl || undefined,
+        audioUrl: audioUrl || undefined,
         publishedAt: new Date().toISOString(),
       };
 
@@ -213,7 +213,6 @@ export default function NewPostPage() {
                   onVideoChange={setVideoUrl}
                   maxImages={10}
                   allowVideo={true}
-                  allowAttachments={false}
                 />
               </div>
 
