@@ -81,23 +81,68 @@ impl Database {
     pub async fn run_migrations(&self) -> anyhow::Result<()> {
         println!("🔄 Running database migrations...");
 
-        // Run SQLx migrations from migrations/ directory
-        sqlx::migrate!("./migrations")
-            .run(&self.pool)
-            .await
-            .map_err(|e| {
-                warn!("SQLx migrations failed: {}", e);
-                anyhow::anyhow!("Migration error: {}", e)
-            })?;
-
-        println!("✅ Database migrations completed successfully");
-
         if let Err(error) = sqlx::query(r#"CREATE EXTENSION IF NOT EXISTS "pgcrypto""#)
             .execute(&self.pool)
             .await
         {
             warn!("Skipping pgcrypto extension setup: {}", error);
         }
+
+        // Create podcasts tables
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS podcasts (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                title TEXT NOT NULL,
+                description TEXT,
+                category TEXT DEFAULT 'Technology',
+                language TEXT DEFAULT 'English',
+                status TEXT DEFAULT 'PUBLISHED' CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),
+                cover_image TEXT,
+                spotify_show_url TEXT,
+                external_feed_url TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS podcast_episodes (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                podcast_id UUID NOT NULL REFERENCES podcasts(id) ON DELETE CASCADE,
+                title TEXT NOT NULL,
+                description TEXT,
+                episode_number INTEGER,
+                duration INTEGER,
+                audio_url TEXT NOT NULL,
+                status TEXT DEFAULT 'PUBLISHED' CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),
+                spotify_episode_url TEXT,
+                published_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Create indexes
+        let _ = sqlx::query("CREATE INDEX IF NOT EXISTS idx_podcasts_creator_id ON podcasts(creator_id)")
+            .execute(&self.pool)
+            .await;
+        let _ = sqlx::query("CREATE INDEX IF NOT EXISTS idx_podcasts_status ON podcasts(status)")
+            .execute(&self.pool)
+            .await;
+        let _ = sqlx::query("CREATE INDEX IF NOT EXISTS idx_podcast_episodes_podcast_id ON podcast_episodes(podcast_id)")
+            .execute(&self.pool)
+            .await;
+
+        println!("✅ Podcast tables created successfully");
 
         // Create tables if they don't exist
         sqlx::query(
