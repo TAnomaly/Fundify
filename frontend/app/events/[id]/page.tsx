@@ -124,13 +124,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             const token = localStorage.getItem("authToken");
             const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/events/${event.id}/rsvp`, { status }, { headers: { Authorization: `Bearer ${token}` } });
 
-            // Update rsvpCount immediately from response
-            if (response.data.success && response.data.data.rsvpCount !== undefined && event) {
-                setEvent({ ...event, rsvpCount: response.data.data.rsvpCount });
-            }
-
             toast.success(status === "GOING" ? "You're going! 🎉" : status === "MAYBE" ? "Marked as maybe" : "RSVP cancelled");
-            loadEvent();
+
+            // Reload event to get fresh data including updated count
+            await loadEvent();
         } catch (error) {
             toast.error("Failed to update RSVP.");
         }
