@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import SocialShare from "@/components/SocialShare";
 import EventPaymentModal from "@/components/EventPaymentModal";
-import { Calendar, Clock, MapPin, Video, Users, Ticket, ArrowLeft, Share2, CheckCircle, HelpCircle, XCircle, Heart } from "lucide-react";
+import { Calendar, Clock, MapPin, Video, Users, Ticket, ArrowLeft, Share2, CheckCircle, HelpCircle, XCircle, Heart, CreditCard } from "lucide-react";
 
 // Interfaces
 interface EventHost {
@@ -253,11 +253,28 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                                     <p className="text-2xl font-bold text-center">{event.price > 0 ? `$${event.price}` : 'Free'}</p>
                                     {userRSVP?.status === 'GOING' ? (
                                         <div className="text-center space-y-2">
-                                            <p className="font-semibold text-green-500 flex items-center justify-center gap-2"><CheckCircle className="w-5 h-5" /> You are going!</p>
-                                            {(event.price === 0 || userRSVP?.isPaid) && (
-                                                <Button onClick={() => router.push(`/events/${event.id}/ticket`)} className="w-full">
-                                                    <Ticket className="w-4 h-4 mr-2" />View Ticket
-                                                </Button>
+                                            {/* Show ticket only if: free event OR paid event with payment completed */}
+                                            {event.price === 0 ? (
+                                                <>
+                                                    <p className="font-semibold text-green-500 flex items-center justify-center gap-2"><CheckCircle className="w-5 h-5" /> You are going!</p>
+                                                    <Button onClick={() => router.push(`/events/${event.id}/ticket`)} className="w-full">
+                                                        <Ticket className="w-4 h-4 mr-2" />View Ticket
+                                                    </Button>
+                                                </>
+                                            ) : userRSVP?.isPaid ? (
+                                                <>
+                                                    <p className="font-semibold text-green-500 flex items-center justify-center gap-2"><CheckCircle className="w-5 h-5" /> Payment complete!</p>
+                                                    <Button onClick={() => router.push(`/events/${event.id}/ticket`)} className="w-full">
+                                                        <Ticket className="w-4 h-4 mr-2" />View Ticket
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="font-semibold text-amber-500 flex items-center justify-center gap-2"><HelpCircle className="w-5 h-5" /> Payment required</p>
+                                                    <Button onClick={() => setShowPaymentModal(true)} variant="gradient" className="w-full">
+                                                        <CreditCard className="w-4 h-4 mr-2" />Complete Payment (${event.price})
+                                                    </Button>
+                                                </>
                                             )}
                                             <Button onClick={() => handleRSVP("NOT_GOING")} variant="link" className="text-xs text-muted-foreground">Cancel RSVP</Button>
                                         </div>
