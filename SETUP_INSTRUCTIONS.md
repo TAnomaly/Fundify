@@ -6,28 +6,32 @@ This document contains **critical manual setup steps** required after deployment
 
 ---
 
-## ⚠️ Required Manual Steps
+## ✅ Automatic Database Migrations (No Manual Steps!)
 
-### 1. Podcast Tables Setup (Railway Database)
+### SQLx Migration System
 
-**Status**: 🔴 **REQUIRED** - Podcast tab won't work without this
+**Status**: ✅ **AUTOMATIC** - Runs on every deployment!
 
-**Why**: PostgreSQL database is missing `podcasts` and `podcast_episodes` tables
+**How it works**:
+1. Backend starts on Railway
+2. SQLx checks `migrations/` directory
+3. Runs pending migrations automatically
+4. Database tables created/updated
+5. No manual intervention needed!
 
-**Steps**:
-1. Go to [Railway Dashboard](https://railway.app)
-2. Select your project → Database
-3. Click "Query" tab
-4. Copy the contents of `/backend/create_podcasts_table.sql`
-5. Paste into query editor
-6. Click "Execute"
+**Migration Files**:
+- `migrations/20251029000001_create_podcasts_tables.sql`
+  - Creates `podcasts` table
+  - Creates `podcast_episodes` table
+  - Adds performance indexes
 
-**SQL File Location**: `backend/create_podcasts_table.sql`
-
-**What it creates**:
-- `podcasts` table with creator relationship
-- `podcast_episodes` table with audio URLs
-- Performance indexes for fast queries
+**Why SQLx instead of manual SQL**:
+- ✅ Automatic on every deployment
+- ✅ Version controlled migrations
+- ✅ Idempotent (safe to run multiple times)
+- ✅ No manual Railway console access needed
+- ✅ Professional database management
+- ✅ Rollback support if needed
 
 ---
 
@@ -110,11 +114,12 @@ Already configured in Vercel dashboard:
 
 ## 📝 Known Issues
 
-### 🟡 Podcast Tab
-- **Issue**: Shows "Failed to load podcast"
-- **Cause**: Database tables not created
-- **Fix**: Run SQL script (see step 1 above)
-- **Priority**: High
+### ✅ Podcast Tab - FIXED!
+- **Previous Issue**: Shows "Failed to load podcast"
+- **Previous Cause**: Database tables not created
+- **Fix**: SQLx automatic migrations now handle this
+- **Status**: ✅ Fixed with SQLx migrations
+- **No manual action needed**: Tables auto-create on deployment
 
 ---
 
@@ -135,9 +140,10 @@ Cache automatically invalidates on:
 ## 🆘 Troubleshooting
 
 ### Podcast Tab Not Working
-1. Check if SQL script was executed
-2. Verify in Railway Query: `SELECT * FROM podcasts;`
-3. Should return empty result (not error)
+1. ✅ **No longer an issue** - Fixed with SQLx migrations
+2. If still having issues, check backend logs for migration errors
+3. Verify in Railway Query: `SELECT * FROM podcasts;`
+4. Should return empty result (not error)
 
 ### Images Not Showing in Posts
 1. Check Supabase bucket is public

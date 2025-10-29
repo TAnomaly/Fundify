@@ -81,6 +81,17 @@ impl Database {
     pub async fn run_migrations(&self) -> anyhow::Result<()> {
         println!("🔄 Running database migrations...");
 
+        // Run SQLx migrations from migrations/ directory
+        sqlx::migrate!("./migrations")
+            .run(&self.pool)
+            .await
+            .map_err(|e| {
+                warn!("SQLx migrations failed: {}", e);
+                anyhow::anyhow!("Migration error: {}", e)
+            })?;
+
+        println!("✅ Database migrations completed successfully");
+
         if let Err(error) = sqlx::query(r#"CREATE EXTENSION IF NOT EXISTS "pgcrypto""#)
             .execute(&self.pool)
             .await
